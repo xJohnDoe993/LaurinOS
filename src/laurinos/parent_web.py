@@ -1,0 +1,553 @@
+#!/usr/bin/env python3
+"""Elternverwaltung im lokalen Netzwerk."""
+from laurinos.paths import CONFIG_DIR as CONFIG_ROOT
+import hashlib
+import hmac
+import os
+import re
+import secrets
+import threading
+import time
+from laurinos.paths import ASSETS_DIR
+
+def _template(name):
+    return (ASSETS_DIR / "parent-web" / name).read_text(encoding="utf-8")
+
+from datetime import timedelta
+from functools import wraps
+from flask import Flask, abort, flash, redirect, render_template_string, request, session, url_for, send_file, Response, jsonify
+import laurinos.parent as parents
+import laurinos.emulators as emulators
+from laurinos.emulator_install import install_request, InstallError
+import laurinos.controller_profiles as controllers
+from laurinos.state import read_settings
+from laurinos.diagnostics import collect_diagnostics, diagnostics_text
+from laurinos.bluetooth import bluetooth_request, BluetoothError
+from laurinos.wifi import wifi_request, WifiError
+
+CONFIG_DIR = str(CONFIG_ROOT)
+ICONS_DIR = parents.ICONS_DIR
+HOST, PORT = '0.0.0.0', 80
+app = Flask(__name__)
+os.makedirs(CONFIG_DIR, exist_ok=True)
+secret_file = os.path.join(CONFIG_DIR, '.parent-web-secret')
+try:
+    fd = os.open(secret_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+except FileExistsError:
+    pass
+else:
+    with os.fdopen(fd, 'w', encoding='utf-8') as handle:
+        handle.write(secrets.token_hex(32))
+with open(secret_file, encoding='utf-8') as handle:
+    app.secret_key = handle.read().strip()
+if len(app.secret_key) < 32:
+    raise ValueError('Web-Sitzungsschlüssel fehlt oder ist beschädigt.')
+app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Strict',
+                  PERMANENT_SESSION_LIFETIME=timedelta(minutes=30), MAX_CONTENT_LENGTH=2049 * 1024 * 1024)
+attempts = {}
+attempts_lock = threading.Lock()
+
+
+def pin_fingerprint():
+    return hmac.new(app.secret_key.encode(), read_settings()['pin'].encode(), 'sha256').hexdigest()
+
+
+def logged_in():
+    return bool(session.get('parent_authenticated')) and hmac.compare_digest(
+        session.get('pin_fingerprint', ''), pin_fingerprint())
+
+
+def login_required(fn):
+    @wraps(fn)
+    def wrapped(*args, **kwargs):
+        if not logged_in():
+            return redirect(url_for('login', next=request.path))
+        return fn(*args, **kwargs)
+    return wrapped
+
+
+def csrf_token():
+    if 'csrf_token' not in session:
+        session['csrf_token'] = secrets.token_hex(32)
+    return session['csrf_token']
+
+
+app.jinja_env.globals.update(csrf_token=csrf_token, duration=parents.duration, app_active=parents.app_active)
+
+
+@app.before_request
+def check_csrf():
+    if request.method == 'POST':
+        expected, supplied = session.get('csrf_token', ''), request.form.get('csrf_token', '')
+        if not expected or not hmac.compare_digest(expected.encode(), supplied.encode()):
+            abort(400, 'Formular abgelaufen. Bitte Seite neu laden.')
+
+
+@app.after_request
+def response_headers(response):
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['Referrer-Policy'] = 'same-origin'
+    return response
+
+
+BASE = _template('base.html')
+
+
+def render(body, title='Übersicht', section='dashboard'):
+    field = '<input type="hidden" name="csrf_token" value="' + csrf_token() + '">'
+    body = re.sub(r'(<form\b[^>]*method="post"[^>]*>)', lambda m: m.group(1) + field, body)
+    nav = [('Übersicht', 'dashboard'), ('Apps', 'apps_page'), ('Emulatoren', 'emulators_page'), ('Bildschirmzeit', 'time_page'),
+           ('WLAN', 'wifi_page'), ('Bluetooth', 'bluetooth_page'), ('Controller', 'controllers_page'), ('Einstellungen', 'settings_page'), ('Diagnose', 'diagnostics_page')]
+    return render_template_string(BASE, body=body, title=title, section=section,
+                                  authenticated=logged_in(), navigation=nav)
+
+
+@app.errorhandler(400)
+@app.errorhandler(404)
+def http_error(error):
+    return render(render_template_string('''<section class="panel pagehead"><h1>{{ code }}</h1><p>{{ message }}</p><a class="btn" href="{{ url_for('dashboard') }}">Zur Übersicht</a></section>''', code=error.code, message=error.description), 'Hinweis'), error.code
+
+
+@app.errorhandler(413)
+def upload_too_large(error):
+    return render('<section class="panel"><h1>Upload zu groß</h1><p>Spiele: höchstens 1 GB insgesamt; PSP: höchstens 2 GB. Kachelbilder: höchstens 4 MB.</p><a class="btn" href="/apps">Zur App-Verwaltung</a></section>', 'Upload zu groß', 'apps_page'), 413
+
+
+@app.errorhandler(OSError)
+@app.errorhandler(ValueError)
+def data_error(error):
+    app.logger.error('Elternverwaltung: %s', error)
+    # Ohne settings() rendern, falls genau diese Datei beschädigt ist.
+    return render_template_string(BASE, body='<section class="panel"><h1>Daten konnten nicht geladen werden</h1><p>Bitte den lokalen Elternbereich und die Geräte-Diagnose öffnen.</p></section>', title='Datenfehler', authenticated=False), 503
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    next_url = request.values.get('next') or url_for('dashboard')
+    parsed = parents.urllib.parse.urlsplit(next_url)
+    if parsed.netloc or parsed.scheme or not next_url.startswith('/') or next_url.startswith('//') or '\\' in next_url or re.search(r'[\x00-\x20]', next_url):
+        next_url = url_for('dashboard')
+    status = 200
+    if request.method == 'POST':
+        address, now = request.remote_addr or 'local', time.monotonic()
+        with attempts_lock:
+            for key in list(attempts):
+                if now - attempts[key][1] >= 60:
+                    del attempts[key]
+            count, started = attempts.get(address, (0, now))
+            blocked = count >= 5
+            if not blocked:
+                attempts[address] = (count + 1, started)
+        if blocked:
+            flash('Zu viele Versuche. Bitte nach einer Minute erneut versuchen.', 'error')
+            status = 429
+        elif hmac.compare_digest(request.form.get('pin', '').encode(), read_settings()['pin'].encode()):
+            with attempts_lock:
+                attempts.pop(address, None)
+            session.clear()
+            session.update(parent_authenticated=True, pin_fingerprint=pin_fingerprint())
+            session.permanent = True
+            return redirect(next_url)
+        else:
+            flash('Die Eltern-PIN stimmt nicht.', 'error')
+    body = render_template_string(_template('login.html'), next_url=next_url)
+    response = app.make_response((render(body, 'Anmeldung'), status))
+    if status == 429:
+        response.headers['Retry-After'] = '60'
+    return response
+
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+
+BONUS_BUTTONS = _template('bonus-buttons.html')
+STATS = _template('stats.html')
+
+
+@app.route('/')
+@login_required
+def dashboard():
+    st, items = read_settings(), parents.managed_apps()
+    info = parents.usage(st)
+    active = sum(parents.app_active(a, st) for a in items)
+    body = render_template_string('''<div class="pagehead"><div class="eyebrow">Alles im Blick</div><h1>Heute auf LaurinOS</h1><p class="muted">Bildschirmzeit und Apps für den Kinderbereich.</p></div>''' + STATS + _template('dashboard-summary.html') + BONUS_BUTTONS + _template('dashboard-footer.html'), info=info, active=active, count=len(items), third_label='Apps freigegeben', third_value=f'{active} / {len(items)}', return_to='dashboard')
+    return render(body)
+
+
+@app.route('/emulators/diagnostics')
+@login_required
+def emulator_diagnostics():
+    body = render_template_string(_template('emulator-diagnostics.html'), report=emulators.emulator_log())
+    return render(body, 'Emulator-Diagnose', 'emulators_page')
+
+
+@app.route('/emulators/diagnostics/download')
+@login_required
+def emulator_diagnostics_download():
+    return Response(emulators.emulator_log(), mimetype='text/plain', headers={'Content-Disposition': 'attachment; filename="LaurinOS-Emulator-Diagnose.txt"'})
+
+
+@app.route('/emulators/install/status')
+def emulator_install_status():
+    if not logged_in():
+        return jsonify(ok=False, error='Bitte anmelden.'), 401
+    try:
+        return jsonify(install_request())
+    except InstallError as exc:
+        return jsonify(ok=False, error=str(exc)), 503
+
+
+@app.route('/emulators/install', methods=['POST'])
+def emulator_install_action():
+    if not logged_in():
+        return jsonify(ok=False, error='Bitte anmelden.'), 401
+    wants_json = request.accept_mimetypes.best == 'application/json'
+    try:
+        keys = request.form.getlist('systems')
+        if not keys or len(keys) > len(emulators.SYSTEMS) or any(key not in emulators.SYSTEMS for key in keys):
+            raise ValueError('Bitte gültige Konsolen auswählen.')
+        result = install_request('install', keys)
+        if wants_json:
+            return jsonify(result)
+        flash('Installation gestartet. Fortschritt wird auf der Emulator-Seite angezeigt.', 'success')
+    except (ValueError, InstallError) as exc:
+        if wants_json:
+            return jsonify(ok=False, error=str(exc)), 400
+        flash(str(exc), 'error')
+    return redirect(url_for('emulators_page'))
+
+
+@app.route('/emulators', methods=['GET', 'POST'])
+@login_required
+def emulators_page():
+    if request.method == 'POST':
+        try:
+            if request.form.get('action') == 'bios':
+                upload = request.files.get('bios')
+                if not upload or not upload.filename:
+                    raise ValueError('Bitte eine BIOS-Datei auswählen.')
+                emulators.upload_bios(upload)
+                flash('BIOS gespeichert.', 'success')
+            else:
+                emulators.upload_game(request.form.get('system', ''), request.form.get('title', ''), request.files.getlist('roms'))
+                flash('Spiel hochgeladen. Die Kachel erscheint automatisch im Kinder-Menü.', 'success')
+            return redirect(url_for('emulators_page'))
+        except (ValueError, OSError, UnicodeError) as exc:
+            flash(str(exc), 'error')
+    body = render_template_string(_template('emulators.html'), any_ready=any(item['ready'] for item in emulators.status()), systems=emulators.status(), accepts=','.join(sorted(set(ext for value in emulators.SYSTEMS.values() for ext in value[2]) | {'.bin', '.sbi', '.zip'})), bios_report=emulators.bios_inventory(), bios=[name for name in emulators.BIOS if (emulators.ROOT / 'bios' / name).is_file()])
+    return render(body, 'Emulatoren', 'emulators_page')
+
+
+@app.route('/apps')
+@login_required
+def apps_page():
+    st, items = read_settings(), parents.managed_apps()
+    body = render_template_string(_template('apps.html'), st=st, items=items, editable_app=parents.editable_app, deletable_app=parents.deletable_app, app_source_label=parents.app_source_label)
+    return render(body, 'Apps', 'apps_page')
+
+
+@app.route('/icons/<path:name>')
+@login_required
+def icon(name):
+    if '/' in name or '\\' in name or name.startswith('.'):
+        abort(404)
+    path = os.path.join(ICONS_DIR, name)
+    if not os.path.isfile(path):
+        abort(404)
+    return send_file(path)
+
+
+@app.route('/apps/<app_id>/toggle', methods=['POST'])
+@login_required
+def app_toggle(app_id):
+    parents.toggle_app(app_id)
+    flash('App-Freigabe gespeichert.')
+    return redirect(url_for('apps_page'))
+
+
+@app.route('/apps/bulk', methods=['POST'])
+@login_required
+def apps_bulk():
+    active = request.form.get('active')
+    if active not in ('0', '1'):
+        abort(400, 'Ungültige Freigabe.')
+    parents.set_apps_active([a['id'] for a in parents.managed_apps()], active == '1')
+    flash('App-Freigaben gespeichert.')
+    return redirect(url_for('apps_page'))
+
+
+def app_form(item, heading):
+    target, arguments = parents.app_launch_fields(item)
+    target = item.get('target', target)
+    arguments = item.get('arguments', arguments)
+    body = render_template_string(_template('app-form.html'), item=item, heading=heading, target=target, arguments=arguments)
+    return render(body, heading, 'apps_page')
+
+
+def submitted_app(item=None):
+    values = {k: request.form.get(k, '') for k in ('title', 'target', 'arguments', 'icon_url')}
+    # Alte /webapps-Formulare bleiben nutzbar.
+    if 'target' not in request.form:
+        values['target'] = request.form.get('url', '')
+    if item and (item.get('type') == 'camera' or item.get('emulator')):
+        values.update(target='', arguments='')
+    values['category'] = request.form.get('category', 'auto')
+    values['reset_icon'] = request.form.get('reset_icon') == '1'
+    return values
+
+
+def submitted_icon():
+    uploaded = request.files.get('icon_upload')
+    if uploaded and uploaded.filename:
+        return uploaded.read(parents.MAX_ICON_BYTES + 1)
+    return None
+
+
+@app.route('/webapps/new', methods=['GET', 'POST'])
+@app.route('/apps/new', methods=['GET', 'POST'])
+@login_required
+def app_new():
+    item = {}
+    if request.method == 'POST':
+        item = submitted_app()
+        try:
+            parents.save_app(**item, icon_data=submitted_icon())
+        except (ValueError, OSError, TimeoutError) as exc:
+            flash(str(exc), 'error')
+        else:
+            flash('App hinzugefügt.')
+            return redirect(url_for('apps_page'))
+    return app_form(item, 'App hinzufügen')
+
+
+@app.route('/webapps/<app_id>/edit', methods=['GET', 'POST'])
+@app.route('/apps/<app_id>/edit', methods=['GET', 'POST'])
+@login_required
+def app_edit(app_id):
+    item = next((a for a in parents.read_apps() if a.get('id') == app_id and parents.editable_app(a)), None)
+    if item is None:
+        abort(404)
+    if request.method == 'POST':
+        values = submitted_app(item)
+        try:
+            parents.save_app(**values, app_id=app_id, icon_data=submitted_icon())
+        except (ValueError, OSError, TimeoutError) as exc:
+            item = dict(item, **values)
+            flash(str(exc), 'error')
+        else:
+            flash('App gespeichert.')
+            return redirect(url_for('apps_page'))
+    return app_form(item, 'App bearbeiten')
+
+
+@app.route('/webapps/<app_id>/delete', methods=['GET', 'POST'])
+@app.route('/apps/<app_id>/delete', methods=['GET', 'POST'])
+@login_required
+def app_delete(app_id):
+    item = next((a for a in parents.read_apps() if a.get('id') == app_id and parents.deletable_app(a)), None)
+    if item is None:
+        abort(404)
+    if request.method == 'POST':
+        parents.delete_app(app_id)
+        flash('App aus dem Kinder-Menü entfernt. Bei Emulator-Spielen werden auch die hochgeladenen ROM-Dateien entfernt; Spielstände bleiben erhalten. Installierte Programme und Browserprofile bleiben erhalten.')
+        return redirect(url_for('apps_page'))
+    body = render_template_string(_template('app-delete.html'), item=item)
+    return render(body, 'App löschen', 'apps_page')
+
+
+@app.route('/time', methods=['GET', 'POST'])
+@login_required
+def time_page():
+    if request.method == 'POST':
+        try:
+            parents.set_time(request.form.get('daily_limit_minutes'))
+        except ValueError as exc:
+            flash(str(exc), 'error')
+        else:
+            flash('Tageslimit gespeichert.')
+        return redirect(url_for('time_page'))
+    info = parents.usage()
+    body = render_template_string('''<div class="pagehead"><div class="eyebrow">Zeit für heute</div><h1>Bildschirmzeit</h1><p class="muted">Das Tageslimit gilt jeden Tag. Verbrauch und Bonus werden um Mitternacht zurückgesetzt.</p></div>''' + STATS + _template('time-limit-form.html') + BONUS_BUTTONS + _template('time-bonus-form.html'), info=info, third_label='Bonus heute', third_value=f'{info["bonus"]} Min.', return_to='time_page')
+    return render(body, 'Bildschirmzeit', 'time_page')
+
+
+@app.route('/bonus', methods=['POST'])
+@login_required
+def bonus():
+    try:
+        added = parents.add_bonus(request.form.get('minutes'))
+    except ValueError as exc:
+        flash(str(exc), 'error')
+    else:
+        flash(f'{added} Minuten Bonus hinzugefügt.' if added else 'Die maximale Bonuszeit von 600 Minuten ist erreicht.')
+    endpoint = 'time_page' if request.form.get('return_to') == 'time_page' else 'dashboard'
+    return redirect(url_for(endpoint))
+
+
+@app.route('/bonus/clear', methods=['POST'])
+@login_required
+def clear_bonus():
+    parents.clear_bonus()
+    flash('Bonuszeit entfernt.')
+    return redirect(url_for('time_page'))
+
+
+@app.route('/time/reset', methods=['POST'])
+@login_required
+def reset_usage():
+    parents.reset_today()
+    flash('Heutiger Verbrauch und Bonus zurückgesetzt.')
+    return redirect(url_for('time_page'))
+
+
+@app.route('/settings', methods=['GET', 'POST'])
+@login_required
+def settings_page():
+    st = read_settings()
+    if request.method == 'POST':
+        try:
+            st = parents.save_preferences(request.form.get('pin', '').strip(), request.form.get('pin_confirm', '').strip(), request.form.get('bg_color', ''), request.form.get('category_tabs') == '1')
+        except ValueError as exc:
+            flash(str(exc), 'error')
+        else:
+            session['pin_fingerprint'] = pin_fingerprint()
+            flash('Einstellungen gespeichert. Andere Web-Sitzungen müssen sich nach einer PIN-Änderung neu anmelden.')
+            return redirect(url_for('settings_page'))
+    body = render_template_string(_template('settings.html'), st=st)
+    return render(body, 'Einstellungen', 'settings_page')
+
+
+BLUETOOTH_PAGE = _template('bluetooth-page.html')
+
+
+
+
+CONTROLLERS_PAGE = _template('controllers-page.html')
+
+@app.route('/controllers')
+@login_required
+def controllers_page():
+    return render(render_template_string(CONTROLLERS_PAGE), 'Controller', 'controllers_page')
+
+
+@app.route('/controllers/status')
+def controllers_status():
+    if not logged_in():
+        return jsonify(error='Bitte zuerst im Elternbereich anmelden.'), 401
+    try:
+        return jsonify(controllers.status())
+    except controllers.ProfileError as exc:
+        return jsonify(error=str(exc)), 400
+
+
+@app.route('/controllers/action', methods=['POST'])
+def controllers_action():
+    if not logged_in():
+        return jsonify(error='Bitte zuerst im Elternbereich anmelden.'), 401
+    if 'controller_owner' not in session:
+        session['controller_owner'] = secrets.token_hex(24)
+    owner = session['controller_owner']
+    action = request.form.get('action', '')
+    token = request.form.get('token', '')
+    try:
+        if action == 'start':
+            return jsonify(controllers.calibration.start(request.form.get('device', ''), owner))
+        if action == 'reset':
+            if controllers.calibration_active():
+                raise controllers.ProfileError('Bitte die geöffnete Konfiguration zuerst schließen.')
+            controllers.reset_profile(request.form.get('profile', ''))
+            return jsonify(reset=True)
+        if action == 'capture':
+            return jsonify(controllers.calibration.capture(token, owner, request.form.get('control', '')))
+        return jsonify(controllers.calibration.action(action, token, owner, request.form.get('control', '')))
+    except controllers.ProfileError as exc:
+        return jsonify(error=str(exc)), 400
+
+@app.route('/bluetooth')
+@login_required
+def bluetooth_page():
+    return render(render_template_string(BLUETOOTH_PAGE), 'Bluetooth', 'bluetooth_page')
+
+
+@app.route('/bluetooth/status')
+def bluetooth_status():
+    if not logged_in():
+        return jsonify(error='Bitte im Elternbereich anmelden.'), 401
+    try:
+        return jsonify(bluetooth_request())
+    except BluetoothError as exc:
+        return jsonify(error=str(exc)), 503 if exc.unavailable else 409
+
+
+@app.route('/bluetooth/action', methods=['POST'])
+def bluetooth_action():
+    if not logged_in():
+        return jsonify(error='Bitte im Elternbereich anmelden.'), 401
+    action = request.form.get('action', '')
+    if action not in ('power_on', 'power_off', 'scan', 'stop_scan', 'pair', 'connect',
+                      'disconnect', 'remove', 'cancel', 'answer'):
+        return jsonify(error='Unbekannte Bluetooth-Aktion.'), 400
+    values = {key: request.form[key] for key in ('adapter', 'device', 'prompt_id', 'accept', 'value') if key in request.form}
+    try:
+        return jsonify(bluetooth_request(action, **values))
+    except BluetoothError as exc:
+        return jsonify(error=str(exc)), 503 if exc.unavailable else 409
+
+
+WIFI_PAGE = _template('wifi-page.html')
+
+
+@app.route('/wifi')
+@login_required
+def wifi_page():
+    return render(render_template_string(WIFI_PAGE), 'WLAN', 'wifi_page')
+
+
+@app.route('/wifi/status')
+def wifi_status():
+    if not logged_in():
+        return jsonify(error='Bitte im Elternbereich anmelden.'), 401
+    try:
+        return jsonify(wifi_request())
+    except WifiError as exc:
+        return jsonify(error=str(exc)), 503 if exc.unavailable else 409
+
+
+@app.route('/wifi/action', methods=['POST'])
+def wifi_action():
+    if not logged_in():
+        return jsonify(error='Bitte im Elternbereich anmelden.'), 401
+    action = request.form.get('action', '')
+    if action not in ('power_on', 'power_off', 'scan', 'connect', 'hidden', 'disconnect', 'forget', 'autoconnect', 'cancel'):
+        return jsonify(error='Unbekannte WLAN-Aktion.'), 400
+    values = {key:request.form[key] for key in ('adapter', 'network', 'profile', 'ssid', 'security', 'password', 'enabled') if key in request.form}
+    try:
+        return jsonify(wifi_request(action, **values))
+    except WifiError as exc:
+        return jsonify(error=str(exc)), 503 if exc.unavailable else 409
+
+
+@app.route('/diagnostics')
+@login_required
+def diagnostics_page():
+    body = render_template_string(_template('diagnostics.html'), text=diagnostics_text(collect_diagnostics()))
+    return render(body, 'Diagnose', 'diagnostics_page')
+
+
+@app.route('/diagnostics/download')
+@login_required
+def diagnostics_download():
+    return Response(diagnostics_text(collect_diagnostics()), mimetype='text/plain',
+                    headers={'Content-Disposition': 'attachment; filename="LaurinOS-Diagnose.txt"'})
+
+
+if __name__ == '__main__':
+    from waitress import serve
+    serve(app, host=HOST, port=PORT, threads=4, connection_limit=32,
+          channel_timeout=300, max_request_body_size=2049 * 1024 * 1024,
+          max_request_header_size=16384, expose_tracebacks=False)

@@ -1,0 +1,65 @@
+[
+  {
+    "id": "maus",
+    "title": "Die Maus",
+    "type": "webapp",
+    "enabled": true,
+    "url": "https://www.wdrmaus.de/",
+    "profile": "maus",
+    "icon_file": "maus.png"
+  },
+  {
+    "id": "elefant",
+    "title": "Der Elefant",
+    "type": "webapp",
+    "enabled": true,
+    "url": "https://www.wdrelefant.de/",
+    "profile": "elefant",
+    "icon_file": "elefant.png"
+  },
+  {
+    "id": "kika",
+    "title": "KiKA",
+    "type": "webapp",
+    "enabled": true,
+    "url": "https://www.kika.de/",
+    "profile": "kika",
+    "icon_file": "kika.png"
+  },
+  {
+    "id": "kikaninchen",
+    "title": "Kikaninchen",
+    "type": "webapp",
+    "enabled": true,
+    "url": "https://www.kikaninchen.de/",
+    "profile": "kikaninchen",
+    "icon_file": "kikaninchen.png"
+  },
+  {
+    "id": "youtube-kids",
+    "title": "YouTube Kids",
+    "type": "webapp",
+    "enabled": true,
+    "url": "https://www.youtube.com/kids/",
+    "profile": "youtube-kids",
+    "icon_file": "youtube-kids.png"
+  },
+  {
+    "id": "fragfinn",
+    "title": "fragFINN",
+    "type": "webapp",
+    "enabled": true,
+    "url": "https://www.fragfinn.de/",
+    "profile": "fragfinn",
+    "icon_file": "fragfinn.png"
+  },
+  {
+    "id": "blinde-kuh",
+    "title": "Blinde Kuh",
+    "type": "webapp",
+    "enabled": true,
+    "url": "https://www.blinde-kuh.de/",
+    "profile": "blinde-kuh",
+    "icon_file": "blinde-kuh.png"
+  }
+]

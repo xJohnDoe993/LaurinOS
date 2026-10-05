@@ -1,0 +1,19 @@
+[
+${APP_ENTRIES}
+${WEBAPP_ENTRIES},
+  {
+    "id": "camera",
+    "title": "Kamera / Bilder",
+    "type": "camera",
+    "icon_text": "📷",
+    "command": "__CAMERA__"
+  },
+  {
+    "id": "poweroff",
+    "title": "Ausschalten",
+    "type": "system",
+    "icon_file": "poweroff.svg",
+    "icon_theme": "system-shutdown",
+    "command": "__POWEROFF__"
+  }
+]

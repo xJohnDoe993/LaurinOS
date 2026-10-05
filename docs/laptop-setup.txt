@@ -1,0 +1,28 @@
+LaurinOS Laptop-Wartung
+
+Bluetooth koppeln: Eltern-Bereich > Einstellungen > Bluetooth verwalten (auch im Web).
+Controller-Menü: Steuerkreuz/linker Stick wählen; Bestätigungstaste öffnet.
+Start: Farbe/Eltern; rechte Taste: zurück. Eltern-PIN weiterhin erforderlich.
+Cursor: verschwindet nach 5 Sekunden ohne Mausaktivität; Bewegung zeigt ihn wieder.
+Controller-Diagnose: sudo -u kids /usr/local/bin/laurinos-controller-check
+Cursor-Dienst: systemctl --user status laurinos-cursor.service
+Helligkeit: F5 dunkler, F6 heller.
+
+Energie/Akku: sudo tlp-stat -s -b
+Aktive TLP-Konfiguration: sudo tlp-stat -c
+Eigene TLP-Regeln: /etc/tlp.conf (Vorrang vor /etc/tlp.d/01-laurinos.conf)
+TLP-RDW: installiert; keine automatischen Funk-Umschaltungen vorgegeben.
+ZRAM: zramctl; swapon --show (vorhandene andere Verwalter bleiben erhalten)
+Sicherheitsupdates prüfen: sudo unattended-upgrade --dry-run --debug
+Letzte Updates: /var/log/unattended-upgrades/
+SSD-Wartung: systemctl status fstrim.timer
+Kameras: v4l2-ctl --list-devices
+Temperaturen: sensors (Sensoren müssen vom Kernel unterstützt werden)
+Festplatte: sudo smartctl -a /dev/GERAET (Gerät vorher mit lsblk bestimmen)
+Firmware prüfen: fwupdmgr get-devices; fwupdmgr get-updates
+Firmware-Updates werden nicht automatisch geflasht.
+
+Der Installer aktiviert neue Systemregeln beim abschließenden Neustart.
+Optionale Installationsschalter (je 0/1, Standard 1):
+LAURINOS_ENABLE_TLP, LAURINOS_ENABLE_ZRAM, LAURINOS_ENABLE_AUTO_UPDATES
+0 überspringt die jeweilige Einrichtung; bestehende Einstellungen bleiben bestehen.

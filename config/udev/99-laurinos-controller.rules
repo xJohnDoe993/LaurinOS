@@ -1,0 +1,4 @@
+SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT_JOYSTICK}=="1", GROUP="input", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="*8[Bb]it[Dd]o*", GROUP="input", MODE="0660", TAG+="uaccess"
+# Einige Bluetooth-Modi werden trotz Gamepad-Tasten nicht als Joystick markiert.
+SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="8[Bb]it[Dd]o SN30 Pro*", ENV{ID_INPUT_JOYSTICK}="1", GROUP="input", MODE="0660", TAG+="uaccess"

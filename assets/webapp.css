@@ -1,0 +1,80 @@
+/* Native Firefox-Navigation, keine Einblendung über Webseiten. */
+#navigator-toolbox {
+  background: #172234 !important;
+  border: 0 !important;
+  margin-top: 0 !important;
+  --toolbarbutton-hover-background: #405878;
+  --toolbarbutton-active-background: #506989;
+}
+:root[inFullscreen] #navigator-toolbox,
+:root[inDOMFullscreen] #navigator-toolbox {
+  display: none !important;
+  visibility: collapse !important;
+}
+#TabsToolbar, #toolbar-menubar, #PersonalToolbar,
+.titlebar-buttonbox-container, .titlebar-spacer, #sidebar-main {
+  display: none !important;
+}
+#nav-bar {
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+  padding: 0 182px 0 10px !important;
+  background: #172234 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: #f5f7fb !important;
+}
+#nav-bar-customization-target {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  overflow: visible !important;
+}
+#nav-bar-customization-target > :not(#back-button):not(#forward-button),
+#PanelUI-button, #nav-bar-overflow-button {
+  display: none !important;
+}
+#back-button, #forward-button {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  width: 145px !important;
+  min-width: 145px !important;
+  height: 44px !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  border: 1px solid #597292 !important;
+  border-radius: 10px !important;
+  background: #304562 !important;
+  color: #f5f7fb !important;
+  font: bold 18px "DejaVu Sans", sans-serif !important;
+  -moz-context-properties: fill !important;
+  fill: currentColor !important;
+}
+#back-button::after { content: "Zurück"; }
+#forward-button::after { content: "Weiter"; }
+#back-button .toolbarbutton-text, #forward-button .toolbarbutton-text {
+  display: none !important;
+}
+#back-button .toolbarbutton-icon, #forward-button .toolbarbutton-icon {
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  margin-right: 8px !important;
+  background: transparent !important;
+}
+#back-button:not([disabled]):hover, #forward-button:not([disabled]):hover {
+  background: #405878 !important;
+}
+#back-button[disabled], #forward-button[disabled] { opacity: .38 !important; }
+#back-button:focus-visible, #forward-button:focus-visible {
+  outline: 3px solid #ffb347 !important;
+  outline-offset: 2px !important;
+}
+@media (max-width: 620px) {
+  #back-button, #forward-button { width: 66px !important; min-width: 66px !important; }
+  #back-button::after, #forward-button::after { content: none; }
+  #back-button .toolbarbutton-icon, #forward-button .toolbarbutton-icon { margin-right: 0 !important; }
+}

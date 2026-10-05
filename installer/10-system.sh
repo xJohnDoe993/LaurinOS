@@ -1,0 +1,75 @@
+#!/bin/bash
+# Wird von install.sh in einer gemeinsamen Shell geladen.
+# 1. Paketquellen & Basis-System (Alle Abhängigkeiten)
+# ---------------------------------------------------------------------------
+echo "Paketlisten aktualisieren ..."
+apt-get update
+
+# Quellen nur für die installierte Debian-Version ergänzen.
+# Ubuntu-PPAs und fremde Debian-Releases werden nicht hinzugefügt.
+. /etc/os-release
+if [[ "${ID:-}" != debian || ! "${VERSION_CODENAME:-}" =~ ^(bookworm|trixie)$ ]]; then
+    echo "FEHLER: Dieses Setup erwartet Debian 12 (bookworm) oder 13 (trixie)." >&2
+    exit 1
+fi
+apt-get install -y --no-install-recommends python3 debian-archive-keyring ca-certificates
+install_runtime
+mkdir -p /usr/local/share/laurinos /var/lib/laurinos
+# Auswahl über /dev/tty funktioniert auch beim Start über eine Pipe.
+EMULATOR_SELECTION=$(/usr/bin/python3 -I /usr/local/lib/laurinos/current/run.py emulator_service --select)
+echo "Emulator-Auswahl: $EMULATOR_SELECTION (vorhandene Emulatoren bleiben erhalten)."
+
+/usr/bin/python3 /usr/local/lib/laurinos/current/tools/configure-debian-components.py "$VERSION_CODENAME"
+apt-get update
+
+echo "System, Plymouth, X11, Python & Tools installieren ..."
+apt-get install -y \
+    pipewire \
+    pipewire-audio \
+    pipewire-alsa \
+    pipewire-pulse \
+    wireplumber \
+    alsa-utils \
+    firmware-linux-free bluez libspa-0.2-bluetooth \
+    xserver-xorg \
+    x11-xserver-utils unclutter-xfixes \
+    openbox \
+    lightdm \
+    python3 \
+    python3-pyqt5 python3-xlib python3-evdev \
+    python3-pyqt5.qtsvg \
+    qt5-image-formats-plugins \
+    python3-flask python3-waitress python3-dbus python3-gi \
+    feh \
+    dbus-x11 \
+    dbus-user-session \
+    libpam-systemd \
+    polkitd \
+    network-manager wpasupplicant \
+    network-manager-gnome \
+    xterm \
+    pciutils \
+    usbutils \
+    brightnessctl \
+    fonts-dejavu \
+    firefox-esr \
+    systemd-resolved \
+    udisks2 \
+    exfatprogs \
+    ntfs-3g \
+    plymouth \
+    plymouth-themes \
+    tar \
+    xz-utils \
+    wget \
+    curl \
+    iproute2 \
+    fonts-noto-color-emoji \
+    fonts-font-awesome \
+    imagemagick \
+    librsvg2-bin \
+    squid \
+    whiptail \
+    procps \
+    util-linux
+

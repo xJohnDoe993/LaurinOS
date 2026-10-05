@@ -1,0 +1,7 @@
+[tool.laurinos]
+version = "0.60.0"
+python-source = "src"
+python-minimum = "3.11"
+
+[tool.pyright]
+extraPaths = ["src"]

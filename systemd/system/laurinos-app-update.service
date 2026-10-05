@@ -1,0 +1,13 @@
+[Unit]
+Description=LaurinOS stabile Flatpak-Apps aktualisieren
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/var/lib/laurinos/flatpak-apps.list
+ConditionACPower=true
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/laurinos-update-apps
+TimeoutStartSec=45min
+Nice=15
+IOSchedulingClass=idle

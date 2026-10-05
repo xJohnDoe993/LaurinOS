@@ -1,0 +1,15 @@
+user_pref("network.proxy.type", 1);
+user_pref("network.proxy.http", "127.0.0.1");
+user_pref("network.proxy.http_port", 3128);
+user_pref("network.proxy.ssl", "127.0.0.1");
+user_pref("network.proxy.ssl_port", 3128);
+user_pref("network.proxy.no_proxies_on", "localhost, 127.0.0.1");
+user_pref("browser.cache.disk.enable", true);
+user_pref("browser.cache.memory.enable", true);
+user_pref("browser.cache.memory.capacity", -1);
+user_pref("network.dns.disableIPv6", true);
+user_pref("network.dnsCacheEntries", 1000);
+user_pref("network.dnsCacheExpiration", 3600);
+user_pref("gfx.webrender.all", false);
+user_pref("layers.acceleration.force-enabled", false);
+user_pref("nglayout.initialpaint.delay", 0);

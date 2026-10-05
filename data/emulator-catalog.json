@@ -1,0 +1,129 @@
+{
+  "systems": {
+    "nes": {
+      "name": "NES",
+      "core": "fceumm",
+      "packages": [
+        "libretro-fceumm"
+      ],
+      "extensions": [
+        ".nes",
+        ".unf",
+        ".unif"
+      ]
+    },
+    "snes": {
+      "name": "SNES",
+      "core": "snes9x",
+      "packages": [
+        "libretro-snes9x",
+        "libretro-bsnes-mercury-performance"
+      ],
+      "extensions": [
+        ".sfc",
+        ".smc"
+      ]
+    },
+    "gb": {
+      "name": "Game Boy / Color",
+      "core": "gambatte",
+      "packages": [
+        "libretro-gambatte"
+      ],
+      "extensions": [
+        ".gb",
+        ".gbc"
+      ]
+    },
+    "gba": {
+      "name": "Game Boy Advance",
+      "core": "mgba",
+      "packages": [
+        "libretro-mgba"
+      ],
+      "extensions": [
+        ".gba"
+      ]
+    },
+    "ps1": {
+      "name": "PlayStation 1",
+      "core": "mednafen_psx",
+      "packages": [
+        "libretro-beetle-psx"
+      ],
+      "extensions": [
+        ".chd",
+        ".pbp",
+        ".cue"
+      ]
+    },
+    "megadrive": {
+      "name": "Mega Drive",
+      "core": "genesis_plus_gx",
+      "packages": [
+        "libretro-genesisplusgx"
+      ],
+      "extensions": [
+        ".md",
+        ".gen",
+        ".smd",
+        ".bin"
+      ]
+    },
+    "mastersystem": {
+      "name": "Master System",
+      "core": "genesis_plus_gx",
+      "packages": [
+        "libretro-genesisplusgx"
+      ],
+      "extensions": [
+        ".sms"
+      ]
+    },
+    "gamegear": {
+      "name": "Game Gear",
+      "core": "genesis_plus_gx",
+      "packages": [
+        "libretro-genesisplusgx"
+      ],
+      "extensions": [
+        ".gg"
+      ]
+    },
+    "n64": {
+      "name": "Nintendo 64",
+      "core": "mupen64plus_next",
+      "packages": [
+        "libretro-mupen64plus-next"
+      ],
+      "extensions": [
+        ".z64",
+        ".n64",
+        ".v64"
+      ]
+    },
+    "psp": {
+      "name": "PSP",
+      "core": "ppsspp",
+      "packages": [
+        "libretro-ppsspp"
+      ],
+      "extensions": [
+        ".iso",
+        ".cso",
+        ".pbp",
+        ".chd"
+      ]
+    }
+  },
+  "recommended": [
+    "nes",
+    "snes",
+    "gb",
+    "gba",
+    "ps1",
+    "megadrive",
+    "mastersystem",
+    "gamegear"
+  ]
+}

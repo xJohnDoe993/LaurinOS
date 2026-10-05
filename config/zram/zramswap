@@ -1,0 +1,5 @@
+# LaurinOS managed ZRAM
+# Logische Swap-Kapazität: 50 % RAM; Speicher wird erst bei Nutzung belegt.
+ALGO=lz4
+PERCENT=50
+PRIORITY=100

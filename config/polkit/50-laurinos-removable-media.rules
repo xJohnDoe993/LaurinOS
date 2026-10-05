@@ -1,0 +1,6 @@
+polkit.addRule(function(action, subject) {
+    if (subject.user == "kids" &&
+        action.id == "org.freedesktop.udisks2.filesystem-mount") {
+        return polkit.Result.YES;
+    }
+});

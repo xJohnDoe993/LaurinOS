@@ -1,0 +1,162 @@
+#!/bin/bash
+# LaurinOS: WLAN aus ifupdown an NetworkManager übergeben; WPA-Socket-Konflikt beheben.
+# Aufruf: sudo bash LaurinOS-WLAN-Ifupdown-Fix-v48.sh [WLAN-Adapter]
+# Bestehende WLAN-Profile und WPA-Konfigurationsdateien bleiben erhalten.
+set -euo pipefail
+export LC_ALL=C
+if [[ "$EUID" -ne 0 ]]; then
+    echo "Bitte mit sudo bash LaurinOS-WLAN-Ifupdown-Fix-v48.sh ausführen." >&2
+    exit 1
+fi
+if (( $# > 1 )); then echo "Bitte genau einen WLAN-Adapter angeben." >&2; exit 1; fi
+WIFI_DEVICE=${1:-wlp3s0}
+if [[ ! "$WIFI_DEVICE" =~ ^[a-zA-Z0-9_-]{1,15}$ ]]; then
+    echo "Ungültiger Adaptername." >&2; exit 1
+fi
+for command in nmcli systemctl ss awk ps python3; do
+    if ! command -v "$command" >/dev/null 2>&1; then
+        echo "Benötigtes Programm fehlt: $command" >&2; exit 1
+    fi
+done
+if [[ "$(nmcli -g GENERAL.TYPE device show "$WIFI_DEVICE")" != wifi ]]; then
+    echo "Kein WLAN-Adapter: $WIFI_DEVICE" >&2; exit 1
+fi
+for service in NetworkManager.service wpa_supplicant.service; do
+    if [[ "$(systemctl show -p LoadState --value "$service")" != loaded ]]; then
+        echo "Dienst fehlt oder ist gesperrt: $service" >&2; exit 1
+    fi
+done
+SOCKET_DIR=/run/wpa_supplicant
+SOCKET_PATH="$SOCKET_DIR/$WIFI_DEVICE"
+if [[ -L "$SOCKET_DIR" || -L "$SOCKET_PATH" ]]; then
+    echo "Unerwarteter Symlink am WPA-Socket. Reparatur abgebrochen." >&2; exit 1
+fi
+IFUP_UNIT="ifup@$WIFI_DEVICE.service"
+BACKUP=$(mktemp -d /var/backups/laurinos-wlan-ifupdown.XXXXXX)
+chmod 0700 "$BACKUP"
+install -m 0600 /usr/local/lib/laurinos/current/tools/wifi-handoff.py "$BACKUP/handoff.py"
+chmod 0600 "$BACKUP/handoff.py"
+python3 -I "$BACKUP/handoff.py" prepare "$WIFI_DEVICE" "$BACKUP"
+APPLIED=false
+IFUP_MASK_ADDED=false
+declare -a STOPPED_UNITS=() ENABLED_UNITS=() DISABLED_UNITS=() DISABLED_MODES=()
+SUCCESS=false
+RESTORE=false
+finish() {
+    local code=$? unit index
+    trap - EXIT
+    if [[ "$RESTORE" == true ]]; then
+        # Bei einem Fehlschlag zuvor laufende Einzelinstanzen wiederherstellen.
+        if [[ "$SUCCESS" != true ]]; then
+            if [[ "$IFUP_MASK_ADDED" == true ]]; then systemctl unmask "$IFUP_UNIT" || code=1; fi
+            if [[ "$APPLIED" == true ]]; then
+                python3 -I "$BACKUP/handoff.py" restore "$WIFI_DEVICE" "$BACKUP" || code=1
+            fi
+            for ((index=0; index<${#DISABLED_UNITS[@]}; index++)); do
+                if [[ "${DISABLED_MODES[index]}" == enabled-runtime ]]; then
+                    systemctl --runtime enable "${DISABLED_UNITS[index]}" || true
+                else
+                    systemctl enable "${DISABLED_UNITS[index]}" || true
+                fi
+            done
+            for unit in "${STOPPED_UNITS[@]}"; do systemctl start "$unit" || true; done
+        fi
+        systemctl start wpa_supplicant.service || code=1
+        systemctl start NetworkManager.service || code=1
+    fi
+    exit "$code"
+}
+trap finish EXIT
+echo "WLAN-Reparatur für $WIFI_DEVICE. Netzwerkverbindungen werden kurz unterbrochen."
+RESTORE=true
+systemctl stop NetworkManager.service
+# ifup muss noch mit der bisherigen Konfiguration herunterfahren können.
+if [[ "$(systemctl show -p LoadState --value "$IFUP_UNIT")" == loaded ]]; then
+    if systemctl is-active --quiet "$IFUP_UNIT"; then STOPPED_UNITS+=("$IFUP_UNIT"); fi
+    systemctl stop "$IFUP_UNIT"
+fi
+APPLIED=true
+python3 -I "$BACKUP/handoff.py" apply "$WIFI_DEVICE" "$BACKUP"
+# Nur nachweislich laufende Einzelinstanzen genau dieses Adapters stoppen.
+for unit in "wpa_supplicant@$WIFI_DEVICE.service" "wpa_supplicant-nl80211@$WIFI_DEVICE.service"; do
+    if systemctl is-active --quiet "$unit"; then
+        STOPPED_UNITS+=("$unit")
+        enabled=$(systemctl is-enabled "$unit" 2>/dev/null || true)
+        if [[ "$enabled" == enabled || "$enabled" == enabled-runtime ]]; then
+            ENABLED_UNITS+=("$unit")
+        fi
+        echo "Zusätzliche WPA-Instanz gestoppt: $unit"
+        systemctl stop "$unit"
+    fi
+done
+systemctl stop wpa_supplicant.service
+# Auch gebundene Datagramm-Sockets prüfen, nicht nur Listener.
+if ! SOCKETS=$(ss -xapnH); then
+    echo "Socket-Besitzer konnte nicht geprüft werden. Keine Bereinigung durchgeführt." >&2
+    exit 1
+fi
+OWNERS=$(awk -v target="$SOCKET_PATH" '{for(i=1;i<=NF;i++) if($i==target){print;break}}' <<< "$SOCKETS")
+if [[ -n "$OWNERS" ]]; then
+    echo "Eine weitere laufende Instanz besitzt den WLAN-Socket. Bitte diese Ausgabe senden:" >&2
+    echo "$OWNERS" >&2
+    ps -C wpa_supplicant -o pid=,comm=,unit= >&2 || true
+    echo "Der laufende Socket wurde nicht entfernt. Die bisherigen Dienste werden wieder gestartet." >&2
+    exit 1
+fi
+if [[ -e "$SOCKET_PATH" && ! -S "$SOCKET_PATH" ]]; then
+    echo "Der WPA-Pfad ist kein Socket. Reparatur abgebrochen." >&2; exit 1
+fi
+if [[ -S "$SOCKET_PATH" ]]; then
+    rm -- "$SOCKET_PATH"
+    echo "Unbenutzten WLAN-Steuersocket entfernt."
+fi
+systemctl start wpa_supplicant.service
+systemctl start NetworkManager.service
+nmcli --wait 10 device set "$WIFI_DEVICE" managed yes
+READY=false
+for (( attempt=0; attempt<30; attempt++ )); do
+    state=$(nmcli -g GENERAL.STATE device show "$WIFI_DEVICE" 2>/dev/null || true)
+    case "$state" in
+        '30 '*|'100 '*) READY=true; break ;;
+    esac
+    sleep 1
+done
+if [[ "$READY" != true ]]; then
+    echo "Adapter weiterhin nicht betriebsbereit. Bitte die folgende Ausgabe senden:" >&2
+    nmcli -f GENERAL device show "$WIFI_DEVICE" >&2 || true
+    journalctl -b -u NetworkManager.service -u wpa_supplicant.service --no-pager -n 60 >&2 || true
+    exit 1
+fi
+# Hotplug darf diesen WLAN-Adapter künftig nicht erneut über ifup übernehmen.
+previous=$(systemctl is-enabled "$IFUP_UNIT" 2>/dev/null || true)
+if [[ "$previous" != masked && "$previous" != masked-runtime ]]; then
+    IFUP_MASK_ADDED=true
+    systemctl mask "$IFUP_UNIT"
+fi
+echo "ifupdown-Übergabe abgeschlossen. Sicherung: $BACKUP"
+# Erst nach erfolgreicher Übergabe den zusätzlichen Autostart abschalten.
+for unit in "${ENABLED_UNITS[@]}"; do
+    enabled=$(systemctl is-enabled "$unit" 2>/dev/null || true)
+    DISABLED_UNITS+=("$unit"); DISABLED_MODES+=("$enabled")
+    if [[ "$enabled" == enabled-runtime ]]; then
+        systemctl --runtime disable "$unit"
+    else
+        systemctl disable "$unit"
+    fi
+    echo "Zusätzlicher WPA-Autostart deaktiviert: $unit"
+    echo "Bei Bedarf rückgängig: sudo systemctl enable --now $unit"
+done
+SUCCESS=true
+# Alte Meldungen aus dem kurzen NetworkManager-Ausfall im WLAN-Dienst verwerfen.
+if systemctl is-active --quiet laurinos-wifi.service; then
+    systemctl restart laurinos-wifi.service
+fi
+echo "Adapter ist betriebsbereit. NetworkManager kann WLAN jetzt verwenden."
+if ! nmcli device wifi rescan ifname "$WIFI_DEVICE"; then
+    echo "Neue Suche noch nicht erlaubt; vorhandene Netzwerkliste wird angezeigt."
+fi
+nmcli device wifi list ifname "$WIFI_DEVICE"
+echo "Jetzt im Elternbereich WLAN öffnen und verbinden."
+echo "Die Übergabe bleibt nach einem Neustart erhalten."
+echo "Manuelle Wiederherstellung: sudo python3 -I $BACKUP/handoff.py restore $WIFI_DEVICE $BACKUP"
+echo "Danach bei Bedarf: sudo systemctl unmask $IFUP_UNIT"

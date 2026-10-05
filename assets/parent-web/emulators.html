@@ -1,0 +1,77 @@
+<div class="pagehead"><h1>Emulatoren & Spiele</h1><p>Ein Upload erzeugt eine Anwendung. Bilder, Namen, Freigaben und Löschen sind unter „Apps“ möglich.</p></div>
+<section class="panel"><h2>Emulatoren installieren</h2><p>Gewünschte Konsolen auswählen und installieren. Dafür wird eine Internetverbindung benötigt. Die Installation läuft im Hintergrund; diese Seite darf geschlossen werden.</p><form id="emulator-install-form" method="post" action="{{ url_for('emulator_install_action') }}"><div class="grid">{% for s in systems %}<section class="card"><h3>{{ s.name }}</h3><span id="emulator-badge-{{ s.id }}" class="badge {{ 'on' if s.ready else 'off' }}">{{ s.reason }}</span><p class="hint">{{ s.hint }}<br>{{ s.formats }}</p><label style="margin-top:14px;display:flex;align-items:center;gap:10px"><input style="width:auto;min-height:auto" type="checkbox" name="systems" value="{{ s.id }}" {{ 'disabled' if s.ready else '' }}> Auswählen</label><button type="button" data-install-system="{{ s.id }}" {{ 'hidden' if s.ready else '' }}>{{ 'Ergänzen' if s.id=='psp' and s.reason=='PSP-Zusatzdateien fehlen' else 'Nachinstallieren' }}</button></section>{% endfor %}</div><div class="actions"><button id="emulator-install-selected">Auswahl installieren</button></div></form><div id="emulator-install-progress" hidden><p id="emulator-install-message" role="status" aria-live="polite"></p><progress id="emulator-install-bar" max="100" value="0" style="width:100%;height:18px" aria-label="Installationsfortschritt"></progress><p class="hint">Der Balken zeigt die abgeschlossenen Installationsschritte.</p><details><summary>Installationsprotokoll</summary><pre id="emulator-install-log"></pre></details></div><p id="emulator-install-error" role="alert"></p></section>
+<section class="panel"><h2>Spiel hochladen</h2><form method="post" enctype="multipart/form-data"><input type="hidden" name="action" value="rom"><div class="formgrid"><div><label>Spielname</label><input name="title" maxlength="80" required></div><div><label>Konsole</label><select name="system">{% for s in systems %}<option value="{{ s.id }}" {{ 'disabled' if not s.ready else '' }}>{{ s.name }}</option>{% endfor %}</select></div></div><p><label>ROM-Dateien</label><input type="file" name="roms" multiple required accept="{{ accepts }}"></p><p class="hint">Formate stehen bei der jeweiligen Konsole. PS1: CUE zusammen mit allen BIN-Tracks und gegebenenfalls der passenden SBI-Datei auswählen; alternativ CHD/PBP. ZIP muss genau ein Spiel enthalten, Dateien direkt im Hauptverzeichnis. Maximal 1 GB insgesamt (PSP: 2 GB), auch entpackt. Bei älteren PS1-Cores bevorzugt CUE/BIN verwenden. PSP-Zusatzdateien werden automatisch installiert, ein PSP-BIOS ist nicht nötig.</p><button id="emulator-upload-button" {{ 'disabled' if not any_ready else '' }}>Hochladen & Anwendung hinzufügen</button></form></section>
+<section class="panel"><h2>PS1-BIOS-Prüfung</h2>{% for b in bios_report %}<p><strong>{{ b.name }}</strong>: <span class="badge {{ 'on' if b.valid else 'off' }}">{{ b.status }}</span></p>{% endfor %}<div class="actions"><a class="btn secondary" href="{{ url_for('emulator_diagnostics') }}">Emulator-Diagnose öffnen</a></div><p class="hint">PS1 startet neu, ohne automatisch einen alten Emulatorzustand zu laden. Vorhandene Spielstände bleiben gespeichert.</p></section><section class="panel"><h2>BIOS hochladen</h2><p>PS1-BIOS: scph5500.bin, scph5501.bin oder scph5502.bin (512 KB). GBA: gba_bios.bin (16 KB, optional). PS1 benötigt ein zur Spielregion passendes BIOS (5500: Japan, 5501: USA, 5502: Europa). Vorhandene Dateien werden ersetzt.</p><p class="hint">Vorhanden: {{ bios|join(', ') or 'Noch keine BIOS-Dateien' }}</p><form method="post" enctype="multipart/form-data"><input type="hidden" name="action" value="bios"><input type="file" name="bios" accept=".bin" required><div class="actions"><button>BIOS speichern</button></div></form></section>
+<section class="panel"><h2>Steuerung</h2><p>Controller werden durch RetroArch automatisch zugeordnet, soweit ein passendes Profil vorhanden ist. Fehlende oder falsche Belegungen lassen sich unter <a href="{{ url_for('controllers_page') }}">Controller einrichten</a> selbst zuordnen. Tastatur: Pfeiltasten, Z/X/A/S, Q/W, Enter und rechte Umschalttaste. Esc: zurück zum Menü · F8: RetroArch-Menü · F9: Spielstand speichern · F10: laden.</p><p>Spielstände und letzter Emulator-Zustand werden bei normalem Beenden gespeichert. ROMs und BIOS werden nicht mitgeliefert.</p></section><script>(() => {
+  const form = document.getElementById('emulator-install-form');
+  const error = document.getElementById('emulator-install-error');
+  const progress = document.getElementById('emulator-install-progress');
+  const message = document.getElementById('emulator-install-message');
+  const bar = document.getElementById('emulator-install-bar');
+  const log = document.getElementById('emulator-install-log');
+  let busy = false;
+  function setBusy(value) {
+    busy = value;
+    form.querySelectorAll('button').forEach(button => button.disabled = value);
+    form.querySelectorAll('input[type=checkbox]').forEach(input => input.disabled = value || input.dataset.ready === 'true');
+  }
+  form.querySelectorAll('input[type=checkbox]').forEach(input => input.dataset.ready = String(input.disabled));
+  async function api(url, options = {}) {
+    const response = await fetch(url, {...options, headers: {'Accept': 'application/json'}, cache: 'no-store'});
+    if (response.status === 401) throw new Error('Bitte erneut im Elternbereich anmelden.');
+    let data;
+    try { data = await response.json(); } catch (_) { throw new Error('Formular abgelaufen oder Dienst nicht erreichbar. Bitte Seite neu laden.'); }
+    if (!response.ok || !data.ok) throw new Error(data.error || 'Installation konnte nicht gestartet werden.');
+    return data;
+  }
+  function show(data) {
+    const job = data.job;
+    if (data.systems) {
+      const select = document.querySelector('select[name=system]');
+      data.systems.forEach(system => {
+        const badge = document.getElementById('emulator-badge-' + system.id);
+        if (!badge) return;
+        badge.textContent = system.reason;
+        badge.className = 'badge ' + (system.ready ? 'on' : 'off');
+        const input = form.querySelector('input[value="' + system.id + '"]');
+        input.dataset.ready = String(system.ready);
+        if (system.ready) input.checked = false;
+        form.querySelector('[data-install-system="' + system.id + '"]').hidden = system.ready;
+        const option = Array.from(select.options).find(option => option.value === system.id);
+        if (option) option.disabled = !system.ready;
+      });
+      if (!select.selectedOptions.length || select.selectedOptions[0].disabled) {
+        const first = Array.from(select.options).find(option => !option.disabled);
+        if (first) select.value = first.value;
+      }
+      document.getElementById('emulator-upload-button').disabled = !data.systems.some(system => system.ready);
+    }
+    setBusy(job.state === 'running');
+    progress.hidden = job.state === 'idle';
+    message.textContent = job.message || '';
+    bar.value = job.percent || 0;
+    log.textContent = (job.log || []).join('\n');
+    if (job.state === 'error') error.textContent = 'Installation fehlgeschlagen oder nur teilweise abgeschlossen. Einzelheiten stehen im Protokoll. Erneutes Installieren ist möglich.';
+  }
+  async function poll() {
+    try { const data = await api('{{ url_for("emulator_install_status") }}'); error.textContent = ''; show(data); }
+    catch (exception) { error.textContent = exception.message; setBusy(false); }
+    window.setTimeout(poll, 2500);
+  }
+  async function install(systems) {
+    if (busy) return;
+    if (!systems.length) { error.textContent = 'Bitte mindestens eine Konsole auswählen.'; return; }
+    const values = new FormData();
+    values.append('csrf_token', form.querySelector('input[name=csrf_token]').value);
+    systems.forEach(system => values.append('systems', system));
+    setBusy(true); error.textContent = '';
+    try {
+      const data = await api(form.action, {method: 'POST', body: values});
+      show(data);
+    } catch (exception) { error.textContent = exception.message; setBusy(false); }
+  }
+  form.addEventListener('submit', event => { event.preventDefault(); install(Array.from(form.querySelectorAll('input[type=checkbox]:checked')).map(input => input.value)); });
+  form.querySelectorAll('[data-install-system]').forEach(button => button.addEventListener('click', () => install([button.dataset.installSystem])));
+  poll();
+})();
+</script>

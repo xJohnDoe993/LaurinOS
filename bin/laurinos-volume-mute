@@ -1,0 +1,5 @@
+#!/bin/sh
+trap '/usr/local/bin/laurinos-osd-notify volume >/dev/null 2>&1 &' EXIT
+if /usr/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle 2>/dev/null; then exit 0; fi
+if /usr/bin/amixer -q set Master toggle 2>/dev/null; then exit 0; fi
+/usr/bin/amixer -q set Speaker toggle 2>/dev/null || true

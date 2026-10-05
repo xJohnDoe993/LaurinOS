@@ -1,0 +1,38 @@
+#!/bin/sh
+
+export PATH="/usr/local/bin:/usr/bin:/bin:/usr/games:/usr/local/games"
+export XDG_CURRENT_DESKTOP=Openbox
+export XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}:/var/lib/flatpak/exports/share"
+export XCURSOR_THEME=Bibata-Original-Ice
+export XCURSOR_SIZE=36
+xrdb -merge /home/kids/.Xresources &
+xsetroot -xcf /usr/share/icons/Bibata-Original-Ice/cursors/left_ptr 36 &
+
+alsactl init || true
+amixer sset Master unmute 80% || true
+amixer sset Speaker unmute 80% || true
+amixer sset Headphone unmute 80% || true
+
+# DISPLAY und Xauthority stammen aus der laufenden LightDM/Openbox-Sitzung.
+# Erst importieren, dann überwachte User-Dienste starten.
+if systemctl --user import-environment DISPLAY XAUTHORITY DBUS_SESSION_BUS_ADDRESS PATH XDG_CURRENT_DESKTOP XDG_DATA_DIRS; then
+    dbus-update-activation-environment --systemd DISPLAY XAUTHORITY DBUS_SESSION_BUS_ADDRESS XDG_CURRENT_DESKTOP XDG_DATA_DIRS || true
+    systemctl --user daemon-reload
+    systemctl --user reset-failed laurinos-menu.service laurinos-timer.service laurinos-media.service laurinos-cursor.service laurinos-osd.service
+    systemctl --user start laurinos-session.target
+else
+    echo "LaurinOS: systemd-Benutzersitzung fehlt; siehe Geräte-Diagnose." >&2
+    # Auch ohne User-Manager bleiben Menü, Zeitlimit, Medien und Cursor überwacht.
+    supervise_fallback() {
+        while :; do
+            "$@"
+            sleep 3
+        done
+    }
+    supervise_fallback /usr/bin/python3 -I /usr/local/lib/laurinos/current/run.py menu >> /home/kids/.local/state/laurinos/laurinos-session.log 2>&1 &
+    supervise_fallback /usr/bin/python3 -I /usr/local/lib/laurinos/current/run.py timer >> /home/kids/.local/state/laurinos/laurinos-session.log 2>&1 &
+    supervise_fallback /usr/bin/python3 -I /usr/local/lib/laurinos/current/run.py media >> /home/kids/.local/state/laurinos/laurinos-session.log 2>&1 &
+    supervise_fallback /usr/bin/python3 -I /usr/local/lib/laurinos/current/run.py status_overlay >> /home/kids/.local/state/laurinos/laurinos-session.log 2>&1 &
+    supervise_fallback /usr/bin/unclutter-xfixes --timeout 5 >> /home/kids/.local/state/laurinos/laurinos-session.log 2>&1 &
+fi
+

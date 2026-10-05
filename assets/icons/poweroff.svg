@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Ausschalten</title>
+  <g fill="none" stroke="#FF3B30" stroke-width="24" stroke-linecap="round">
+    <path d="M 74 59 A 88 88 0 1 0 182 59"/>
+    <path d="M 128 28 V 108"/>
+  </g>
+</svg>

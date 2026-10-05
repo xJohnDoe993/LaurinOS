@@ -1,0 +1,134 @@
+{
+  "schema": 1,
+  "runtime_api": 1,
+  "version": "0.60.0",
+  "components": {
+    "shared": {
+      "files": [
+        "src/laurinos/__init__.py",
+        "src/laurinos/paths.py",
+        "src/laurinos/state.py",
+        "src/laurinos/diagnostics.py",
+        "src/laurinos/images.py",
+        "src/laurinos/categories.py",
+        "src/laurinos/fullscreen.py",
+        "src/laurinos/webapp.py",
+        "src/laurinos/osd_state.py",
+        "run.py",
+        "assets/webapp.css"
+      ]
+    },
+    "desktop": {
+      "files": [
+        "src/laurinos/menu.py",
+        "src/laurinos/parent_ui.py",
+        "src/laurinos/status_overlay.py",
+        "src/laurinos/close_overlay.py",
+        "src/laurinos/lockscreen.py",
+        "src/laurinos/timer.py",
+        "src/laurinos/media.py"
+      ]
+    },
+    "controller": {
+      "files": [
+        "src/laurinos/controller.py",
+        "src/laurinos/controller_profiles.py",
+        "src/laurinos/input_devices.py"
+      ]
+    },
+    "network": {
+      "files": [
+        "src/laurinos/wifi.py",
+        "src/laurinos/bluetooth.py",
+        "src/laurinos/wifi_ui.py",
+        "src/laurinos/bluetooth_ui.py",
+        "src/laurinos/network_status.py"
+      ]
+    },
+    "emulators": {
+      "files": [
+        "src/laurinos/emulators.py",
+        "src/laurinos/emulator_install.py",
+        "src/laurinos/emulator_catalog.py",
+        "src/laurinos/emulator_service.py",
+        "data/emulator-catalog.json"
+      ]
+    },
+    "backend": {
+      "files": [
+        "src/laurinos/parent.py",
+        "src/laurinos/parent_web.py",
+        "assets/parent-web/app-delete.html",
+        "assets/parent-web/app-form.html",
+        "assets/parent-web/apps.html",
+        "assets/parent-web/base.html",
+        "assets/parent-web/bluetooth-page.html",
+        "assets/parent-web/bonus-buttons.html",
+        "assets/parent-web/controllers-page.html",
+        "assets/parent-web/dashboard-footer.html",
+        "assets/parent-web/dashboard-summary.html",
+        "assets/parent-web/diagnostics.html",
+        "assets/parent-web/emulator-diagnostics.html",
+        "assets/parent-web/emulators.html",
+        "assets/parent-web/login.html",
+        "assets/parent-web/settings.html",
+        "assets/parent-web/stats.html",
+        "assets/parent-web/time-bonus-form.html",
+        "assets/parent-web/time-limit-form.html",
+        "assets/parent-web/wifi-page.html"
+      ]
+    },
+    "cli": {
+      "files": [
+        "src/laurinos/cli_osd_notify.py",
+        "src/laurinos/cli_update_apps.py",
+        "src/laurinos/cli_flatpak.py",
+        "src/laurinos/cli_emulator.py",
+        "src/laurinos/cli_emulator_check.py",
+        "bin/laurinos-brightness-down",
+        "bin/laurinos-brightness-up",
+        "bin/laurinos-controller-check",
+        "bin/laurinos-emulator",
+        "bin/laurinos-emulator-check",
+        "bin/laurinos-osd-notify",
+        "bin/laurinos-update-apps",
+        "bin/laurinos-volume-down",
+        "bin/laurinos-volume-mute",
+        "bin/laurinos-volume-up",
+        "sbin/laurinos-wlan-handoff"
+      ]
+    },
+    "tools": {
+      "files": [
+        "tools/configure-debian-components.py",
+        "tools/configure-flatpak-app.py",
+        "tools/configure-tuxpaint.py",
+        "tools/default-webapps.py",
+        "tools/deploy.py",
+        "tools/initialize-settings.py",
+        "tools/install-pixels-plymouth.py",
+        "tools/merge-apps.py",
+        "tools/migrate-flatpak-data.py",
+        "tools/native-app-entry.py",
+        "tools/render-config.py",
+        "tools/wifi-handoff.py"
+      ]
+    },
+    "services": {
+      "files": [
+        "systemd/system/laurinos-app-update.service",
+        "systemd/system/laurinos-app-update.timer",
+        "systemd/system/laurinos-bluetooth.service",
+        "systemd/system/laurinos-emulators.service",
+        "systemd/system/laurinos-parent-web.service",
+        "systemd/system/laurinos-wifi.service",
+        "systemd/user/laurinos-cursor.service",
+        "systemd/user/laurinos-media.service",
+        "systemd/user/laurinos-menu.service",
+        "systemd/user/laurinos-osd.service",
+        "systemd/user/laurinos-session.target",
+        "systemd/user/laurinos-timer.service"
+      ]
+    }
+  }
+}
