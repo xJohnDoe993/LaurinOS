@@ -26,6 +26,10 @@ Vor der Basis-Paketinstallation prüft das Setup die Auflösung von `deb.debian.
 
 Auch die spätere Familien-DNS-Umstellung wird geprüft. Schlägt der Dienststart oder die Namensauflösung fehl, werden die bisherigen DNS-Dateien wiederhergestellt. Funktioniert DNS danach, läuft das Setup mit einem deutlichen Hinweis weiter: Der neue Familien-DNS-Filter ist dann nicht aktiviert. Bleibt DNS defekt, hält das Setup an. Ein vorher bereits unterbrochener Internetzugang wird durch diese Absicherung nicht automatisch repariert.
 
+Die globale Familien-DNS-Konfiguration setzt `Domains=~.`: Normale Internetabfragen gehen damit an die Familien-DNS-Server, statt parallel an per DHCP gelieferte Standard-DNS-Server. Spezifischere lokale Domains wie `lan` bleiben über den DNS-Server des jeweiligen Netzes auflösbar. In `resolvectl status` muss unter `Global` neben den Familien-DNS-Adressen auch `DNS Domain: ~.` erscheinen. Die WLAN-DNS-Server können weiterhin angezeigt werden; ihre bloße Anzeige bedeutet keine Verwendung für normale Internetabfragen. Zusätzliche VPN-Routing-Domains oder Programme mit eigenen DNS-Abfragen sind gesondert zu prüfen.
+
+`update.sh` und das Backend-Update ersetzen keine Systemkonfiguration. Auf bereits installierten Geräten muss diese DNS-Änderung daher separat angewendet werden.
+
 Die DNS-Sicherung liegt root-eigen unter `/var/lib/laurinos/install-dns.json`. Die Bootstrap-Konfiguration bleibt bis zur erfolgreichen Familien-DNS-Übernahme erhalten; sie kann auch eine bewusst gesetzte temporäre DNS-Reparatur übernehmen. Die Prüfungen bestätigen Namensauflösung, nicht die Filterwirkung auf jeder Netzwerkverbindung.
 
 ## Schalter
