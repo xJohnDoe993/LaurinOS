@@ -32,7 +32,7 @@ for install_option in "$LAURINOS_ENABLE_TLP" "$LAURINOS_ENABLE_ZRAM" "$LAURINOS_
     fi
 done
 
-echo "LaurinOS 0.60.0 – Neuinstallation"
+echo "LaurinOS $(cat "${REPO_DIR}/VERSION") – Neuinstallation"
 
 # Einen laufenden Backend-Auftrag nicht mitten in apt/dpkg abbrechen.
 exec 9>/run/laurinos-emulator-install.lock
@@ -44,4 +44,3 @@ fi
 systemctl stop laurinos-emulators.service >/dev/null 2>&1 || true
 flock -u 9
 exec 9>&-
-

@@ -23,7 +23,8 @@ echo "Emulator-Auswahl: $EMULATOR_SELECTION (vorhandene Emulatoren bleiben erhal
 apt-get update
 
 echo "System, Plymouth, X11, Python & Tools installieren ..."
-apt-get install -y \
+/usr/bin/python3 "${REPO_DIR}/tools/configure-dns.py" prepare
+if apt-get install -y \
     pipewire \
     pipewire-audio \
     pipewire-alsa \
@@ -71,5 +72,10 @@ apt-get install -y \
     squid \
     whiptail \
     procps \
-    util-linux
-
+    util-linux; then
+    /usr/bin/python3 "${REPO_DIR}/tools/configure-dns.py" recover
+else
+    /usr/bin/python3 "${REPO_DIR}/tools/configure-dns.py" recover || true
+    echo "FEHLER: Basispakete konnten nicht vollständig installiert werden." >&2
+    exit 1
+fi

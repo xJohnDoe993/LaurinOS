@@ -109,6 +109,7 @@
     "tools": {
       "files": [
         "tools/configure-debian-components.py",
+        "tools/configure-dns.py",
         "tools/configure-flatpak-app.py",
         "tools/configure-tuxpaint.py",
         "tools/default-webapps.py",

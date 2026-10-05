@@ -20,6 +20,14 @@ Das Setup startet das Gerät standardmäßig nicht automatisch neu. Ein WLAN-Pro
 
 Eine unvollständige modulare Installation lässt sich mit `sudo bash install.sh --resume` fortsetzen. Bereits vorhandene Eltern-Einstellungen werden dabei erhalten. Für abgeschlossene modulare Installationen ist `update.sh` zuständig. Eine v59-Installation wird weder beim Setup noch beim Update übernommen.
 
+## DNS während des Setups
+
+Vor der Basis-Paketinstallation prüft das Setup die Auflösung von `deb.debian.org`, sichert `resolv.conf` und übernimmt bekannte Upstream-DNS-Server als Bootstrap-Konfiguration. Das ist nötig, weil die Installation von `systemd-resolved` selbst `resolv.conf` ersetzen kann. Nach der Paketinstallation wird DNS erneut geprüft; bei einem Fehler wird der vorherige Resolver-Zustand wiederhergestellt und geprüft.
+
+Auch die spätere Familien-DNS-Umstellung wird geprüft. Schlägt der Dienststart oder die Namensauflösung fehl, werden die bisherigen DNS-Dateien wiederhergestellt. Funktioniert DNS danach, läuft das Setup mit einem deutlichen Hinweis weiter: Der neue Familien-DNS-Filter ist dann nicht aktiviert. Bleibt DNS defekt, hält das Setup an. Ein vorher bereits unterbrochener Internetzugang wird durch diese Absicherung nicht automatisch repariert.
+
+Die DNS-Sicherung liegt root-eigen unter `/var/lib/laurinos/install-dns.json`. Die Bootstrap-Konfiguration bleibt bis zur erfolgreichen Familien-DNS-Übernahme erhalten; sie kann auch eine bewusst gesetzte temporäre DNS-Reparatur übernehmen. Die Prüfungen bestätigen Namensauflösung, nicht die Filterwirkung auf jeder Netzwerkverbindung.
+
 ## Schalter
 
 Umgebungsvariablen mit `sudo env` übergeben, wenn `sudo` die Umgebung bereinigt:
