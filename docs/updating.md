@@ -10,16 +10,16 @@ Der Download und die Aktivierung laufen als eigener transienter Systemd-Dienst `
 
 Das Release benötigt zwei hochgeladene Assets:
 
-| Asset für Version 0.61.0 | Inhalt |
+| Asset für Version 0.62.0 | Inhalt |
 |---|---|
-| `LaurinOS-0.61.0.zip` | Mit `tools/build-release.py` erstelltes Projektarchiv |
-| `LaurinOS-0.61.0.zip.sha256` | SHA-256 und Dateiname des Archivs |
+| `LaurinOS-0.62.0.zip` | Mit `tools/build-release.py` erstelltes Projektarchiv |
+| `LaurinOS-0.62.0.zip.sha256` | SHA-256 und Dateiname des Archivs |
 
 GitHubs automatisch erzeugte „Source code“-Archive ersetzen diese Assets nicht. Die früheren Dateinamen `LaurinOS-v60-modular-<Version>.zip` und ihre Prüfsummendatei werden ebenfalls erkannt. ZIP-Download höchstens 50 MiB; entpackt höchstens 100 MiB und 5.000 Einträge. Diese Grenzen müssen angepasst werden, falls LaurinOS später größere Release-Pakete benötigt.
 
-## Erstes GitHub-Release Schritt für Schritt
+## GitHub-Release Schritt für Schritt
 
-1. Änderungen prüfen und in den Hauptbranch übernehmen. `VERSION`, `src/laurinos/__init__.py` und `pyproject.toml` auf dieselbe neue Version setzen, für diesen Stand `0.61.0`.
+1. Änderungen prüfen und in den Hauptbranch übernehmen. `VERSION`, `src/laurinos/__init__.py` und `pyproject.toml` auf dieselbe neue Version setzen, für diesen Stand `0.62.0`.
 2. Aus dem Projektordner das Inventar aktualisieren und das Release bauen:
 
    ```bash
@@ -33,21 +33,21 @@ GitHubs automatisch erzeugte „Source code“-Archive ersetzen diese Assets nic
 
    ```bash
    git add VERSION pyproject.toml src/laurinos/__init__.py manifest.json
-   git commit -m "Prepare release 0.61.0"
+   git commit -m "Prepare release 0.62.0"
    git push origin main
    ```
 
    Wenn diese Dateien bereits im Hauptbranch committed sind, entfällt der zusätzliche Commit. `dist/` bleibt bewusst außerhalb von Git.
 
 4. Auf [GitHub → Releases](https://github.com/xJohnDoe993/LaurinOS/releases) **Draft a new release** öffnen.
-5. Tag `v0.61.0` erstellen und als Ziel den geprüften Commit im Hauptbranch wählen. Als Titel beispielsweise `LaurinOS 0.61.0 – GitHub-Updates` verwenden.
-6. Release-Notizen schreiben. Neue Funktionen, nötige Einrichtungsschritte und bekannte Einschränkungen nennen. Für 0.61.0 darauf hinweisen, dass 0.60.0 einmalig manuell aktualisiert werden muss.
-7. Beide Dateien aus `dist/` als Assets hochladen: `LaurinOS-0.61.0.zip` **und** `LaurinOS-0.61.0.zip.sha256`. Upload vollständig abwarten.
+5. Tag `v0.62.0` erstellen und als Ziel den geprüften Commit im Hauptbranch wählen. Als Titel beispielsweise `LaurinOS 0.62.0 – Family-DNS` verwenden.
+6. Release-Notizen schreiben. Neue Funktionen, nötige Einrichtungsschritte und bekannte Einschränkungen nennen. Für 0.62.0 auf die separate Übernahme der Family-DNS-Systemkonfiguration auf bestehenden Geräten hinweisen.
+7. Beide Dateien aus `dist/` als Assets hochladen: `LaurinOS-0.62.0.zip` **und** `LaurinOS-0.62.0.zip.sha256`. Upload vollständig abwarten.
 8. Auf einem Testgerät die Installation bzw. das manuelle Update und die [Geräteprüfung](device-validation.md) ausführen. Bis dahin das Release als Entwurf speichern; alternativ für Tests ein Pre-Release verwenden, das der stabile Updater ignoriert.
 9. Erst nach dem Gerätetest **Publish release** wählen und das Release als neuestes stabiles Release markieren. **Pre-release** muss ausgeschaltet sein.
 10. Im Elternbackend **Updates → Nach Updates suchen** prüfen. Eine vorhandene identische Version wird nicht erneut angeboten. Für den nächsten echten Update-Test eine höhere Version veröffentlichen.
 
-Für spätere Releases diese Schritte mit einer höheren Versionsnummer wiederholen, beispielsweise `0.62.0` / `v0.62.0`. Veröffentlichte Tags und Assets nicht nachträglich ersetzen; Korrekturen bekommen eine neue Versionsnummer. Der Installationsauftrag prüft vor dem Download erneut, ob die angebotenen Assets unverändert sind.
+Für spätere Releases diese Schritte mit einer höheren Versionsnummer wiederholen, beispielsweise `0.63.0` / `v0.63.0`. Veröffentlichte Tags und Assets nicht nachträglich ersetzen; Korrekturen bekommen eine neue Versionsnummer. Der Installationsauftrag prüft vor dem Download erneut, ob die angebotenen Assets unverändert sind.
 
 ## Einmalige Einrichtung auf 0.60.0
 
@@ -63,6 +63,18 @@ sudo systemctl status laurinos-updates.service --no-pager
 ```
 
 Die ersten zwei Befehle laufen im Downloadordner, bevor in den Projektordner gewechselt wird. Dieses vollständige Update aktiviert auch den neuen Prüfdienst. Danach das Backend neu laden; weitere Code-Releases lassen sich dort installieren. Eine frische 0.61.0-Installation richtet den Dienst bereits im Setup ein.
+
+## Family-DNS auf bestehenden Geräten ab 0.62.0
+
+Neuinstallationen übernehmen die globale Routing-Domain `~.` automatisch. Ein Code-Update verändert die DNS-Systemkonfiguration nicht. Nach dem Update daher einmalig aus dem entpackten 0.62.0-Projektordner ausführen:
+
+```bash
+sudo python3 tools/configure-dns.py family config/resolved/laurinos-family-dns.conf
+resolvectl status
+timeout 10 getent ahostsv4 deb.debian.org
+```
+
+Bei Erfolg steht unter `Global` neben den Family-DNS-Adressen `DNS Domain: ~.`. Funktioniert die Namensauflösung nach der Umstellung nicht, stellt der Helfer die vorherige Konfiguration wieder her und weist darauf hin, dass Family-DNS nicht aktiviert wurde. Lokale Netzwerk-Domains bleiben beim jeweiligen Link-DNS; zusätzliche VPN-Routing-Domains und Anwendungen mit eigenem DNS müssen am Gerät gesondert geprüft werden.
 
 ## Prüfung und Vertrauensmodell
 

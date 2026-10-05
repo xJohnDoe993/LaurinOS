@@ -2,7 +2,7 @@
 
 LaurinOS macht einen Debian-Laptop zum Kinder-PC mit Kachelmenü, lokalen und webbasierten Eltern-Einstellungen, Bildschirmzeit, Kamera-/USB-Medien, Controller-Steuerung und auswählbaren Emulatoren.
 
-**Version 0.61.0: Updates aus GitHub-Releases im Elternbackend.** Neuinstallationen benötigen Debian 12 oder 13. Eine modulare 0.60.0-Installation kann einmalig mit `sudo bash update.sh` aus diesem Projektordner aktualisiert werden. Bestehende v59-Installationen werden nicht migriert.
+**Version 0.62.0: abgesicherte DNS-Einrichtung und Family-DNS für normale Internetabfragen.** Updates aus GitHub-Releases stehen im Elternbackend bereit. Neuinstallationen benötigen Debian 12 oder 13. Eine modulare 0.60.0-Installation kann einmalig mit `sudo bash update.sh` aus diesem Projektordner aktualisiert werden. Bestehende v59-Installationen werden nicht migriert.
 
 ## Installieren
 
@@ -27,6 +27,15 @@ sudo bash install.sh --resume
 ```
 
 Details und Installationsschalter stehen in [docs/installation.md](docs/installation.md).
+
+Auf bereits installierten Geräten wird die Family-DNS-Systemkonfiguration durch ein Code-Update nicht geändert. Die Änderung aus 0.62.0 daher einmalig aus dem entpackten neuen Projektordner anwenden:
+
+```bash
+sudo python3 tools/configure-dns.py family config/resolved/laurinos-family-dns.conf
+resolvectl status
+```
+
+Bei Erfolg erscheint unter `Global` die Routing-Domain `~.`. Bei fehlgeschlagener Namensauflösung stellt der Helfer die vorherige Konfiguration wieder her und meldet dies ausdrücklich.
 
 ## Code aktualisieren
 
