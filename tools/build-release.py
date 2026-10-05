@@ -11,7 +11,7 @@ subprocess.run([sys.executable, '-B', str(ROOT / 'tools/check.py')], check=True)
 version = (ROOT / 'VERSION').read_text().strip()
 output = ROOT / 'dist'
 output.mkdir(exist_ok=True)
-archive = output / ('LaurinOS-v60-modular-' + version + '.zip')
+archive = output / ('LaurinOS-' + version + '.zip')
 folders = ['src', 'installer', 'config', 'systemd', 'assets', 'data', 'bin', 'sbin', 'tools', 'tests', 'docs', '.github']
 files = [p for p in ROOT.iterdir() if p.is_file() and p.name not in {'.DS_Store'}]
 for folder in folders:

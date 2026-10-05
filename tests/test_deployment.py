@@ -106,6 +106,32 @@ class DeploymentTests(unittest.TestCase):
         for value in ('../etc/shadow', '/etc/shadow', 'src/../bin/foo', 'src/another_package/foo.py'):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 deploy.destination(value)
+    def test_full_update_removes_deleted_component_and_its_receipt(self):
+        obsolete = self.source / 'src/laurinos/obsolete.py'
+        obsolete.write_text('VALUE = 1\n')
+        manifest = json.loads((self.source / 'manifest.json').read_text())
+        manifest['components']['obsolete'] = {'files': ['src/laurinos/obsolete.py']}
+        (self.source / 'manifest.json').write_text(json.dumps(manifest))
+        old = self.initial()
+        obsolete.unlink(); del manifest['components']['obsolete']
+        (self.source / 'manifest.json').write_text(json.dumps(manifest))
+        new, _ = deploy.stage_release(self.source, self.base)
+        self.assertTrue((old / 'app/laurinos/obsolete.py').exists())
+        self.assertFalse((new / 'app/laurinos/obsolete.py').exists())
+        self.assertNotIn('obsolete', deploy.read_json(new / 'installed.json')['components'])
+    def test_update_service_is_enabled_and_removed_on_rollback(self):
+        release = self.initial()
+        unit_root = self.root / 'units'
+        with patch.object(deploy.subprocess, 'run') as run:
+            deploy.apply_units(release, unit_root=unit_root)
+            self.assertIn(unittest.mock.call(['systemctl', 'enable', 'laurinos-updates.service'], check=True), run.call_args_list)
+        prior = self.root / 'prior'
+        shutil.copytree(release, prior)
+        (prior / 'systemd/system/laurinos-updates.service').unlink()
+        with patch.object(deploy.subprocess, 'run') as run:
+            deploy.apply_units(prior, previous=release, unit_root=unit_root)
+            self.assertIn(unittest.mock.call(['systemctl', 'disable', '--now', 'laurinos-updates.service'], check=True), run.call_args_list)
+            self.assertFalse((unit_root / 'system/laurinos-updates.service').exists())
     def test_unit_install_failure_restores_previous_units_and_code(self):
         old = self.initial()
         path = self.source / 'src/laurinos/controller.py'

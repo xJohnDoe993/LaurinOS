@@ -12,6 +12,7 @@ echo "Eltern-Webbackend auf Port 80 einrichten ..."
 # WLAN-Dienst und Client verwenden dasselbe root-eigene Paket.
 
 install_repo_file systemd/system/laurinos-emulators.service /etc/systemd/system/laurinos-emulators.service
+install_repo_file systemd/system/laurinos-updates.service /etc/systemd/system/laurinos-updates.service
 
 install_repo_file systemd/system/laurinos-parent-web.service /etc/systemd/system/laurinos-parent-web.service
 
@@ -22,6 +23,7 @@ install_repo_file systemd/system/laurinos-wifi.service /etc/systemd/system/lauri
 systemctl daemon-reload
 systemctl enable laurinos-wifi.service
 systemctl enable laurinos-emulators.service
+systemctl enable laurinos-updates.service
 systemctl enable laurinos-bluetooth.service
 systemctl enable laurinos-parent-web.service >/dev/null 2>&1 || true
 
@@ -41,10 +43,13 @@ if ! systemctl is-active --quiet laurinos-emulators.service; then
     echo "FEHLER: Emulator-Installationsdienst ist nicht gestartet. Siehe systemctl status laurinos-emulators.service" >&2
     exit 1
 fi
-systemctl restart laurinos-parent-web.service
+systemctl restart laurinos-parent-web.service laurinos-updates.service
 sleep 2
 if ! systemctl is-active --quiet laurinos-parent-web.service; then
     echo "FEHLER: Eltern-Webbackend ist nicht gestartet. Siehe systemctl status laurinos-parent-web.service" >&2
     exit 1
 fi
-
+if ! systemctl is-active --quiet laurinos-updates.service; then
+    echo "FEHLER: Release-Updater ist nicht gestartet. Siehe systemctl status laurinos-updates.service" >&2
+    exit 1
+fi

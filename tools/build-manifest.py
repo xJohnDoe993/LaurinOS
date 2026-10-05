@@ -11,6 +11,7 @@ groups = {
     'network': ['wifi', 'bluetooth', 'wifi_ui', 'bluetooth_ui', 'network_status'],
     'emulators': ['emulators', 'emulator_install', 'emulator_catalog', 'emulator_service'],
     'backend': ['parent', 'parent_web'],
+    'updates': ['updates', 'release_source', 'update_service'],
     'cli': ['cli_osd_notify', 'cli_update_apps', 'cli_flatpak', 'cli_emulator', 'cli_emulator_check'],
     'tools': [], 'services': [],
 }

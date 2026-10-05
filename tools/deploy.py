@@ -99,6 +99,10 @@ def stage_release(source, base, selected=None):
         if old:
             shutil.copytree(old, stage, dirs_exist_ok=True)
         records = installed['components'].copy()
+        if selected is None:
+            for name in set(records) - set(manifest['components']):
+                for relative in records.pop(name)['files']:
+                    (stage / destination(relative)).unlink(missing_ok=True)
         for name in names:
             previous_files = records.get(name, {}).get('files', {})
             for relative in previous_files:
@@ -164,13 +168,16 @@ def install_launchers(release, previous=None):
                     if target.is_symlink() and target.readlink() == expected:
                         target.unlink()
 
-def apply_units(release, previous=None):
+def apply_units(release, previous=None, unit_root=Path('/etc/systemd')):
     for scope in ('system', 'user'):
-        destination_dir = Path('/etc/systemd') / scope
+        destination_dir = unit_root / scope
         destination_dir.mkdir(parents=True, exist_ok=True)
         if previous:
             for file in (previous / 'systemd' / scope).glob('*'):
                 if not (release / 'systemd' / scope / file.name).is_file():
+                    command = ['systemctl', 'disable', '--now', file.name] if scope == 'system' else user_command('disable', '--now', file.name)
+                    if command:
+                        subprocess.run(command, check=True)
                     target = destination_dir / file.name
                     if target.is_file():
                         target.unlink()
@@ -178,6 +185,8 @@ def apply_units(release, previous=None):
             shutil.copyfile(file, destination_dir / file.name)
             (destination_dir / file.name).chmod(0o644)
     subprocess.run(['systemctl', 'daemon-reload'], check=True)
+    if (release / 'systemd/system/laurinos-updates.service').is_file():
+        subprocess.run(['systemctl', 'enable', 'laurinos-updates.service'], check=True)
 
 def user_command(*args):
     try:
@@ -192,6 +201,8 @@ def user_command(*args):
 
 def restart_services():
     units = ['laurinos-wifi.service', 'laurinos-bluetooth.service', 'laurinos-emulators.service', 'laurinos-parent-web.service']
+    if (BASE / 'current/systemd/system/laurinos-updates.service').is_file():
+        units.append('laurinos-updates.service')
     subprocess.run(['systemctl', 'restart', *units], check=True)
     command = user_command('daemon-reload')
     if command:

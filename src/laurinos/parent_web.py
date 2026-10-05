@@ -24,6 +24,7 @@ from laurinos.state import read_settings
 from laurinos.diagnostics import collect_diagnostics, diagnostics_text
 from laurinos.bluetooth import bluetooth_request, BluetoothError
 from laurinos.wifi import wifi_request, WifiError
+from laurinos.updates import update_request, UpdateError
 
 CONFIG_DIR = str(CONFIG_ROOT)
 ICONS_DIR = parents.ICONS_DIR
@@ -99,7 +100,7 @@ def render(body, title='Übersicht', section='dashboard'):
     field = '<input type="hidden" name="csrf_token" value="' + csrf_token() + '">'
     body = re.sub(r'(<form\b[^>]*method="post"[^>]*>)', lambda m: m.group(1) + field, body)
     nav = [('Übersicht', 'dashboard'), ('Apps', 'apps_page'), ('Emulatoren', 'emulators_page'), ('Bildschirmzeit', 'time_page'),
-           ('WLAN', 'wifi_page'), ('Bluetooth', 'bluetooth_page'), ('Controller', 'controllers_page'), ('Einstellungen', 'settings_page'), ('Diagnose', 'diagnostics_page')]
+           ('WLAN', 'wifi_page'), ('Bluetooth', 'bluetooth_page'), ('Controller', 'controllers_page'), ('Updates', 'updates_page'), ('Einstellungen', 'settings_page'), ('Diagnose', 'diagnostics_page')]
     return render_template_string(BASE, body=body, title=title, section=section,
                                   authenticated=logged_in(), navigation=nav)
 
@@ -167,6 +168,34 @@ def logout():
 
 BONUS_BUTTONS = _template('bonus-buttons.html')
 STATS = _template('stats.html')
+
+
+@app.route('/updates')
+@login_required
+def updates_page():
+    return render(render_template_string(_template('updates.html')), 'Updates', 'updates_page')
+
+
+@app.route('/updates/status')
+def updates_status():
+    if not logged_in():
+        return jsonify(ok=False, error='Bitte anmelden.'), 401
+    try:
+        return jsonify(update_request())
+    except UpdateError as exc:
+        return jsonify(ok=False, error=str(exc)), 503
+
+
+@app.route('/updates/check', methods=['POST'], endpoint='updates_check')
+@app.route('/updates/install', methods=['POST'], endpoint='updates_install')
+def updates_action():
+    if not logged_in():
+        return jsonify(ok=False, error='Bitte anmelden.'), 401
+    action = 'install' if request.path.endswith('/install') else 'check'
+    try:
+        return jsonify(update_request(action, request.form.get('tag') if action == 'install' else None))
+    except UpdateError as exc:
+        return jsonify(ok=False, error=str(exc)), 409
 
 
 @app.route('/')
