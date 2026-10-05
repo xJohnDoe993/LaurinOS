@@ -16,6 +16,8 @@
 | `/home/kids/.config/openbox/` | Nur Openbox-Konfiguration und Autostart |
 | `/home/kids/.mozilla/laurinos-webapps/` | Browserprofile der Webapps |
 | `/var/lib/laurinos/` | Systemzustand der Emulator-Installation und Liste verwalteter Flatpak-Apps |
+| `/var/lib/laurinos/updates/` | root-eigener Versionscache und dauerhafter Update-Auftrag |
+| `/var/cache/laurinos-updates/` | Temporäre Release-Downloads; nach Abschluss entfernt |
 | `/usr/local/share/laurinos/` | Heruntergeladene RetroArch-Profile und PSP-Zusatzdateien; kein Python-Programmcode |
 | `/run/laurinos-*` | Dienst-Sockets und Wartungssperren |
 
@@ -44,5 +46,7 @@ Die eigentliche Programmfunktion bleibt in Python-Dateien. Konfigurationen werde
 ## Paketgrenzen
 
 Die vorhandenen v59-Funktionsbereiche wurden zunächst als eigenständige Python-Module übernommen und ihre Imports auf `laurinos.*` umgestellt. Das Menü bleibt ein größeres Modul; eine weitere Aufteilung in einzelne Widgets kann separat erfolgen. WLAN-Client und privilegierter WLAN-Dienst verwenden jetzt dieselbe root-eigene Datei. Der Emulator-Katalog liegt in JSON, die Eltern-Webansichten in HTML-Dateien.
+
+Seit 0.61.0 sprechen die authentifizierten Backend-Routen über den lokalen Update-Socket mit `update_service.py`. Der Prüfdienst holt ausschließlich Metadaten aus dem festgelegten GitHub-Repo. Ein Klick startet einen separaten Systemd-Worker, der den Release-Download mit `release_source.py` prüft und anschließend das vorhandene Deployment unter den gemeinsamen Wartungssperren aufruft. Der Prüfdienst kann beim Aktivieren des neuen Releases neu starten, ohne den Worker zu beenden.
 
 `manifest.json` beschreibt die gemeinsam aktualisierbaren Komponenten. Jede installierte Version enthält `installed.json` mit Herkunftsversion und SHA-256 pro Komponentendatei. Nach einem Teilupdate können Komponenten unterschiedliche Versionen haben. Der Hash im Release-Verzeichnis bezeichnet die Kombination dieser Komponenten.

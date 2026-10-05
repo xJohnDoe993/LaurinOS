@@ -1,0 +1,79 @@
+<div class="pagehead"><div class="eyebrow">LaurinOS aktuell halten</div><h1>Updates</h1><p class="muted">Neue stabile Versionen aus dem LaurinOS-Repo auf GitHub. Die Versionsprüfung läuft automatisch alle sechs Stunden.</p></div>
+<div id="update-error" class="flash error" role="alert" hidden></div>
+<section class="panel">
+  <div class="row"><h2>Code-Version</h2><span id="update-label" class="badge on">Status wird geladen …</span></div>
+  <p>Installiert: <strong id="current-version">…</strong><span id="mixed-versions" class="hint"></span></p>
+  <p id="latest-version" class="muted"></p><p id="last-checked" class="hint"></p>
+  <div class="actions"><button id="check-update" class="secondary" disabled>Nach Updates suchen</button><button id="install-update" disabled hidden>Update installieren</button><a class="btn secondary" href="https://github.com/xJohnDoe993/LaurinOS/releases" target="_blank" rel="noopener noreferrer">GitHub-Releases</a></div>
+  <p class="hint">Manuelle Prüfungen sind höchstens einmal pro Minute möglich.</p>
+</section>
+<section id="update-progress" class="panel" aria-live="polite" hidden><h2>Update-Auftrag</h2><p id="job-message"></p><div class="bar" role="progressbar" aria-label="Update-Fortschritt" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="job-bar" style="width:0%"></i></div><p id="job-version" class="hint"></p></section>
+<section id="release-notes" class="panel" hidden><h2 id="release-title">Neues Release</h2><pre id="release-body"></pre></section>
+<section class="panel"><h2>Vor dem Update</h2><p>Apps und Spiele schließen und den Laptop am Strom lassen. Die LaurinOS-Dienste und eine aktive Kindersitzung starten während des Updates neu; das Backend kann kurz nicht erreichbar sein.</p><p class="muted">Eltern-Einstellungen, Apps, eigene Bilder, ROMs und Spielstände bleiben erhalten. Dieser Updater installiert LaurinOS-Code und seine Dienste. Änderungen an Debian-Paketen oder der übrigen Systemkonfiguration erfordern eigene Einrichtungsschritte.</p></section>
+<noscript><div class="flash error">Bitte JavaScript aktivieren, um Updates zu prüfen und zu installieren.</div></noscript>
+<script>
+(() => {
+  const check = document.getElementById('check-update'), install = document.getElementById('install-update');
+  const error = document.getElementById('update-error');
+  let state = null, sending = false, timer;
+  const date = value => value ? new Date(value * 1000).toLocaleString('de-DE') : 'Noch keine erfolgreiche Prüfung';
+  function display(next) {
+    state = next;
+    const job = state.job, busy = job && ['queued','running'].includes(job.status);
+    document.getElementById('current-version').textContent = state.current_version;
+    document.getElementById('mixed-versions').textContent = state.component_versions.length > 1 ? ' · Unterschiedliche Komponenten: ' + state.component_versions.join(', ') : '';
+    document.getElementById('latest-version').textContent = state.release ? 'Veröffentlicht: ' + state.release.version : 'Kein geeignetes stabiles Release gefunden.';
+    document.getElementById('last-checked').textContent = 'Letzte erfolgreiche Prüfung: ' + date(state.last_checked);
+    document.getElementById('update-label').textContent = busy ? 'Update läuft' : state.checking ? 'Prüfung läuft' : state.check_error ? 'Prüfung fehlgeschlagen' : state.update_available ? 'Update verfügbar' : state.last_checked ? 'Kein neueres Update' : 'Noch nicht geprüft';
+    error.hidden = !state.check_error;
+    error.textContent = state.check_error || '';
+    check.disabled = sending || busy || state.checking;
+    install.hidden = !state.update_available;
+    install.disabled = sending || busy || state.checking;
+    install.textContent = state.release ? 'Version ' + state.release.version + ' installieren' : 'Update installieren';
+    document.getElementById('release-notes').hidden = !state.release;
+    if (state.release) {
+      document.getElementById('release-title').textContent = state.release.title;
+      document.getElementById('release-body').textContent = state.release.notes || 'Keine Release-Notizen vorhanden.';
+    }
+    document.getElementById('update-progress').hidden = !job;
+    if (job) {
+      document.getElementById('job-message').textContent = job.message;
+      document.getElementById('job-version').textContent = 'Auftrag für ' + job.tag + ' · ' + date(job.updated_at);
+      const percent = Math.max(0, Math.min(100, job.progress || 0));
+      document.getElementById('job-bar').style.width = percent + '%';
+      document.getElementById('job-bar').parentElement.setAttribute('aria-valuenow', percent);
+    }
+    clearTimeout(timer); timer = setTimeout(poll, busy || state.checking ? 2000 : 30000);
+  }
+  async function readResponse(response) {
+    if (response.status === 401) { location.href = {{ url_for('login', next='/updates')|tojson }}; return null; }
+    if (response.status === 400) throw new Error('Formular abgelaufen. Bitte Seite neu laden.');
+    if (!response.headers.get('Content-Type')?.includes('application/json')) throw new Error('Backend-Verbindung wird wiederhergestellt …');
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || 'Update-Anfrage fehlgeschlagen. Bitte Seite neu laden.');
+    return payload;
+  }
+  async function poll() {
+    try { const next = await readResponse(await fetch({{ url_for('updates_status')|tojson }}, {cache:'no-store'})); if (next) display(next); }
+    catch (exc) {
+      error.hidden = false; error.textContent = exc.message || 'Verbindung wird wiederhergestellt …';
+      check.disabled = true; install.disabled = true;
+      clearTimeout(timer); timer = setTimeout(poll, 3000);
+    }
+  }
+  async function action(url, tag) {
+    sending = true; check.disabled = true; install.disabled = true;
+    const body = new URLSearchParams({csrf_token:{{ csrf_token()|tojson }}});
+    if (tag) body.set('tag', tag);
+    try { const next = await readResponse(await fetch(url, {method:'POST', body, headers:{Accept:'application/json'}})); if (next) display(next); }
+    catch (exc) { error.hidden = false; error.textContent = exc.message; }
+    finally { sending = false; clearTimeout(timer); timer = setTimeout(poll, 2000); }
+  }
+  check.addEventListener('click', () => action({{ url_for('updates_check')|tojson }}));
+  install.addEventListener('click', () => {
+    if (state && state.update_available && confirm('Version ' + state.release.version + ' installieren? Apps und Spiele vorher schließen. Die LaurinOS-Dienste und die Kindersitzung starten neu.')) action({{ url_for('updates_install')|tojson }}, state.release.tag);
+  });
+  poll();
+})();
+</script>

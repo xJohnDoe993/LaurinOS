@@ -1,4 +1,4 @@
-LaurinOS 0.60.0 – modulare Installation für frisches Debian 12/13
+LaurinOS 0.61.0 – modulare Installation für frisches Debian 12/13
 
 Installieren: sudo bash install.sh
 Abgebrochenes modulares Setup fortsetzen: sudo bash install.sh --resume

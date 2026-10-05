@@ -18,12 +18,25 @@ Die automatischen Prüfungen decken Syntax, Paketimporte, Ressourcen, Emulator-A
 Dienstzustände und Protokolle:
 
 ```bash
-systemctl status laurinos-parent-web laurinos-wifi laurinos-bluetooth laurinos-emulators
-journalctl -b -u laurinos-parent-web -u laurinos-wifi -u laurinos-bluetooth -u laurinos-emulators
+systemctl status laurinos-parent-web laurinos-wifi laurinos-bluetooth laurinos-emulators laurinos-updates
+journalctl -b -u laurinos-parent-web -u laurinos-wifi -u laurinos-bluetooth -u laurinos-emulators -u laurinos-updates
 ```
 
 ## Updateprüfung
 
 Vorher eine App-Liste, eigene PIN, Controller-Profil und einen Spielstand anlegen. Ein reines Controller-Update aus einem vorbereiteten Testrelease ausführen. Prüfen, dass Eltern-Daten erhalten bleiben und andere Komponentendateien dieselben Hashes in `installed.json` haben. Anschließend Code-Rollback testen und erneut prüfen.
+
+## GitHub-Updates im Backend
+
+- Die einmalige Aktualisierung von 0.60.0 auf 0.61.0 aktiviert `laurinos-updates.service`; der Dienst startet auch nach einem Neustart.
+- Ohne Eltern-Anmeldung sind Status und Update-Aktionen gesperrt. Mit Anmeldung erscheint die Seite **Updates**.
+- Ein höheres stabiles Release mit passenden ZIP-/SHA-Assets wird nach der Prüfung angeboten; Entwürfe, Pre-Releases, identische und ältere Versionen werden nicht angeboten.
+- Internet trennen: Fehler und letzte erfolgreiche Prüfung bleiben sichtbar, das restliche Backend funktioniert. Verbindung wiederherstellen und nach mindestens einer Minute erneut prüfen.
+- Apps und Spiele schließen. Update per Klick starten; ein zweiter Auftrag währenddessen wird abgewiesen. Fortschritt beobachten, auch wenn die Backend-Verbindung während Dienstneustarts kurz ausfällt.
+- Nach Abschluss die neue Version in `installed.json`, aktive Dienste und Kindersitzung prüfen. PIN, Einstellungen, Bilder und Spielstände kontrollieren.
+- Code-Rollback testen; bei Rückkehr zu 0.60.0 verschwindet die neue Update-Funktion wieder. Bei Wiederaktivierung von 0.61.0 wird der Prüfdienst erneut aktiviert.
+- Auf einem separaten Testgerät einen abgebrochenen Download und einen fehlerhaften Dienststart prüfen. Bei einem erkannten Startfehler muss der bisherige Code wieder aktiv sein; beim Downloadfehler darf sich `current` nicht ändern.
+
+Diese Tests benötigen echte GitHub-Releases und ein Debian-Gerät mit Systemd. Die automatischen Tests ersetzen sie nicht.
 
 Erst nach diesen Geräteprüfungen den Stand als auf Debian/T450 praktisch getestet markieren.

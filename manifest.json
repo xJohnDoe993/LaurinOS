@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "runtime_api": 1,
-  "version": "0.60.0",
+  "version": "0.61.0",
   "components": {
     "shared": {
       "files": [
@@ -75,7 +75,15 @@
         "assets/parent-web/stats.html",
         "assets/parent-web/time-bonus-form.html",
         "assets/parent-web/time-limit-form.html",
+        "assets/parent-web/updates.html",
         "assets/parent-web/wifi-page.html"
+      ]
+    },
+    "updates": {
+      "files": [
+        "src/laurinos/updates.py",
+        "src/laurinos/release_source.py",
+        "src/laurinos/update_service.py"
       ]
     },
     "cli": {
@@ -121,6 +129,7 @@
         "systemd/system/laurinos-bluetooth.service",
         "systemd/system/laurinos-emulators.service",
         "systemd/system/laurinos-parent-web.service",
+        "systemd/system/laurinos-updates.service",
         "systemd/system/laurinos-wifi.service",
         "systemd/user/laurinos-cursor.service",
         "systemd/user/laurinos-media.service",

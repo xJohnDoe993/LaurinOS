@@ -1,0 +1,27 @@
+[Unit]
+Description=LaurinOS GitHub-Release-Prüfung
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=kids
+WorkingDirectory=/usr/local/lib/laurinos/current
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -I /usr/local/lib/laurinos/current/run.py update_service --serve
+RuntimeDirectory=laurinos-updates
+RuntimeDirectoryMode=0750
+StateDirectory=laurinos/updates
+StateDirectoryMode=0700
+Restart=on-failure
+RestartSec=3
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
