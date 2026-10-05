@@ -32,16 +32,8 @@ if [ -n "$PROFILE_PATH" ]; then
     chown -R "${KIDS_USER}:${KIDS_USER}" "$FIREFOX_DIR"
 fi
 
-mkdir -p /etc/systemd/resolved.conf.d
-install_repo_file config/resolved/laurinos-family-dns.conf /etc/systemd/resolved.conf.d/laurinos-family-dns.conf
-
-systemctl enable systemd-resolved >/dev/null 2>&1 || true
-systemctl restart systemd-resolved >/dev/null 2>&1 || true
-
-if [[ -e /etc/resolv.conf && ! -L /etc/resolv.conf ]]; then
-    cp -a /etc/resolv.conf /etc/resolv.conf.laurinos-backup
-fi
-ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+/usr/bin/python3 "${REPO_DIR}/tools/configure-dns.py" family \
+    "${REPO_DIR}/config/resolved/laurinos-family-dns.conf"
 
 mkdir -p /etc/firefox/policies
 install_repo_file config/firefox/policies.json /etc/firefox/policies/policies.json
@@ -87,4 +79,3 @@ fi
 rm -f /tmp/laurinos-*.download /tmp/laurinos-*.tmp
 chown -R "${KIDS_USER}:${KIDS_USER}" "${KIDS_HOME}/.local/share/laurinos"
 chmod -R 755 "${KIDS_HOME}/.local/share/laurinos"
-
