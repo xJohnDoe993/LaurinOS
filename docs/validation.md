@@ -14,9 +14,3 @@ Ausgeführt mit `python3 -B tools/check.py`, zusätzlich mit Flask für die opti
 - Das fertige Archiv wurde auf enthaltene Dateien, Integrität und erfolgreiche Prüfungen nach erneutem Entpacken geprüft.
 
 Nicht ausgeführt: tatsächliche Debian-Installation, Live-Download eines GitHub-Release-Assets, Paketdownloads, Betrieb der Systemd-Dienste/des Unix-Sockets, grafische Oberfläche, WLAN/Bluetooth, Emulatorstarts und T450-Hardwaretests. Dafür steht `docs/device-validation.md` bereit. Vor Veröffentlichung als stabiles Release ist ein Gerätetest erforderlich.
-
-## Paket-Nachinstallation, 6. Oktober 2026
-
-`python3 -B tools/check.py` mit Flask: 67 erfolgreiche Tests, 62 Python-Dateien und 27 Shell-Dateien. Die zusätzlichen Tests prüfen Paketdeklarationen, native Architektur und vollständigen Installationszustand, nichtinteraktive Installation mit exakten Kandidatenversionen, fehlende Kandidaten, APT-Fehler, unvollständige Installation, Wiederholbarkeit, Teilupdate-Anforderungen, Abbruch vor dem Codewechsel sowie die Fehlermeldung des Update-Auftrags im Backend.
-
-Der unveränderte Deployment-Code aus dem vorbereiteten 0.62.0-Archiv liegt als Testfixture bei. Mit ihm wird der erste Übergang auf den Paketdienst in temporären Installations- und Unit-Verzeichnissen ausgeführt: fehlgeschlagene Nachinstallation mit Code-/Unit-Rollback und anschließend erfolgreicher neuer Versuch. APT und Systemd-Startabläufe sind dabei simuliert. Eine echte Paketinstallation und die Dienstabhängigkeiten auf Debian müssen vor dem Release auf einem Testgerät geprüft werden.

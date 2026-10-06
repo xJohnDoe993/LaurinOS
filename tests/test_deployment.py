@@ -15,8 +15,6 @@ spec.loader.exec_module(deploy)
 
 class DeploymentTests(unittest.TestCase):
     def setUp(self):
-        package_patch = patch.object(deploy, 'ensure_packages', return_value=[])
-        package_patch.start(); self.addCleanup(package_patch.stop)
         self.temp = tempfile.TemporaryDirectory(dir=ROOT.parent)
         self.root = Path(self.temp.name)
         self.source = self.root / 'source'

@@ -219,12 +219,8 @@ def apply_job(store, job_id, base=BASE, cache=CACHE_DIR):
                     raise UpdateError('Archiv-Version und Release-Tag stimmen nicht überein.')
                 update_job(store, job_id, message='Neue Code-Version wird vorbereitet.', progress=80)
                 staged, names = deploy.stage_release(source, base)
-                def package_progress(message):
-                    update_job(store, job_id, message=message, progress=85)
-                update_job(store, job_id, message='Benötigte Debian-Pakete werden geprüft.', progress=82)
-                deploy.ensure_packages(staged, package_progress)
                 update_job(store, job_id, message='Code wird aktiviert. Dienste und Kindersitzung starten neu.', progress=90)
-                deploy.activate(base, staged, units='services' in names, packages_prepared=True)
+                deploy.activate(base, staged, units='services' in names)
                 update_job(store, job_id, status='succeeded', message='Update erfolgreich installiert.', progress=100)
     except Exception as exc:
         update_job(store, job_id, status='failed', message='Update fehlgeschlagen: ' + str(exc)[:1500])
