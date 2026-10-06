@@ -1,9 +1,12 @@
-LaurinOS 0.61.0 – modulare Installation für frisches Debian 12/13
+LaurinOS 0.62.0 – modulare Installation für frisches Debian 12/13
 
 Installieren: sudo bash install.sh
 Abgebrochenes modulares Setup fortsetzen: sudo bash install.sh --resume
 Neustart danach: sudo reboot
 Code prüfen/aktualisieren: bash update.sh --check; sudo bash update.sh
+Family-DNS auf bestehenden Geräten separat übernehmen:
+sudo python3 tools/configure-dns.py family config/resolved/laurinos-family-dns.conf
+Danach muss resolvectl status unter Global die DNS Domain ~. anzeigen.
 
 Apps: LAURINOS_APPS="2 6 9" (leer: interaktiv, 13: keine)
 Paketquelle: LAURINOS_APP_SOURCE=flathub|debian
