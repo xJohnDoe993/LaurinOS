@@ -46,8 +46,24 @@ try:
 except ImportError:
     HAS_QT = False
 
+try:
+    from PyQt5.QtMultimediaWidgets import QVideoWidget
+    HAS_VIDEO_WIDGET = True
+except ImportError:
+    HAS_VIDEO_WIDGET = False
+
 
 if HAS_QT:
+    class BackendSurface(QWidget):
+        """A native backend child can accept events without passing them upward."""
+        def event(self, event):
+            from PyQt5.QtCore import QEvent
+            if event.type() in (QEvent.MouseButtonPress, QEvent.MouseButtonRelease,
+                                QEvent.MouseButtonDblClick, QEvent.ShortcutOverride, QEvent.KeyPress):
+                event.accept()
+                return True
+            return super().event(event)
+
     class FakeContent:
         def __init__(self, url=None): self.url = url
 
@@ -199,6 +215,100 @@ class VideoWidgetTests(unittest.TestCase):
         self.assertIs(self.browser.stack.currentWidget(), self.browser.overview)
         self.assertIsNone(self.viewer.player.content.url)
 
+    def check_backend_child_input(self):
+        from PyQt5.QtCore import Qt, QEvent
+        from PyQt5.QtGui import QKeyEvent
+        from PyQt5.QtTest import QTest
+        from PyQt5.QtWidgets import QVBoxLayout
+        self.browser.preview(self.clip)
+        self.browser.showFullScreen(); self.browser.activateWindow(); self.app.processEvents()
+        # Created after playback starts, just like a backend-provided widget.
+        child = BackendSurface(self.viewer.surface)
+        child.setAttribute(Qt.WA_NativeWindow)
+        child.setAttribute(Qt.WA_NoMousePropagation)
+        child.setFocusPolicy(Qt.StrongFocus)
+        layout = QVBoxLayout(self.viewer.surface)
+        layout.setContentsMargins(0, 0, 0, 0); layout.addWidget(child)
+        child.show(); child.setFocus(); self.app.processEvents()
+        self.viewer.player.setPosition(3210)
+        stops, content = self.viewer.player.stops, self.viewer.player.content
+        QTest.mouseClick(child, Qt.LeftButton)
+        QTest.mouseDClick(child, Qt.LeftButton)
+        self.app.processEvents()
+        self.assertTrue(self.viewer.video_fullscreen)
+        self.assertEqual(child.size(), self.browser.size())
+        QTest.mouseDClick(child, Qt.LeftButton)
+        self.assertFalse(self.viewer.video_fullscreen)
+        QTest.mouseDClick(child, Qt.LeftButton)
+        child.setFocus(); QTest.keyClick(child, Qt.Key_Space)
+        self.assertEqual(self.viewer.player.state(), FakePlayer.PausedState)
+        QTest.keyClick(child, Qt.Key_Space)
+        self.assertEqual(self.viewer.player.state(), FakePlayer.PlayingState)
+        QTest.keyClick(child, Qt.Key_F11)
+        self.assertFalse(self.viewer.video_fullscreen)
+        QTest.keyClick(child, Qt.Key_F11)
+        QApplication.sendEvent(child, QKeyEvent(QEvent.KeyPress, Qt.Key_F11, Qt.NoModifier, '', True))
+        self.assertTrue(self.viewer.video_fullscreen)
+        QTest.keyClick(child, Qt.Key_Escape)
+        self.assertFalse(self.viewer.video_fullscreen)
+        self.assertIs(self.browser.stack.currentWidget(), self.viewer)
+        self.assertIs(self.viewer.player.content, content)
+        self.assertEqual(self.viewer.player.position(), 3210)
+        self.assertEqual(self.viewer.player.stops, stops)
+        self.assertFalse(self.viewer.play_button.isHidden())
+        QTest.keyClick(self.browser, Qt.Key_F11)
+        self.assertTrue(self.viewer.video_fullscreen)
+        QTest.keyClick(self.browser, Qt.Key_Escape)
+        self.assertFalse(self.viewer.video_fullscreen)
+        QTest.keyClick(self.browser, Qt.Key_Escape)
+        self.assertIs(self.browser.stack.currentWidget(), self.browser.overview)
+        self.assertFalse(self.viewer.input_filter_installed)
+        self.assertIsNone(self.viewer.player.content.url)
+
+    def test_backend_child_cannot_swallow_double_click_and_keyboard(self):
+        self.check_backend_child_input()
+
+    @unittest.skipUnless(HAS_VIDEO_WIDGET, 'Real video widget input tests require Qt Multimedia.')
+    def test_real_video_widget_with_native_backend_child_input(self):
+        self.browser.done(QDialog.Rejected); self.browser.deleteLater(); self.app.processEvents()
+        with patch.object(video, 'load_backend', return_value=(FakePlayer, FakeContent, QVideoWidget)):
+            self.browser = self.menu.CameraBrowser()
+        self.viewer = self.browser.video_viewer
+        self.browser.images = [self.clip, self.photo, self.second]
+        self.assertIsInstance(self.viewer.surface, QVideoWidget)
+        self.check_backend_child_input()
+
+    def test_input_filter_leaves_other_windows_controls_and_photos_alone(self):
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtTest import QTest
+        self.browser.preview(self.clip)
+        self.browser.showFullScreen(); self.browser.activateWindow(); self.app.processEvents()
+        QTest.mouseDClick(self.viewer.play_button, Qt.LeftButton)
+        QTest.mouseDClick(self.viewer.surface, Qt.RightButton)
+        self.assertFalse(self.viewer.video_fullscreen)
+        QTest.keyClick(self.viewer.surface, Qt.Key_F11, Qt.ControlModifier)
+        self.assertFalse(self.viewer.video_fullscreen)
+        other = QDialog(self.browser)
+        other.show(); other.activateWindow(); self.app.processEvents()
+        QTest.keyClick(other, Qt.Key_Escape)
+        self.assertFalse(other.isVisible())
+        self.assertIs(self.browser.stack.currentWidget(), self.viewer)
+        self.browser.preview(self.photo)
+        self.assertFalse(self.viewer.input_filter_installed)
+        self.browser.activateWindow(); self.app.processEvents()
+        QTest.keyClick(self.browser.viewer, Qt.Key_Escape)
+        self.assertIs(self.browser.stack.currentWidget(), self.browser.overview)
+        other.deleteLater()
+
+    def test_dialog_reject_fallback_only_exits_fullscreen_before_overview(self):
+        self.browser.preview(self.clip); self.viewer.toggle_fullscreen()
+        self.browser.reject()
+        self.assertFalse(self.viewer.video_fullscreen)
+        self.assertIs(self.browser.stack.currentWidget(), self.viewer)
+        self.assertEqual(self.viewer.player.state(), FakePlayer.PlayingState)
+        self.browser.reject()
+        self.assertIs(self.browser.stack.currentWidget(), self.browser.overview)
+
     def test_pause_seek_volume_and_replay_at_end(self):
         self.browser.preview(self.clip)
         self.viewer.play_button.click()
@@ -218,10 +328,11 @@ class VideoWidgetTests(unittest.TestCase):
     def test_back_and_close_release_file_and_ignore_late_errors(self):
         self.browser.preview(self.clip)
         self.viewer.toggle_fullscreen()
-        self.browser.reject()
+        self.browser.close()
         self.assertFalse(self.viewer.video_fullscreen)
         self.assertIs(self.browser.stack.currentWidget(), self.browser.overview)
         self.assertFalse(self.viewer.active)
+        self.assertFalse(self.viewer.input_filter_installed)
         self.assertIsNone(self.viewer.player.content.url)
         video.log_event.reset_mock()
         self.viewer.player.error.emit(FakePlayer.FormatError)

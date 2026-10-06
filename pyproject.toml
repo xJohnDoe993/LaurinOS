@@ -1,5 +1,5 @@
 [tool.laurinos]
-version = "0.63.3"
+version = "0.63.4"
 python-source = "src"
 python-minimum = "3.11"
 

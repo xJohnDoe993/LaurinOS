@@ -639,6 +639,9 @@ class CameraBrowser(QDialog):
             self.scroll.ensureWidgetVisible(button)
 
     def reject(self):
+        if self.stack.currentWidget() is self.video_viewer and self.video_viewer.video_fullscreen:
+            self.video_viewer.escape()
+            return
         # Auch Esc/Alt-F4 im Bildbetrachter kehrt zuerst zur Übersicht zurück.
         if self.stack.currentWidget() in (self.viewer, self.video_viewer):
             self.show_overview()
@@ -656,9 +659,12 @@ class CameraBrowser(QDialog):
         super().done(result)
 
     def closeEvent(self, event):
-        # Fenster-Schließen behandelt denselben Rückweg wie Esc.
+        # Fenster-Schließen gibt den Clip auch im Vollbild sofort frei.
         event.ignore()
-        self.reject()
+        if self.stack.currentWidget() is self.video_viewer:
+            self.show_overview()
+        else:
+            self.reject()
 
     def eject_media(self):
         roots = self.media_roots()

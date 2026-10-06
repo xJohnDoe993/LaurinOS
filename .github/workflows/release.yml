@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Versions-Tag, z. B. v0.63.3 (muss zu VERSION passen)'
+        description: 'Versions-Tag, z. B. v0.63.4 (muss zu VERSION passen)'
         required: true
         type: string
 
@@ -78,11 +78,11 @@ jobs:
       - name: Testabhängigkeiten installieren
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends python3-flask python3-pyqt5 libegl1 libopengl0
+          sudo apt-get install -y --no-install-recommends python3-flask python3-pyqt5 python3-pyqt5.qtmultimedia libegl1 libopengl0
 
       - name: Manifest, Tests, ZIP und SHA-256 prüfen
         run: |
-          python3 -c 'import sys; sys.path.insert(0, "src"); import flask; from laurinos import menu'
+          python3 -c 'import sys; sys.path.insert(0, "src"); import flask; from laurinos import menu; from PyQt5.QtMultimediaWidgets import QVideoWidget'
           python3 tools/build-manifest.py
           git diff --exit-code -- manifest.json
           python3 -B tools/build-release.py
