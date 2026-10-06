@@ -71,7 +71,7 @@ Der Kamera-Medienbrowser zeigt Bilder und Videoclips gemeinsam und kennzeichnet 
 
 Erkannt werden MP4, M4V, MOV, AVI, MKV, WebM, MPEG/MPG, 3GP, MTS/M2TS/TS und OGV. Der Codec innerhalb der Datei entscheidet über die tatsächliche Abspielbarkeit. Defekte, entfernte oder nicht unterstützte Dateien zeigen einen Hinweis im Player; weitere Dateien bleiben auswählbar.
 
-Version `0.63.4` korrigiert Doppelklick und Tastaturbedienung auf der inneren Qt-Videooberfläche. Wer `0.63.3` verwendet, benötigt dieses neue Release für die Korrektur; dessen vorhandenes ZIP wird nicht ersetzt.
+Version `0.63.5` zeichnet Videos über eine Qt-Grafikfläche. Die bisherige native GStreamer-Ausgabe kann mit `glimagesink` Eingaben außerhalb der Qt-Ereignisbehandlung konsumieren; der Filter aus `0.63.4` reicht dafür nicht aus. Das neue Release benötigt keine manuelle Einrichtung nach einem vollständigen Backend-Update.
 
 Neuinstallationen und vollständige Backend-Updates installieren fehlende Qt-Multimedia- und GStreamer-Pakete automatisch. Für ein manuelles Code-Teilupdate können die Abhängigkeiten separat installiert werden:
 

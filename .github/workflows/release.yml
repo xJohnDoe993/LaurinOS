@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Versions-Tag, z. B. v0.63.4 (muss zu VERSION passen)'
+        description: 'Versions-Tag, z. B. v0.63.5 (muss zu VERSION passen)'
         required: true
         type: string
 
@@ -78,7 +78,13 @@ jobs:
       - name: Testabhängigkeiten installieren
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends python3-flask python3-pyqt5 python3-pyqt5.qtmultimedia libegl1 libopengl0
+          sudo apt-get install -y --no-install-recommends python3-flask python3-pyqt5 python3-pyqt5.qtmultimedia libqt5multimedia5-plugins python3-xlib libegl1 libopengl0 xvfb xauth ffmpeg gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-gl
+
+      - name: Echte Videowiedergabe und X11-Eingaben prüfen
+        env:
+          QT_QPA_PLATFORM: xcb
+          QT_GSTREAMER_WIDGET_VIDEOSINK: glimagesink
+        run: xvfb-run -a python3 -B .github/scripts/video_input.py
 
       - name: Manifest, Tests, ZIP und SHA-256 prüfen
         run: |

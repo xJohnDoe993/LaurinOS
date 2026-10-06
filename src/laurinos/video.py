@@ -1,15 +1,45 @@
 """Video playback within the existing camera browser; optional on older installs."""
 import os
-from PyQt5.QtCore import Qt, QUrl, QEvent
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QSlider
+from PyQt5.QtCore import Qt, QUrl, QEvent, QSizeF, QRectF
+from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
+                             QLabel, QSlider, QGraphicsView, QGraphicsScene, QFrame)
 from laurinos.diagnostics import log_event
 
 
 def load_backend():
     # A missing multimedia package must not prevent the menu or photos opening.
     from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
-    from PyQt5.QtMultimediaWidgets import QVideoWidget
-    return QMediaPlayer, QMediaContent, QVideoWidget
+    from PyQt5.QtMultimediaWidgets import QGraphicsVideoItem
+    return QMediaPlayer, QMediaContent, CameraVideoSurface
+
+
+class CameraVideoSurface(QGraphicsView):
+    """Render frames inside Qt instead of a backend-owned native overlay window."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        from PyQt5.QtMultimediaWidgets import QGraphicsVideoItem
+        self.setScene(QGraphicsScene(self))
+        self.video_output = QGraphicsVideoItem()
+        self.video_output.setAspectRatioMode(Qt.KeepAspectRatio)
+        self.scene().addItem(self.video_output)
+        self.setFrameShape(QFrame.NoFrame)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setBackgroundBrush(QColor('black'))
+        self.setInteractive(False)
+        self.viewport().setFocusPolicy(Qt.StrongFocus)
+        self.resize_video()
+
+    def resize_video(self):
+        size = QSizeF(self.viewport().size())
+        self.video_output.setSize(size)
+        self.setSceneRect(QRectF(0, 0, size.width(), size.height()))
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, 'video_output'):
+            self.resize_video()
 
 
 def clock_text(milliseconds):
@@ -48,7 +78,7 @@ class CameraVideoViewer(QWidget):
             self.surface.setFocusPolicy(Qt.StrongFocus)
             layout.addWidget(self.surface, 1)
             self.player = self.player_type(self)
-            self.player.setVideoOutput(self.surface)
+            self.player.setVideoOutput(getattr(self.surface, 'video_output', self.surface))
             self.player.setVolume(70)
             self.player.positionChanged.connect(self.position_changed)
             self.player.durationChanged.connect(self.duration_changed)
@@ -105,9 +135,7 @@ class CameraVideoViewer(QWidget):
         if (not self.active or not self.isVisible() or not isinstance(watched, QWidget)
                 or watched.window() is not self.browser):
             return False
-        # Qt/GStreamer inserts its own native child inside QVideoWidget, often
-        # after playback starts. Filter the application's delivery to that child
-        # as well, before backend handlers can consume mouse/keyboard events.
+        # Receive input on the view, its viewport and the surrounding controls.
         if kind in (QEvent.ShortcutOverride, QEvent.KeyPress):
             if event.modifiers() != Qt.NoModifier:
                 return False
@@ -150,7 +178,7 @@ class CameraVideoViewer(QWidget):
         if enabled and (not self.active or self.failed or self.player is None or self.surface is None):
             return
         # Keep the video in its existing modal browser: no second window, no
-        # reparented QVideoWidget and no playback restart when changing view.
+        # reparented video surface and no playback restart when changing view.
         if enabled:
             controls = [(widget, widget.isHidden()) for widget in self.findChildren(QWidget)
                         if widget.parent() is self and widget is not self.surface]
