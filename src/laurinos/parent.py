@@ -15,7 +15,7 @@ import shutil
 import subprocess
 from contextlib import contextmanager
 from laurinos.categories import app_category
-from laurinos.state import atomic_json, read_settings, update_settings, remaining_seconds
+from laurinos.state import atomic_json, read_settings, update_settings, remaining_seconds, app_with_current_title
 
 APPS_FILE = str(CONFIG_DIR / "apps.json")
 ICONS_DIR = os.path.expanduser('~/.local/share/laurinos/icons')
@@ -38,7 +38,7 @@ def read_apps():
         return []
     if not isinstance(data, list) or any(not isinstance(a, dict) for a in data):
         raise ValueError('Die App-Liste ist beschädigt. Bitte Geräte-Diagnose öffnen.')
-    return data
+    return [app_with_current_title(item) for item in data]
 
 
 def managed_apps():

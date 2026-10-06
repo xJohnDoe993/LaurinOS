@@ -1,4 +1,5 @@
 import os
+import json
 import subprocess
 from pathlib import Path
 import sys
@@ -131,6 +132,73 @@ class VideoWidgetTests(unittest.TestCase):
         self.assertEqual(self.browser.viewer.images, [self.photo])
         self.assertIsNone(self.viewer.player.content.url)
 
+    def test_menu_reads_updated_camera_title_and_preserves_custom_title(self):
+        camera = {'id': 'camera', 'type': 'camera', 'command': '__CAMERA__',
+                  'title': 'Kamera / Bilder', 'enabled': False}
+        path = str(self.root / 'apps.json')
+        Path(path).write_text(json.dumps([camera, dict(camera, title='Meine Videos')]))
+        with patch.object(self.menu, 'APPS_FILE', path):
+            items = self.menu.load_json(path)
+        self.assertEqual(items[0], dict(camera, title='Kamera / Bilder / Videos'))
+        self.assertEqual(items[1]['title'], 'Meine Videos')
+
+    def test_double_click_fills_screen_without_restarting_video_and_restores_view(self):
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtTest import QTest
+        self.browser.preview(self.clip)
+        self.browser.resize(800, 600)
+        self.browser.show(); self.browser.activateWindow(); self.app.processEvents()
+        self.viewer.player.setPosition(1234)
+        self.viewer.player.pause()
+        content, stops = self.viewer.player.content, self.viewer.player.stops
+        margins = self.viewer.layout().contentsMargins()
+        geometry = self.browser.geometry()
+        QTest.mouseDClick(self.viewer.surface, Qt.LeftButton)
+        self.app.processEvents()
+        self.assertTrue(self.viewer.video_fullscreen)
+        self.assertTrue(self.browser.isFullScreen())
+        self.assertTrue(self.viewer.play_button.isHidden())
+        self.assertTrue(self.viewer.name_label.isHidden())
+        self.assertEqual(self.viewer.surface.size(), self.browser.size())
+        self.assertIs(self.viewer.player.content, content)
+        self.assertEqual(self.viewer.player.stops, stops)
+        self.assertEqual(self.viewer.player.position(), 1234)
+        self.assertEqual(self.viewer.player.state(), FakePlayer.PausedState)
+        QTest.mouseDClick(self.viewer.surface, Qt.LeftButton)
+        self.app.processEvents()
+        self.assertFalse(self.viewer.video_fullscreen)
+        self.assertFalse(self.browser.isFullScreen())
+        self.assertFalse(self.viewer.play_button.isHidden())
+        self.assertEqual(self.viewer.layout().contentsMargins(), margins)
+        self.assertEqual(self.browser.geometry(), geometry)
+        self.assertEqual(self.viewer.player.stops, stops)
+        self.assertEqual(self.viewer.player.position(), 1234)
+        self.assertEqual(self.viewer.player.state(), FakePlayer.PausedState)
+
+    def test_fullscreen_shortcuts_preserve_browser_fullscreen_and_playback(self):
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtTest import QTest
+        self.browser.preview(self.clip)
+        self.browser.showFullScreen(); self.browser.activateWindow(); self.viewer.setFocus()
+        self.app.processEvents()
+        QTest.keyClick(self.viewer, Qt.Key_F11)
+        self.assertTrue(self.viewer.video_fullscreen)
+        QTest.keyClick(self.viewer.surface, Qt.Key_Space)
+        self.assertEqual(self.viewer.player.state(), FakePlayer.PausedState)
+        QTest.keyClick(self.viewer.surface, Qt.Key_Space)
+        self.assertEqual(self.viewer.player.state(), FakePlayer.PlayingState)
+        QTest.keyClick(self.viewer.surface, Qt.Key_Escape)
+        self.assertFalse(self.viewer.video_fullscreen)
+        self.assertTrue(self.browser.isFullScreen())
+        self.assertIs(self.browser.stack.currentWidget(), self.viewer)
+        self.assertEqual(self.viewer.player.state(), FakePlayer.PlayingState)
+        self.viewer.fullscreen_button.click()
+        self.assertTrue(self.viewer.video_fullscreen)
+        self.viewer.fullscreen_button.click()
+        QTest.keyClick(self.viewer, Qt.Key_Escape)
+        self.assertIs(self.browser.stack.currentWidget(), self.browser.overview)
+        self.assertIsNone(self.viewer.player.content.url)
+
     def test_pause_seek_volume_and_replay_at_end(self):
         self.browser.preview(self.clip)
         self.viewer.play_button.click()
@@ -149,7 +217,9 @@ class VideoWidgetTests(unittest.TestCase):
 
     def test_back_and_close_release_file_and_ignore_late_errors(self):
         self.browser.preview(self.clip)
+        self.viewer.toggle_fullscreen()
         self.browser.reject()
+        self.assertFalse(self.viewer.video_fullscreen)
         self.assertIs(self.browser.stack.currentWidget(), self.browser.overview)
         self.assertFalse(self.viewer.active)
         self.assertIsNone(self.viewer.player.content.url)
@@ -157,22 +227,30 @@ class VideoWidgetTests(unittest.TestCase):
         self.viewer.player.error.emit(FakePlayer.FormatError)
         video.log_event.assert_not_called()
         self.browser.preview(self.second)
+        self.viewer.toggle_fullscreen()
         self.browser.done(QDialog.Accepted)
+        self.assertFalse(self.viewer.video_fullscreen)
         self.assertIsNone(self.viewer.player.content.url)
         self.assertFalse(self.browser.media_timer.isActive())
 
     def test_unplug_stops_playback_and_clears_overview(self):
         self.browser.preview(self.clip)
+        self.viewer.toggle_fullscreen()
         self.browser.roots_signature = ('/media/kids/camera',)
         self.browser.check_media()
         self.assertIsNone(self.viewer.player.content.url)
         self.assertFalse(self.viewer.active)
+        self.assertFalse(self.viewer.video_fullscreen)
         self.assertEqual(self.browser.images, [])
         self.assertIs(self.browser.stack.currentWidget(), self.browser.overview)
 
     def test_decode_failure_does_not_prevent_next_clip(self):
         self.browser.preview(self.clip)
+        self.viewer.toggle_fullscreen()
         self.viewer.player.error.emit(FakePlayer.FormatError)
+        self.assertFalse(self.viewer.video_fullscreen)
+        self.assertFalse(self.viewer.status_label.isHidden())
+        self.assertFalse(self.viewer.fullscreen_button.isEnabled())
         self.assertFalse(self.viewer.play_button.isEnabled())
         self.assertIn('nicht abgespielt', self.viewer.status_label.text())
         self.viewer.next_button.click()
@@ -182,10 +260,12 @@ class VideoWidgetTests(unittest.TestCase):
 
     def test_eject_releases_video_before_unmount(self):
         self.browser.preview(self.clip)
+        self.viewer.toggle_fullscreen()
         def unmount(command, **kwargs):
             self.assertEqual(command[:2], ['udisksctl', 'unmount'])
             self.assertIsNone(self.viewer.player.content.url)
             self.assertFalse(self.viewer.active)
+            self.assertFalse(self.viewer.video_fullscreen)
             return subprocess.CompletedProcess(command, 0, stdout='', stderr='')
         with patch.object(self.menu, 'media_roots', return_value=['/media/kids/camera']), \
                 patch.object(self.menu, 'STATE_DIR', self.root), \
@@ -211,6 +291,9 @@ class VideoWidgetTests(unittest.TestCase):
         viewer.open_videos([self.clip], self.clip)
         self.assertIsNone(viewer.player)
         self.assertFalse(viewer.play_button.isEnabled())
+        self.assertFalse(viewer.fullscreen_button.isEnabled())
+        viewer.toggle_fullscreen()
+        self.assertFalse(viewer.video_fullscreen)
         self.assertIn('Eltern', viewer.status_label.text())
         self.browser.preview(self.photo)
         self.assertIs(self.browser.stack.currentWidget(), self.browser.viewer)

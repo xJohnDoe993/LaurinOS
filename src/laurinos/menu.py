@@ -8,7 +8,7 @@ from laurinos.images import (TaskSignals, submit_task, decode_image, thumbnail,
 from laurinos.media_files import scan_media, is_video
 from laurinos.video import CameraVideoViewer
 from laurinos.diagnostics import collect_diagnostics, diagnostics_text, log_event
-from laurinos.state import read_settings, update_settings, atomic_json, remaining_seconds
+from laurinos.state import read_settings, update_settings, atomic_json, remaining_seconds, app_with_current_title
 from laurinos.parent_ui import ParentDialog
 from laurinos.categories import CATEGORIES, available_categories, filter_category
 from laurinos.controller import ControllerReader
@@ -129,7 +129,7 @@ def load_json(path):
         with open(path, encoding="utf-8") as handle:
             value = json.load(handle)
         if path == APPS_FILE:
-            return [item for item in value if isinstance(item, dict)] if isinstance(value, list) else []
+            return [app_with_current_title(item) for item in value if isinstance(item, dict)] if isinstance(value, list) else []
         return value
     except (OSError, ValueError):
         return [] if path == APPS_FILE else {}

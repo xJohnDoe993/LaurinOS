@@ -8,9 +8,27 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
-from laurinos import state, emulator_catalog, webapp, wifi, controller_profiles
+from laurinos import state, emulator_catalog, webapp, wifi, controller_profiles, parent
 
 class RuntimeTests(unittest.TestCase):
+    def test_old_camera_title_is_refreshed_without_rewriting_preferences(self):
+        camera = {'id': 'camera', 'type': 'camera', 'command': '__CAMERA__',
+                  'title': 'Kamera / Bilder', 'enabled': False, 'icon_file': 'my-camera.png',
+                  'user_modified': True}
+        items = [camera, dict(camera, title='Meine Clips'), dict(camera, id='other'),
+                 dict(camera, command='my-camera'), dict(camera, type='native')]
+        with tempfile.TemporaryDirectory(dir=ROOT.parent) as folder:
+            path = Path(folder) / 'apps.json'
+            original = json.dumps(items, ensure_ascii=False)
+            path.write_text(original)
+            with patch.object(parent, 'APPS_FILE', str(path)):
+                result = parent.read_apps()
+            self.assertEqual(result[0], dict(camera, title='Kamera / Bilder / Videos'))
+            self.assertEqual(result[1:], items[1:])
+            self.assertEqual(path.read_text(), original)
+        self.assertEqual(state.app_with_current_title(dict(camera, title='Kamera & Bilder'))['title'],
+                         'Kamera / Bilder / Videos')
+
     def test_settings_missing_do_not_enable_default_pin(self):
         with tempfile.TemporaryDirectory(dir=ROOT.parent) as folder, patch.object(state, 'SETTINGS_FILE', str(Path(folder) / 'settings.json')):
             with self.assertRaises(ValueError):

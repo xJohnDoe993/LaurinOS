@@ -1,5 +1,6 @@
 """Optional Flask integration tests; the baseline offline checks stay stdlib-only."""
 import importlib.util
+import json
 from pathlib import Path
 import sys
 import tempfile
@@ -65,6 +66,22 @@ class UpdateWebTests(unittest.TestCase):
             response = self.client.get('/updates/status')
             self.assertEqual(response.status_code, 503)
             self.assertEqual(response.json, {'ok': False, 'error': 'Dienst offline'})
+
+    def test_apps_page_refreshes_old_camera_title_and_describes_videos(self):
+        self.authenticate()
+        camera = {'id': 'camera', 'type': 'camera', 'command': '__CAMERA__',
+                  'title': 'Kamera / Bilder'}
+        with tempfile.TemporaryDirectory(dir=ROOT.parent) as folder:
+            path = Path(folder) / 'apps.json'
+            path.write_text(json.dumps([camera]))
+            with patch.object(self.web.parents, 'APPS_FILE', str(path)), \
+                    patch.object(self.web, 'read_settings', return_value={'pin': '678901', 'disabled_apps': []}):
+                response = self.client.get('/apps')
+        self.assertEqual(response.status_code, 200)
+        text = response.get_data(as_text=True)
+        self.assertIn('<h3>Kamera / Bilder / Videos</h3>', text)
+        self.assertIn('Kamera, Bilder &amp; Videos', text)
+        self.assertNotIn('Kamera & Bilder', text)
 
 
 if __name__ == '__main__': unittest.main()

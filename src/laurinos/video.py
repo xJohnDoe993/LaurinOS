@@ -1,6 +1,6 @@
 """Video playback within the existing camera browser; optional on older installs."""
 import os
-from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtCore import Qt, QUrl, QEvent
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QSlider, QShortcut
 from laurinos.diagnostics import log_event
@@ -28,6 +28,9 @@ class CameraVideoViewer(QWidget):
         self.active, self.failed = False, False
         self.duration = 0
         self.player = None
+        self.surface = None
+        self.video_fullscreen = False
+        self.fullscreen_restore = None
         self.shortcuts = []
         layout = QVBoxLayout(self)
         self.name_label = QLabel(self)
@@ -43,7 +46,8 @@ class CameraVideoViewer(QWidget):
             self.player_type, self.content_type, surface_type = load_backend()
             self.surface = surface_type(self)
             self.surface.setStyleSheet("background: black;")
-            self.surface.setFocusPolicy(Qt.NoFocus)
+            self.surface.setFocusPolicy(Qt.StrongFocus)
+            self.surface.installEventFilter(self)
             layout.addWidget(self.surface, 1)
             self.player = self.player_type(self)
             self.player.setVideoOutput(self.surface)
@@ -71,6 +75,8 @@ class CameraVideoViewer(QWidget):
         self.previous_button = self.button("← Vorheriges", lambda: self.step(-1), controls)
         self.play_button = self.button("▶ Wiedergabe", self.toggle_play, controls)
         self.next_button = self.button("Nächstes →", lambda: self.step(1), controls)
+        self.fullscreen_button = self.button("⛶ Vollbild", self.toggle_fullscreen, controls)
+        self.fullscreen_button.setEnabled(False)
         self.button("Zur Übersicht", browser.show_overview, controls)
         layout.addLayout(controls)
         volume = QHBoxLayout()
@@ -81,10 +87,11 @@ class CameraVideoViewer(QWidget):
         self.volume_slider.valueChanged.connect(self.set_volume)
         volume.addWidget(self.volume_slider, 1)
         layout.addLayout(volume)
-        help_label = QLabel("Leertaste: Wiedergabe / Pause · Esc: Übersicht", self)
+        help_label = QLabel("Doppelklick / F11: Vollbild · Leertaste: Pause · Esc: Zurück", self)
         help_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(help_label)
-        for key, callback in ((Qt.Key_Space, self.toggle_play), (Qt.Key_Escape, browser.show_overview)):
+        for key, callback in ((Qt.Key_Space, self.toggle_play), (Qt.Key_Escape, self.escape),
+                              (Qt.Key_F11, self.toggle_fullscreen)):
             shortcut = QShortcut(QKeySequence(key), self)
             shortcut.setContext(Qt.WidgetWithChildrenShortcut)
             shortcut.activated.connect(callback)
@@ -97,6 +104,60 @@ class CameraVideoViewer(QWidget):
         button.clicked.connect(callback)
         layout.addWidget(button)
         return button
+
+    def eventFilter(self, watched, event):
+        if watched is self.surface and event.type() == QEvent.MouseButtonDblClick and event.button() == Qt.LeftButton:
+            self.toggle_fullscreen()
+            event.accept()
+            return True
+        return super().eventFilter(watched, event)
+
+    def toggle_fullscreen(self):
+        self.set_fullscreen(not self.video_fullscreen)
+
+    def set_fullscreen(self, enabled):
+        if enabled == self.video_fullscreen:
+            return
+        if enabled and (not self.active or self.failed or self.player is None or self.surface is None):
+            return
+        # Keep the video in its existing modal browser: no second window, no
+        # reparented QVideoWidget and no playback restart when changing view.
+        if enabled:
+            controls = [(widget, widget.isHidden()) for widget in self.findChildren(QWidget)
+                        if widget.parent() is self and widget is not self.surface]
+            layouts = [self.layout(), self.browser.layout()]
+            self.fullscreen_restore = (controls,
+                                       [(layout, layout.contentsMargins(), layout.spacing()) for layout in layouts],
+                                       self.browser.windowState(), self.browser.geometry())
+            for widget, _ in controls:
+                widget.hide()
+            for layout in layouts:
+                layout.setContentsMargins(0, 0, 0, 0)
+                layout.setSpacing(0)
+            self.video_fullscreen = True
+            if not self.browser.isFullScreen():
+                self.browser.showFullScreen()
+            self.surface.setFocus(Qt.OtherFocusReason)
+        else:
+            controls, layouts, window_state, geometry = self.fullscreen_restore
+            self.video_fullscreen = False
+            self.fullscreen_restore = None
+            for widget, hidden in controls:
+                widget.setVisible(not hidden)
+            for layout, margins, spacing in layouts:
+                layout.setContentsMargins(margins)
+                layout.setSpacing(spacing)
+            if not window_state & Qt.WindowFullScreen:
+                self.browser.setWindowState(window_state)
+                if not window_state & Qt.WindowMaximized:
+                    self.browser.setGeometry(geometry)
+            self.setFocus(Qt.OtherFocusReason)
+
+    def escape(self):
+        if self.video_fullscreen:
+            self.set_fullscreen(False)
+        else:
+            self.browser.show_overview()
 
     def open_videos(self, paths, path):
         self.paths = list(paths)
@@ -116,6 +177,7 @@ class CameraVideoViewer(QWidget):
         self.position_slider.setEnabled(False)
         self.time_label.setText("0:00 / 0:00")
         self.play_button.setEnabled(self.player is not None)
+        self.fullscreen_button.setEnabled(self.player is not None)
         self.volume_slider.setEnabled(self.player is not None)
         if self.player is None:
             self.status_label.setText("Videowiedergabe ist noch nicht eingerichtet. Bitte deine Eltern um Hilfe bitten.")
@@ -129,9 +191,11 @@ class CameraVideoViewer(QWidget):
             self.player.play()
 
     def stop(self):
+        self.set_fullscreen(False)
         # Ignore queued backend errors while returning, unplugging or closing.
         self.active = False
         self.path = ""
+        self.fullscreen_button.setEnabled(False)
         if self.player is not None:
             self.player.stop()
             self.player.setMedia(self.content_type())
@@ -202,8 +266,10 @@ class CameraVideoViewer(QWidget):
         if not self.active or self.failed or self.player is None or error == self.player_type.NoError:
             return
         self.failed = True
+        self.set_fullscreen(False)
         self.player.stop()
         self.play_button.setEnabled(False)
+        self.fullscreen_button.setEnabled(False)
         self.position_slider.setEnabled(False)
         self.status_label.setText("Dieses Video kann nicht abgespielt werden. Die Datei ist möglicherweise "
                                   "beschädigt, das Format wird nicht unterstützt oder das Medium wurde entfernt.")
