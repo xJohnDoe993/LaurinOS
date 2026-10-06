@@ -17,7 +17,35 @@ Das Release benötigt zwei hochgeladene Assets:
 
 GitHubs automatisch erzeugte „Source code“-Archive ersetzen diese Assets nicht. Die früheren Dateinamen `LaurinOS-v60-modular-<Version>.zip` und ihre Prüfsummendatei werden ebenfalls erkannt. ZIP-Download höchstens 50 MiB; entpackt höchstens 100 MiB und 5.000 Einträge. Diese Grenzen müssen angepasst werden, falls LaurinOS später größere Release-Pakete benötigt.
 
-## GitHub-Release Schritt für Schritt
+## Automatischer Release-Build auf GitHub
+
+Der Workflow `.github/workflows/release.yml` baut das LaurinOS-Update-ZIP und seine SHA-256-Datei auf GitHub und lädt beide in einen Release-Entwurf. Er veröffentlicht das Release nicht selbst. Dadurch sieht das Gerätebackend erst nach der Freigabe ein vollständiges Release, auch wenn unveränderliche Releases auf GitHub aktiviert sind.
+
+Einmalig diesen Workflow in `main` übernehmen. Danach für jede neue Version:
+
+1. Alle gewünschten Änderungen in `main` zusammenführen. `VERSION`, `src/laurinos/__init__.py` und `pyproject.toml` auf dieselbe höhere Version setzen, beispielsweise `0.63.0`. `python3 tools/build-manifest.py` ausführen und die Versionsdateien samt Manifest committen/pushen. Bereits veröffentlichte Versionen bekommen keine neuen ZIPs; für Korrekturen eine neue Versionsnummer verwenden.
+2. [GitHub → Actions](https://github.com/xJohnDoe993/LaurinOS/actions) öffnen, **LaurinOS Release vorbereiten → Run workflow** wählen. Als Branch `main` und als Tag `v0.63.0` angeben. **Run workflow** klicken. Der Tag muss zu den Versionsdateien passen.
+3. Den erfolgreichen Lauf abwarten. GitHub prüft Versionen, Manifest, Python-/Shell-Dateien sowie Tests inklusive Flask und Qt-Widgets und baut mit `tools/build-release.py`. Die Zusammenfassung des Laufs enthält den Link zum Release-Entwurf.
+4. Unter [Releases](https://github.com/xJohnDoe993/LaurinOS/releases) den Entwurf öffnen. Prüfen, dass `LaurinOS-0.63.0.zip` **und** `LaurinOS-0.63.0.zip.sha256` vorhanden sind. Die automatisch erzeugten Release-Notizen ergänzen, insbesondere nötige Systemeinrichtungsschritte und bekannte Einschränkungen.
+5. Die Dateien herunterladen und die [Geräteprüfung](device-validation.md) durchführen. Danach **Publish release** wählen. Für das stabile Geräteupdate **Pre-release** ausschalten und das Release als neuestes Release markieren.
+6. Im Elternbackend **Updates → Nach Updates suchen** öffnen. Bei einer bereits identischen Version wird kein Update angeboten.
+
+Bei einem bereits vorhandenen Tag baut der manuelle Lauf dessen Commit, auch wenn im Auswahlfeld ein anderer Branch steht. Ohne vorhandenen Tag verwendet er den beim Start ausgewählten Commit und setzt diesen als Ziel des Release-Entwurfs. Vor der Veröffentlichung den Tag nicht auf einen anderen Commit verschieben. Ein leerer, schon manuell angelegter Entwurf wird mit den beiden Dateien ergänzt; seine Release-Notizen bleiben erhalten.
+
+Alternativ nach dem Commit der Versionsdateien einen Tag pushen:
+
+```bash
+git tag v0.63.0
+git push origin v0.63.0
+```
+
+Auch dieser Weg startet den Workflow automatisch. Der getaggte Commit muss den Workflow und seinen Helfer enthalten. Ein direkt auf der Releases-Seite veröffentlichtes Release löst diesen Build nicht aus; stattdessen zuerst den Workflow starten und anschließend seinen fertigen Entwurf veröffentlichen.
+
+Es ist kein persönlicher Token oder zusätzliches Secret nötig: Der Workflow nutzt den von GitHub bereitgestellten `GITHUB_TOKEN` mit `contents: write`. Sind Actions durch Repository-/Organisationsregeln deaktiviert oder Schreibrechte eingeschränkt, müssen diese Regeln angepasst werden. Manuelles **Run workflow** ist erst sichtbar, wenn die Workflow-Datei in `main` liegt.
+
+Bei Fehlern die Logs im Actions-Lauf ansehen. Versions-/Manifest-Fehler vor dem Upload erzeugen kein Release. Vorhandene veröffentlichte Releases sowie vorhandene ZIP-/SHA-Dateien werden nicht überschrieben. Nach einem teilweise fehlgeschlagenen Upload den Entwurf unveröffentlicht lassen, nur dessen vorhandene LaurinOS-ZIP-/SHA-Dateien löschen und den Lauf erneut starten. Bei Quellcodekorrekturen nach dem Taggen einen neuen Versions-Tag verwenden.
+
+## GitHub-Release manuell bauen und hochladen
 
 1. Änderungen prüfen und in den Hauptbranch übernehmen. `VERSION`, `src/laurinos/__init__.py` und `pyproject.toml` auf dieselbe neue Version setzen, für diesen Stand `0.62.0`.
 2. Aus dem Projektordner das Inventar aktualisieren und das Release bauen:
