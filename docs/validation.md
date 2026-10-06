@@ -1,6 +1,6 @@
 # Validierung dieser Entwicklungsbasis
 
-Stand: 5. Oktober 2026, Version 0.61.0.
+Stand: 5. Oktober 2026, Version 0.62.0.
 
 Ausgeführt mit `python3 -B tools/check.py`, zusätzlich mit Flask für die optionalen Backend-Integrationstests:
 

@@ -10,16 +10,16 @@ Der Download und die Aktivierung laufen als eigener transienter Systemd-Dienst `
 
 Das Release benötigt zwei hochgeladene Assets:
 
-| Asset für Version 0.61.0 | Inhalt |
+| Asset für Version 0.62.0 | Inhalt |
 |---|---|
-| `LaurinOS-0.61.0.zip` | Mit `tools/build-release.py` erstelltes Projektarchiv |
-| `LaurinOS-0.61.0.zip.sha256` | SHA-256 und Dateiname des Archivs |
+| `LaurinOS-0.62.0.zip` | Mit `tools/build-release.py` erstelltes Projektarchiv |
+| `LaurinOS-0.62.0.zip.sha256` | SHA-256 und Dateiname des Archivs |
 
 GitHubs automatisch erzeugte „Source code“-Archive ersetzen diese Assets nicht. Die früheren Dateinamen `LaurinOS-v60-modular-<Version>.zip` und ihre Prüfsummendatei werden ebenfalls erkannt. ZIP-Download höchstens 50 MiB; entpackt höchstens 100 MiB und 5.000 Einträge. Diese Grenzen müssen angepasst werden, falls LaurinOS später größere Release-Pakete benötigt.
 
-## Erstes GitHub-Release Schritt für Schritt
+## GitHub-Release Schritt für Schritt
 
-1. Änderungen prüfen und in den Hauptbranch übernehmen. `VERSION`, `src/laurinos/__init__.py` und `pyproject.toml` auf dieselbe neue Version setzen, für diesen Stand `0.61.0`.
+1. Änderungen prüfen und in den Hauptbranch übernehmen. `VERSION`, `src/laurinos/__init__.py` und `pyproject.toml` auf dieselbe neue Version setzen, für diesen Stand `0.62.0`.
 2. Aus dem Projektordner das Inventar aktualisieren und das Release bauen:
 
    ```bash
@@ -33,21 +33,21 @@ GitHubs automatisch erzeugte „Source code“-Archive ersetzen diese Assets nic
 
    ```bash
    git add VERSION pyproject.toml src/laurinos/__init__.py manifest.json
-   git commit -m "Prepare release 0.61.0"
+   git commit -m "Prepare release 0.62.0"
    git push origin main
    ```
 
    Wenn diese Dateien bereits im Hauptbranch committed sind, entfällt der zusätzliche Commit. `dist/` bleibt bewusst außerhalb von Git.
 
 4. Auf [GitHub → Releases](https://github.com/xJohnDoe993/LaurinOS/releases) **Draft a new release** öffnen.
-5. Tag `v0.61.0` erstellen und als Ziel den geprüften Commit im Hauptbranch wählen. Als Titel beispielsweise `LaurinOS 0.61.0 – GitHub-Updates` verwenden.
-6. Release-Notizen schreiben. Neue Funktionen, nötige Einrichtungsschritte und bekannte Einschränkungen nennen. Für 0.61.0 darauf hinweisen, dass 0.60.0 einmalig manuell aktualisiert werden muss.
-7. Beide Dateien aus `dist/` als Assets hochladen: `LaurinOS-0.61.0.zip` **und** `LaurinOS-0.61.0.zip.sha256`. Upload vollständig abwarten.
+5. Tag `v0.62.0` erstellen und als Ziel den geprüften Commit im Hauptbranch wählen. Als Titel beispielsweise `LaurinOS 0.62.0 – Family-DNS` verwenden.
+6. Release-Notizen schreiben. Neue Funktionen, nötige Einrichtungsschritte und bekannte Einschränkungen nennen. Für 0.62.0 auf die separate Übernahme der Family-DNS-Systemkonfiguration auf bestehenden Geräten hinweisen.
+7. Beide Dateien aus `dist/` als Assets hochladen: `LaurinOS-0.62.0.zip` **und** `LaurinOS-0.62.0.zip.sha256`. Upload vollständig abwarten.
 8. Auf einem Testgerät die Installation bzw. das manuelle Update und die [Geräteprüfung](device-validation.md) ausführen. Bis dahin das Release als Entwurf speichern; alternativ für Tests ein Pre-Release verwenden, das der stabile Updater ignoriert.
 9. Erst nach dem Gerätetest **Publish release** wählen und das Release als neuestes stabiles Release markieren. **Pre-release** muss ausgeschaltet sein.
 10. Im Elternbackend **Updates → Nach Updates suchen** prüfen. Eine vorhandene identische Version wird nicht erneut angeboten. Für den nächsten echten Update-Test eine höhere Version veröffentlichen.
 
-Für spätere Releases diese Schritte mit einer höheren Versionsnummer wiederholen, beispielsweise `0.62.0` / `v0.62.0`. Veröffentlichte Tags und Assets nicht nachträglich ersetzen; Korrekturen bekommen eine neue Versionsnummer. Der Installationsauftrag prüft vor dem Download erneut, ob die angebotenen Assets unverändert sind.
+Für spätere Releases diese Schritte mit einer höheren Versionsnummer wiederholen, beispielsweise `0.63.0` / `v0.63.0`. Veröffentlichte Tags und Assets nicht nachträglich ersetzen; Korrekturen bekommen eine neue Versionsnummer. Der Installationsauftrag prüft vor dem Download erneut, ob die angebotenen Assets unverändert sind.
 
 ## Einmalige Einrichtung auf 0.60.0
 
@@ -64,18 +64,30 @@ sudo systemctl status laurinos-updates.service --no-pager
 
 Die ersten zwei Befehle laufen im Downloadordner, bevor in den Projektordner gewechselt wird. Dieses vollständige Update aktiviert auch den neuen Prüfdienst. Danach das Backend neu laden; weitere Code-Releases lassen sich dort installieren. Eine frische 0.61.0-Installation richtet den Dienst bereits im Setup ein.
 
+## Family-DNS auf bestehenden Geräten ab 0.62.0
+
+Neuinstallationen übernehmen die globale Routing-Domain `~.` automatisch. Ein Code-Update verändert die DNS-Systemkonfiguration nicht. Nach dem Update daher einmalig aus dem entpackten 0.62.0-Projektordner ausführen:
+
+```bash
+sudo python3 tools/configure-dns.py family config/resolved/laurinos-family-dns.conf
+resolvectl status
+timeout 10 getent ahostsv4 deb.debian.org
+```
+
+Bei Erfolg steht unter `Global` neben den Family-DNS-Adressen `DNS Domain: ~.`. Funktioniert die Namensauflösung nach der Umstellung nicht, stellt der Helfer die vorherige Konfiguration wieder her und weist darauf hin, dass Family-DNS nicht aktiviert wurde. Lokale Netzwerk-Domains bleiben beim jeweiligen Link-DNS; zusätzliche VPN-Routing-Domains und Anwendungen mit eigenem DNS müssen am Gerät gesondert geprüft werden.
+
 ## Prüfung und Vertrauensmodell
 
 Der Dienst lädt nur über HTTPS von GitHub und den erlaubten GitHub-Asset-Hosts. Archivgröße, SHA-256, ein gegebenenfalls von GitHub gelieferter Digest, sichere ZIP-Pfade, Tag/Archiv-Version sowie Manifest, Paket-API und Python-Syntax werden vor der Aktivierung geprüft. Der aktuell installierte Deployment-Code führt die Installation aus; heruntergeladene Deployment-Skripte werden nicht vor der Aktivierung ausgeführt.
 
 Die SHA-Datei sichert die Integrität; sie ist keine unabhängige Signatur. Schreibberechtigte dieses Repos sind damit auch Herausgeber von root-ausgeführten Updates. Der lokale Kontroll-Socket akzeptiert ausschließlich root und den fest vorgesehenen `kids`-Benutzer; die Webaktionen benötigen zusätzlich Eltern-Anmeldung und CSRF-Token. Quelle, Download-URLs und Systembefehle sind nicht frei über den Socket wählbar. Private Repos mit Token werden derzeit nicht unterstützt.
 
-Code und Systemd-Units werden aktualisiert. APT-/Flatpak-Pakete, übrige Systemkonfiguration und Datenmigrationen sind nicht Teil dieses Updaters. Benötigt ein Release solche Änderungen oder eine vom installierten Deployment-Code nicht unterstützte Paket-API, müssen eigene Einrichtungsschritte bzw. eine Neuinstallation in den Release-Notizen stehen.
+Code, Systemd-Units und deklarierte fehlende Debian-Abhängigkeiten werden aktualisiert. Flatpak-Einrichtung, übrige Systemkonfiguration und Datenmigrationen benötigen eigene Einrichtungsschritte. Bei einer vom installierten Deployment-Code nicht unterstützten Paket-API ist weiterhin eine manuelle Aktualisierung oder Neuinstallation nötig; dies muss in den Release-Notizen stehen.
 
 Status und Fehlersuche auf dem Gerät:
 
 ```bash
-sudo journalctl -u laurinos-updates.service -u laurinos-update-job.service -n 100 --no-pager
+sudo journalctl -u laurinos-updates.service -u laurinos-update-job.service -u laurinos-packages.service -n 100 --no-pager
 sudo cat /var/lib/laurinos/updates/state.json
 cat /usr/local/lib/laurinos/current/installed.json
 ```
@@ -105,7 +117,30 @@ sudo bash update.sh
 
 Apps und Spiele vor dem Update schließen. Ein aktives Kinder-Menü und die Gerätedienste werden zur Übernahme des Codes neu gestartet. Ohne laufende Benutzersitzung startet der neue Sitzungscode bei der nächsten Anmeldung.
 
-`update.sh` installiert keine APT-/Flatpak-Pakete, überschreibt keine Eltern-Daten und verändert keine WLAN-Profile, Firefox-Profile, TLP-Regeln oder andere Systemkonfigurationen. Solche Änderungen müssen als gesonderte Einrichtungsschritte dokumentiert werden. Die Komponente `services` installiert die im Release enthaltenen LaurinOS-Systemd-Units neu.
+`update.sh` installiert deklarierte fehlende Debian-Pakete. Es überschreibt keine Eltern-Daten und verändert keine WLAN-Profile, Firefox-Profile, TLP-Regeln oder andere LaurinOS-Systemkonfigurationen. Flatpak-Einrichtung und weitere Systemänderungen müssen als gesonderte Einrichtungsschritte dokumentiert werden. Die Komponente `services` installiert die im Release enthaltenen LaurinOS-Systemd-Units neu.
+
+## Debian-Pakete bei Updates
+
+Releases deklarieren benötigte Pakete in `data/update-packages.json`, getrennt nach Manifest-Komponenten. Beispiel:
+
+```json
+{
+  "schema": 1,
+  "components": {
+    "desktop": ["python3-pyqt5.qtmultimedia", "gstreamer1.0-libav"]
+  }
+}
+```
+
+Die aktuelle Datei enthält die fünf Qt-Multimedia-/GStreamer-Pakete für die Videowiedergabe. Für eine neue Funktion deren benötigte Debian-Paketnamen ergänzen und ein neues Release bauen. Erlaubt sind reine Paketnamen aus den bereits eingerichteten APT-Quellen; Shell-Befehle, neue Quellen, URLs und Paketversionen gehören nicht in diese Datei. Die Zuordnung wird beim Staging in `installed.json` gespeichert. Teilupdates ersetzen nur Anforderungen der gewählten Komponenten und behalten die übrigen Anforderungen bei. Der erste Übergang auf diesen Mechanismus muss ein vollständiges Update einschließlich `tools` und `services` sein.
+
+Bei späteren Updates prüft der bereits installierte Pakethelfer vor dem Codewechsel die Anforderungen des vorbereiteten Releases. Wenn alle Pakete installiert sind, werden keine Paketlisten geladen und kein APT-Installationslauf gestartet. Sonst aktualisiert er die Paketlisten und installiert fehlende Pakete ohne Rückfragen. Er verwendet die exakten Kandidatenversionen aus den bestehenden Quellen, übernimmt bestehende Konfigurationsdateien und verweigert Paketentfernungen. APT kann für die neuen Pakete weitere Abhängigkeiten installieren oder vorhandene Abhängigkeiten aktualisieren; ein allgemeines Systemupgrade oder automatisches Entfernen alter Pakete erfolgt nicht. Ein eventuell installiertes `needrestart` wird für diesen Aufruf auf reine Anzeige gestellt; LaurinOS startet seine Dienste selbst bei der Aktivierung neu.
+
+Der Backend-Fortschritt zeigt Paketprüfung und Nachinstallation. APT-/DNS-Fehler brechen das Update vor dem Codewechsel ab; der bisherige Code bleibt aktiv. Nach Behebung des Fehlers das Update erneut anbieten lassen und starten. Bereits installierte Pakete bleiben erhalten und werden beim nächsten Versuch übersprungen. Ein Code-Rollback entfernt oder degradiert keine Debian-Pakete.
+
+Der bisherige Updater aus 0.61.0/0.62.0 kennt diese Vorbereitung noch nicht. Deshalb enthält das neue Release zusätzlich `laurinos-packages.service`: Nach dem ersten Codewechsel muss dieser Dienst die Pakete erfolgreich prüfen/installieren, bevor Elternbackend und Update-Prüfdienst starten dürfen. Schlägt das fehl, setzt der bisherige Deployer Code und Units zurück. Beim ersten Übergang kann das Backend während der Paketinstallation vorübergehend unerreichbar sein; der bisherige Fortschritt zeigt dann noch die Aktivierung. Kein zusätzlicher manueller Paketbefehl ist erforderlich. Der Dienst prüft auch nach einem Neustart erneut und lädt nichts herunter, solange keine Pakete fehlen.
+
+Paketinstallation und andere LaurinOS-Wartung werden durch Sperren serialisiert. APT wartet bis zu zwei Minuten auf seine Paketsperre und verwendet begrenzte Verbindungswartezeiten sowie Wiederholungen. Wird ein Installationslauf durch Ausschalten unterbrochen und meldet APT anschließend eine beschädigte Paketverwaltung, muss diese auf dem Gerät repariert werden; der Updater führt keine pauschalen Reparaturbefehle aus.
 
 ## Teilupdates
 
@@ -136,9 +171,10 @@ Ein Teilupdate kopiert nur gewählte Bereiche in eine Kopie des aktiven Releases
 2. Laufende Emulator-Paketinstallation bzw. parallele Wartung ausschließen.
 3. Neuen Stand in einem Staging-Verzeichnis aufbauen; vorherige Dateien ausgewählter Komponenten entfernen.
 4. Ressourcen und gemeinsame Python-Imports prüfen.
-5. Den aktiven Link atomar auf den fertigen Code-Stand umschalten.
-6. Gegebenenfalls Systemd-Units kopieren, Dienste neu starten und deren aktiven Zustand prüfen.
-7. Bei einem erkannten Startfehler den bisherigen Code und gegebenenfalls die bisherigen Units wieder aktivieren und erneut starten.
+5. Fehlende deklarierte Debian-Pakete installieren; bei Fehler den Codewechsel abbrechen. Beim ersten Übergang vom bisherigen Updater übernimmt stattdessen der Paketdienst in Schritt 7 die Prüfung.
+6. Den aktiven Link atomar auf den fertigen Code-Stand umschalten.
+7. Gegebenenfalls Systemd-Units kopieren, Dienste neu starten und deren aktiven Zustand prüfen.
+8. Bei einem erkannten Startfehler den bisherigen Code und gegebenenfalls die bisherigen Units wieder aktivieren und erneut starten.
 
 Die Aktivierung der Code-Version ist atomar. Dienstneustarts und das Kopieren von Systemd-Units sind keine atomare Gesamttransaktion. Ein Stromausfall während dieser Schritte kann manuelle Wiederherstellung erfordern. Ein aktiver Dienst bedeutet außerdem nicht, dass jede Hardwarefunktion erfolgreich getestet wurde.
 
@@ -148,7 +184,7 @@ Manuell zurückkehren:
 sudo bash update.sh --rollback
 ```
 
-Das betrifft Code und LaurinOS-Units. Spielstände, Eltern-Einstellungen, heruntergeladene Cores, BIOS-Dateien, App-Pakete und sonstige Daten werden nicht zurückgesetzt. Ein Code-Rollback ist keine Datensicherung.
+Das betrifft Code und LaurinOS-Units. Spielstände, Eltern-Einstellungen, heruntergeladene Cores, BIOS-Dateien, Debian-/Flatpak-Pakete und sonstige Daten werden nicht zurückgesetzt. Ein Code-Rollback ist keine Datensicherung.
 
 Versionen anzeigen:
 

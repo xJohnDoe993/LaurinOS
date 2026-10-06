@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "runtime_api": 1,
-  "version": "0.61.0",
+  "version": "0.62.0",
   "components": {
     "shared": {
       "files": [
@@ -118,11 +118,13 @@
         "tools/deploy.py",
         "tools/initialize-settings.py",
         "tools/install-pixels-plymouth.py",
+        "tools/install-update-packages.py",
         "tools/merge-apps.py",
         "tools/migrate-flatpak-data.py",
         "tools/native-app-entry.py",
         "tools/render-config.py",
-        "tools/wifi-handoff.py"
+        "tools/wifi-handoff.py",
+        "data/update-packages.json"
       ]
     },
     "services": {
@@ -131,6 +133,7 @@
         "systemd/system/laurinos-app-update.timer",
         "systemd/system/laurinos-bluetooth.service",
         "systemd/system/laurinos-emulators.service",
+        "systemd/system/laurinos-packages.service",
         "systemd/system/laurinos-parent-web.service",
         "systemd/system/laurinos-updates.service",
         "systemd/system/laurinos-wifi.service",

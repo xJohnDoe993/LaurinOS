@@ -1,0 +1,15 @@
+[Unit]
+Description=LaurinOS benötigte Debian-Pakete nachinstallieren
+After=network-online.target
+Wants=network-online.target
+Before=laurinos-updates.service laurinos-parent-web.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/usr/local/lib/laurinos/current
+ExecStart=/usr/bin/python3 -I /usr/local/lib/laurinos/current/tools/install-update-packages.py
+TimeoutStartSec=30min
+UMask=0022
+StandardOutput=journal
+StandardError=journal

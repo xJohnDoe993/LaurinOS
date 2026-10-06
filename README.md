@@ -2,7 +2,7 @@
 
 LaurinOS macht einen Debian-Laptop zum Kinder-PC mit Kachelmenü, lokalen und webbasierten Eltern-Einstellungen, Bildschirmzeit, Kamera-/USB-Medien, Controller-Steuerung und auswählbaren Emulatoren.
 
-**Version 0.61.0: Updates aus GitHub-Releases im Elternbackend.** Neuinstallationen benötigen Debian 12 oder 13. Eine modulare 0.60.0-Installation kann einmalig mit `sudo bash update.sh` aus diesem Projektordner aktualisiert werden. Bestehende v59-Installationen werden nicht migriert.
+**Version 0.62.0: abgesicherte DNS-Einrichtung und Family-DNS für normale Internetabfragen.** Updates aus GitHub-Releases stehen im Elternbackend bereit. Neuinstallationen benötigen Debian 12 oder 13. Eine modulare 0.60.0-Installation kann einmalig mit `sudo bash update.sh` aus diesem Projektordner aktualisiert werden. Bestehende v59-Installationen werden nicht migriert.
 
 ## Installieren
 
@@ -28,6 +28,15 @@ sudo bash install.sh --resume
 
 Details und Installationsschalter stehen in [docs/installation.md](docs/installation.md).
 
+Auf bereits installierten Geräten wird die Family-DNS-Systemkonfiguration durch ein Code-Update nicht geändert. Die Änderung aus 0.62.0 daher einmalig aus dem entpackten neuen Projektordner anwenden:
+
+```bash
+sudo python3 tools/configure-dns.py family config/resolved/laurinos-family-dns.conf
+resolvectl status
+```
+
+Bei Erfolg erscheint unter `Global` die Routing-Domain `~.`. Bei fehlgeschlagener Namensauflösung stellt der Helfer die vorherige Konfiguration wieder her und meldet dies ausdrücklich.
+
 ## Code aktualisieren
 
 Im Eltern-Webbackend unter **Updates** neue stabile Versionen prüfen und installieren. Ein Hinweis erscheint auf allen angemeldeten Backend-Seiten, sobald ein neueres Release verfügbar ist. Quelle ist [xJohnDoe993/LaurinOS](https://github.com/xJohnDoe993/LaurinOS/releases).
@@ -51,7 +60,7 @@ Zur vorherigen Code-Version zurückkehren:
 sudo bash update.sh --rollback
 ```
 
-Updates starten die LaurinOS-Dienste und eine aktive Kindersitzung neu. Vorher laufende Apps und Spiele beenden. Eltern-Einstellungen, App-Listen, eigene Bilder, ROMs und Spielstände werden nicht aus dem Repo überschrieben. Die Systemkonfiguration und Debian-/Flatpak-Pakete werden durch `update.sh` nicht eingerichtet; Systemd-Units lassen sich über die Komponente `services` aktualisieren.
+Updates starten die LaurinOS-Dienste und eine aktive Kindersitzung neu. Vorher laufende Apps und Spiele beenden. Eltern-Einstellungen, App-Listen, eigene Bilder, ROMs und Spielstände werden nicht aus dem Repo überschrieben. Fehlende Debian-Pakete aus `data/update-packages.json` werden beim Backend-Update und mit `update.sh` automatisch nachinstalliert. Dafür ist Internet erforderlich. Übrige Systemkonfiguration und Flatpak-Einrichtung benötigen weiterhin eigene Einrichtungsschritte; Systemd-Units lassen sich über die Komponente `services` aktualisieren.
 
 [docs/updating.md](docs/updating.md) enthält die Schritt-für-Schritt-Anleitung für GitHub-Releases, die einmalige Einrichtung, Grenzen, Teilupdates und Rollback.
 

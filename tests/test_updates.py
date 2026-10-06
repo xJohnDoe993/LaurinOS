@@ -175,15 +175,21 @@ class WorkerTests(unittest.TestCase):
         self.deploy.activate(self.base, self.old, live=False)
         self.new_source = self.root / 'source'
         shutil.copytree(ROOT, self.new_source, ignore=shutil.ignore_patterns('.git', 'dist', '__pycache__'))
-        (self.new_source / 'VERSION').write_text('0.62.0\n')
-        manifest = json.loads((self.new_source / 'manifest.json').read_text()); manifest['version'] = '0.62.0'
+        current_version = (ROOT / 'VERSION').read_text().strip()
+        major, minor, patch_version = updates.version_key(current_version)
+        self.new_version = f'{major}.{minor}.{patch_version + 1}'
+        (self.new_source / 'VERSION').write_text(self.new_version + '\n')
+        for name in ('src/laurinos/__init__.py', 'pyproject.toml'):
+            path = self.new_source / name
+            path.write_text(path.read_text().replace(current_version, self.new_version))
+        manifest = json.loads((self.new_source / 'manifest.json').read_text()); manifest['version'] = self.new_version
         (self.new_source / 'manifest.json').write_text(json.dumps(manifest))
-        self.archive = self.root / 'LaurinOS-0.62.0.zip'
+        self.archive = self.root / f'LaurinOS-{self.new_version}.zip'
         with zipfile.ZipFile(self.archive, 'w', compression=zipfile.ZIP_DEFLATED) as package:
             for file in self.new_source.rglob('*'):
                 if file.is_file(): package.write(file, 'LaurinOS/' + str(file.relative_to(self.new_source)))
         self.checksum = hashlib.sha256(self.archive.read_bytes()).hexdigest() + '  ' + self.archive.name + '\n'
-        payload = release_payload(); payload['assets'][0]['size'] = self.archive.stat().st_size; payload['assets'][1]['size'] = len(self.checksum)
+        payload = release_payload(self.new_version); payload['assets'][0]['size'] = self.archive.stat().st_size; payload['assets'][1]['size'] = len(self.checksum)
         self.release = source.parse_release(payload)
         with self.store.transaction() as state:
             state['job'] = {'id': 'job', 'status': 'queued', 'release': self.release, 'tag': self.release['tag']}
@@ -192,6 +198,7 @@ class WorkerTests(unittest.TestCase):
                         patch.object(source, 'release_metadata', return_value=self.release),
                         patch.object(source, 'download', side_effect=self.download),
                         patch.object(self.deploy, 'install_launchers'), patch.object(self.deploy, 'apply_units'),
+                        patch.object(self.deploy, 'ensure_packages', return_value=[]),
                         patch.object(self.deploy, 'restart_services')]
         for item in self.patches: item.start()
     def tearDown(self):
@@ -205,7 +212,7 @@ class WorkerTests(unittest.TestCase):
         data = self.root / 'home/kids/save'; data.parent.mkdir(parents=True); data.write_bytes(b'parent and save data')
         self.apply()
         self.assertNotEqual((self.base / 'current').resolve(), self.old)
-        self.assertEqual(service.installed_record(self.base)['source_version'], '0.62.0')
+        self.assertEqual(service.installed_record(self.base)['source_version'], self.new_version)
         self.assertEqual((self.base / 'previous').resolve(), self.old)
         self.assertEqual(data.read_bytes(), b'parent and save data')
         self.assertEqual(self.store.read()['job']['status'], 'succeeded')
@@ -221,6 +228,15 @@ class WorkerTests(unittest.TestCase):
         with self.assertRaises(subprocess.CalledProcessError): self.apply()
         self.assertEqual((self.base / 'current').resolve(), self.old)
         self.assertEqual(self.store.read()['job']['status'], 'failed')
+    def test_package_failure_records_backend_error_without_activation(self):
+        self.deploy.ensure_packages.side_effect = ValueError('Paket-Nachinstallation fehlgeschlagen: APT/DNS')
+        with patch.object(self.deploy, 'activate') as activate:
+            with self.assertRaisesRegex(ValueError, 'APT/DNS'): self.apply()
+            activate.assert_not_called()
+        self.assertEqual((self.base / 'current').resolve(), self.old)
+        job = self.store.read()['job']
+        self.assertEqual(job['status'], 'failed')
+        self.assertIn('APT/DNS', job['message'])
     def test_release_edit_is_rejected_before_download(self):
         changed = copy.deepcopy(self.release); changed['archive']['size'] += 1
         with patch.object(source, 'release_metadata', return_value=changed), patch.object(source, 'download') as download:
