@@ -3,13 +3,11 @@
 
 Mutable user data and system configuration are never part of code deployment.
 Systemd units are applied only when the services component is selected.
-Declared missing Debian dependencies are installed before live activation.
 """
 import argparse
 import contextlib
 import fcntl
 import hashlib
-import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -24,16 +22,6 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 BASE = Path('/usr/local/lib/laurinos')
 API = 1
-
-def package_tool():
-    # This helper belongs to the trusted installed/local deployer, not the download.
-    spec = importlib.util.spec_from_file_location('laurinos_update_packages', ROOT / 'tools/install-update-packages.py')
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-def ensure_packages(release, progress=print):
-    return package_tool().ensure_release(release, progress)
 
 def read_json(path):
     return json.loads(path.read_text(encoding='utf-8'))
@@ -62,7 +50,6 @@ def validate_source(source):
     components = manifest['components']
     if not isinstance(components, dict) or not components:
         raise ValueError('Komponenten fehlen.')
-    package_tool().read_plan(source / 'data/update-packages.json', components)
     seen = set()
     for name, definition in components.items():
         if not re.fullmatch(r'[a-z][a-z0-9-]*', name):
@@ -103,13 +90,6 @@ def stage_release(source, base, selected=None):
     if selected is not None and old is None:
         raise ValueError('Für Komponenten-Updates fehlt die Erstinstallation.')
     installed = read_json(old / 'installed.json') if old else {'runtime_api': API, 'components': {}}
-    incoming_requirements = package_tool().read_plan(source / 'data/update-packages.json', manifest['components'])
-    requirements = package_tool().release_requirements(old) if old else {}
-    if selected is None:
-        requirements = incoming_requirements
-    else:
-        for name in names:
-            requirements[name] = incoming_requirements.get(name, [])
     if installed['runtime_api'] != manifest['runtime_api'] and selected is not None:
         raise ValueError('Die Paket-API hat sich geändert; vollständiges Update erforderlich.')
     releases = base / 'releases'
@@ -139,7 +119,6 @@ def stage_release(source, base, selected=None):
                 receipts[relative] = hashlib.sha256(src.read_bytes()).hexdigest()
             records[name] = {'version': manifest['version'], 'files': receipts}
         record = {'schema': 1, 'runtime_api': manifest['runtime_api'], 'source_version': manifest['version'], 'components': records}
-        record['package_requirements'] = requirements
         (stage / 'installed.json').write_text(json.dumps(record, indent=2) + '\n')
         validate_stage(stage)
         digest = hashlib.sha256(json.dumps(record, sort_keys=True).encode()).hexdigest()[:12]
@@ -237,11 +216,9 @@ def restart_services():
         for unit in ['laurinos-menu.service', 'laurinos-timer.service', 'laurinos-media.service', 'laurinos-osd.service', 'laurinos-cursor.service']:
             subprocess.run(user_command('is-active', '--quiet', unit), check=True)
 
-def activate(base, release, *, initial=False, units=False, live=True, package_progress=print, packages_prepared=False):
+def activate(base, release, *, initial=False, units=False, live=True):
     current = base / 'current'
     old = current.resolve() if current.is_symlink() else None
-    if live and not initial and not packages_prepared:
-        ensure_packages(release, package_progress)
     switch(base, release)
     try:
         if live:

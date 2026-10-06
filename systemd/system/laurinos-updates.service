@@ -1,6 +1,7 @@
 [Unit]
 Description=LaurinOS GitHub-Release-Prüfung
-After=network-online.target
+After=network-online.target laurinos-packages.service
+Requires=laurinos-packages.service
 Wants=network-online.target
 
 [Service]
