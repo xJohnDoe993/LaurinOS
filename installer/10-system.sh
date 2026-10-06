@@ -39,6 +39,8 @@ if apt-get install -y \
     python3 \
     python3-pyqt5 python3-xlib python3-evdev \
     python3-pyqt5.qtsvg \
+    python3-pyqt5.qtmultimedia libqt5multimedia5-plugins \
+    gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-libav \
     qt5-image-formats-plugins \
     python3-flask python3-waitress python3-dbus python3-gi \
     feh \

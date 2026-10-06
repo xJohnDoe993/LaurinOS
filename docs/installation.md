@@ -62,3 +62,22 @@ Die Emulator-IDs stehen in `data/emulator-catalog.json`. Das Setup bzw. Backend 
 ## Nach dem Neustart
 
 Der Elternbereich ist lokal über das Menü sowie im Netz über `http://<Geräte-IP>/` erreichbar. Erst den Gerätecheck in `docs/device-validation.md` durchgehen. Falls das Setup abgebrochen wurde, Dienste nicht als erfolgreich eingerichtet betrachten: Die Abschlussmarkierung wird erst ganz am Ende geschrieben.
+
+## Videos von USB und SD
+
+Der Kamera-Medienbrowser zeigt Bilder und Videoclips gemeinsam und kennzeichnet Videos mit `▶ Video`. Ein Klick öffnet den eingebauten Player mit Wiedergabe/Pause, Zeitleiste, Lautstärke und vorherigem/nächstem Clip. Leertaste pausiert oder startet; Esc führt zurück zur Übersicht. Beim Zurückgehen, Schließen oder Entfernen des Mediums wird das Video gestoppt und die Datei freigegeben. Bildnavigation und Tux Paint bleiben auf Bilder beschränkt.
+
+Erkannt werden MP4, M4V, MOV, AVI, MKV, WebM, MPEG/MPG, 3GP, MTS/M2TS/TS und OGV. Der Codec innerhalb der Datei entscheidet über die tatsächliche Abspielbarkeit. Defekte, entfernte oder nicht unterstützte Dateien zeigen einen Hinweis im Player; weitere Dateien bleiben auswählbar.
+
+Neuinstallationen installieren Qt-Multimedia und GStreamer-Codecs automatisch. Auf bestehenden Geräten nach dem Code-Update einmalig die Abhängigkeiten installieren und das Kinder-Menü neu starten:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y python3-pyqt5.qtmultimedia libqt5multimedia5-plugins \
+  gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-libav
+sudo reboot
+```
+
+Ohne diese Pakete funktionieren Menü und Bildanzeige weiter; der Videoplayer weist auf die fehlende Einrichtung hin. Backend-Codeupdates installieren diese Debian-Pakete nicht automatisch.
+
+Für ein manuelles Teilupdate dieses Features sowohl `shared` als auch `desktop` wählen (`sudo bash update.sh --component shared --component desktop`). Das vollständige Backend-Update übernimmt beide Bereiche ohnehin.
