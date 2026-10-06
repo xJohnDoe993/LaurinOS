@@ -32,3 +32,9 @@ Der Workflow wurde als YAML gelesen, seine Shell- und eingebettete Python-Syntax
 Der erste GitHub-Lauf wurde geprüft: `v0.63.0` checkte Commit `400b1a5` mit Projektversion `0.62.0` und ohne `.github/scripts/release.py` aus. Für den neuen Tag `v0.63.1` sind die Versionsdateien und das Manifest synchronisiert; Checkout wurde auf Version 6 mit Node.js 24 aktualisiert.
 
 89 Tests mit Flask/Qt erfolgreich. Die drei zusätzlichen Workflow-Tests führen den tatsächlichen Versionsprüfungsblock aus: falsche alte Version ohne Helfer, passende Version ohne Helfer und gültiger Stand mit dem echten Versionshelfer. Workflow-YAML/Shell-Syntax und der ZIP-/SHA-Build wurden geprüft. Der korrigierte Workflow wurde noch nicht auf GitHub ausgeführt; nach Übernahme muss ein neuer Lauf für `v0.63.1` gestartet werden.
+
+## Kamera-Titel und Video-Vollbild
+
+Am 6. Oktober 2026: 94 Tests mit Flask/PyQt5 im Offscreen-Modus erfolgreich; Syntaxprüfung von 67 Python-Dateien und 27 Shell-Dateien. Die fünf zusätzlichen Tests prüfen die Übernahme des alten Kamera-Standardnamens im gemeinsamen Elternbereich, Kinder-Menü und gerenderten Web-Backend, unveränderte eigene Namen/Icons/Freigaben und App-Dateien sowie Doppelklick, F11, Esc und Leertaste mit realen Qt-Widgets. Der Vollbildwechsel füllt den Bildschirm, erhält Medienobjekt, Wiedergabeposition und Pausezustand und stellt Fensterzustand, Ränder und Bedienung wieder her. Die vorhandenen Tests für Rückkehr, Schließen, Entfernen, Auswerfen und Decoderfehler prüfen jetzt auch das Verlassen des Video-Vollbilds.
+
+Die Playeransicht bei 1366×768 und die randlose Vollbildansicht wurden gerendert und visuell geprüft. Der Medienplayer ist simuliert; echte QVideoWidget-Ausgabe, Codec-Decodierung, Ton und Verhalten auf dem Gerät bleiben über `docs/device-validation.md` zu prüfen. Ohne PyQt5 werden jetzt elf Widgettests übersprungen, ohne Flask sechs Backendtests.

@@ -14,6 +14,15 @@ DEFAULTS = {
 }
 
 
+def app_with_current_title(item):
+    """Refresh known built-in titles when reading existing app lists after updates."""
+    if (item.get('id') == 'camera' and item.get('type') == 'camera'
+            and item.get('command') == '__CAMERA__'
+            and item.get('title') in ('Kamera / Bilder', 'Kamera & Bilder')):
+        return dict(item, title='Kamera / Bilder / Videos')
+    return item
+
+
 def atomic_json(path, data):
     directory = os.path.dirname(path)
     os.makedirs(directory, exist_ok=True)

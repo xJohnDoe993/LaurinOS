@@ -357,7 +357,7 @@ class ParentDialog(QDialog):
         self.search = QLineEdit(); self.search.setPlaceholderText('Name oder Startbefehl suchen …')
         self.search.setAccessibleName('Apps durchsuchen'); self.search.textChanged.connect(self.filter_apps)
         self.type_filter = QComboBox()
-        for title, value in [('Alle Typen','all'),('Programme & Spiele','native'),('Webapps','webapp'),('Kamera & Bilder','camera')]:
+        for title, value in [('Alle Typen','all'),('Programme & Spiele','native'),('Webapps','webapp'),('Kamera, Bilder & Videos','camera')]:
             self.type_filter.addItem(title, value)
         self.type_filter.currentIndexChanged.connect(self.filter_apps)
         row.addWidget(self.search, 1); row.addWidget(self.type_filter)
@@ -391,7 +391,7 @@ class ParentDialog(QDialog):
             if parents.deletable_app(item):
                 row.addWidget(button('Löschen', lambda checked=False, i=dict(item): self.delete_app(i), danger=True))
             inner.addLayout(row)
-            inner.addWidget(label(item.get('url', '') if item.get('type') == 'webapp' else 'Kamera & Bilder' if item.get('type') == 'camera' else item.get('command', 'Programm / Spiel'), True))
+            inner.addWidget(label(item.get('url', '') if item.get('type') == 'webapp' else 'Kamera, Bilder & Videos' if item.get('type') == 'camera' else item.get('command', 'Programm / Spiel'), True))
             if parents.app_source_label(item):
                 inner.addWidget(label(parents.app_source_label(item), True))
             layout.addWidget(widget)
