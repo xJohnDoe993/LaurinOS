@@ -3,8 +3,10 @@ from laurinos.paths import CONFIG_DIR, USER_DATA_DIR
 from laurinos.paths import STATE_DIR
 import json, os, shlex, shutil, socket, subprocess, sys, fcntl, traceback, threading, signal
 from collections import deque
-from laurinos.images import (TaskSignals, submit_task, decode_image, thumbnail, scan_images,
+from laurinos.images import (TaskSignals, submit_task, decode_image, thumbnail,
                             prepare_tuxpaint_image, select_tuxpaint_image, tuxpaint_command)
+from laurinos.media_files import scan_media, is_video
+from laurinos.video import CameraVideoViewer
 from laurinos.diagnostics import collect_diagnostics, diagnostics_text, log_event
 from laurinos.state import read_settings, update_settings, atomic_json, remaining_seconds
 from laurinos.parent_ui import ParentDialog
@@ -417,7 +419,7 @@ class CameraBrowser(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("📷 Kamera – Bilder")
+        self.setWindowTitle("📷 Kamera – Bilder und Videos")
         self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setModal(True)
         bg = read_settings().get("bg_color", "#FF9F00")
@@ -435,7 +437,7 @@ class CameraBrowser(QDialog):
         self.overview = QWidget(self)
         root = QVBoxLayout(self.overview)
         header = QHBoxLayout()
-        title = QLabel("📷 Kamera / SD-Karte / USB", self)
+        title = QLabel("📷 Bilder und Videos · SD-Karte / USB", self)
         title.setFont(QFont("DejaVu Sans", 22, QFont.Bold))
         root.addWidget(title)
         header.addStretch()
@@ -459,6 +461,8 @@ class CameraBrowser(QDialog):
         self.stack.addWidget(self.overview)
         self.viewer = CameraImageViewer(self)
         self.stack.addWidget(self.viewer)
+        self.video_viewer = CameraVideoViewer(self)
+        self.stack.addWidget(self.video_viewer)
         self.images = []
         self.last_path = None
         self.page = 0
@@ -496,8 +500,7 @@ class CameraBrowser(QDialog):
         roots = tuple(self.media_roots())
         if roots != self.roots_signature:
             self.roots_signature = roots
-            self.viewer.cancel_pending()
-            self.stack.setCurrentWidget(self.overview)
+            self.show_overview()
             self.reload_images()
 
     def reset_jobs(self):
@@ -515,6 +518,7 @@ class CameraBrowser(QDialog):
         self.image_buttons = {}
 
     def reload_images(self):
+        self.video_viewer.stop()
         self.reset_jobs()
         self.clear_grid()
         self.images = []
@@ -528,10 +532,10 @@ class CameraBrowser(QDialog):
             self.scanning = False
             self.info.setText("Bitte Kamera-Speicherkarte oder USB-Medium einstecken.")
             return
-        self.info.setText("Bilder werden gesucht … Du kannst jederzeit zurückgehen.")
+        self.info.setText("Bilder und Videos werden gesucht … Du kannst jederzeit zurückgehen.")
         self.scanning = True
         cancel = self.cancelled
-        submit_task(lambda: scan_images(roots, cancel), ("scan", self.generation, ""),
+        submit_task(lambda: scan_media(roots, cancel), ("scan", self.generation, ""),
                     self.task_signals, cancel)
 
     def task_completed(self, token, value, error):
@@ -541,7 +545,7 @@ class CameraBrowser(QDialog):
         if kind == "scan":
             self.scanning = False
             if error:
-                self.info.setText("Bilder konnten nicht gesucht werden: " + error)
+                self.info.setText("Bilder und Videos konnten nicht gesucht werden: " + error)
                 log_event("Medien", error)
                 return
             self.images = value
@@ -568,7 +572,8 @@ class CameraBrowser(QDialog):
     def render_page(self):
         self.reset_jobs()
         self.clear_grid()
-        self.info.setText(f"{len(self.images)} Bild(er) gefunden.")
+        videos = sum(is_video(path) for path in self.images)
+        self.info.setText(f"{len(self.images) - videos} Bild(er) und {videos} Video(s) gefunden.")
         pages = max(1, (len(self.images) + self.PAGE_SIZE - 1) // self.PAGE_SIZE)
         self.page_label.setText(f"Seite {self.page + 1} / {pages}")
         self.page_previous.setEnabled(self.page > 0)
@@ -580,15 +585,18 @@ class CameraBrowser(QDialog):
             button = QToolButton(self.container)
             button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
             button.setText(name if len(name) <= 23 else name[:20] + "…")
+            if is_video(path):
+                button.setText("▶ Video\n" + button.text())
             button.setFixedSize(210, 190)
             button.setToolTip(path)
             button.setCursor(Qt.PointingHandCursor)
             button.clicked.connect(lambda checked=False, p=path: self.preview(p))
             self.grid.addWidget(button, index // columns, index % columns)
             self.image_buttons[path] = button
-            self.thumbnail_queue.append(path)
+            if not is_video(path):
+                self.thumbnail_queue.append(path)
         if not self.images:
-            self.grid.addWidget(QLabel("Keine unterstützten Bilder gefunden.", self), 0, 0)
+            self.grid.addWidget(QLabel("Keine unterstützten Bilder oder Videos gefunden.", self), 0, 0)
         self.schedule_thumbnails()
 
     def schedule_thumbnails(self):
@@ -602,13 +610,22 @@ class CameraBrowser(QDialog):
         if path not in self.images:
             return
         self.last_path = path
+        if is_video(path):
+            self.viewer.cancel_pending()
+            self.stack.setCurrentWidget(self.video_viewer)
+            self.video_viewer.open_videos([p for p in self.images if is_video(p)], path)
+            return
+        self.video_viewer.stop()
         self.stack.setCurrentWidget(self.viewer)
-        self.viewer.open_images(self.images, path)
+        self.viewer.open_images([p for p in self.images if not is_video(p)], path)
         QTimer.singleShot(0, self.viewer.render_image)
 
     def show_overview(self):
-        if self.viewer.images:
+        if self.stack.currentWidget() is self.video_viewer and self.video_viewer.path:
+            self.last_path = self.video_viewer.path
+        elif self.stack.currentWidget() is self.viewer and self.viewer.images:
             self.last_path = self.viewer.images[self.viewer.index]
+        self.video_viewer.stop()
         self.stack.setCurrentWidget(self.overview)
         self.viewer.cancel_pending()
         if self.last_path in self.images:
@@ -623,13 +640,20 @@ class CameraBrowser(QDialog):
 
     def reject(self):
         # Auch Esc/Alt-F4 im Bildbetrachter kehrt zuerst zur Übersicht zurück.
-        if self.stack.currentWidget() is self.viewer:
+        if self.stack.currentWidget() in (self.viewer, self.video_viewer):
             self.show_overview()
         else:
             self.reset_jobs()
             self.viewer.cancel_pending()
             self.media_timer.stop()
             super().reject()
+
+    def done(self, result):
+        self.video_viewer.stop()
+        self.reset_jobs()
+        self.viewer.cancel_pending()
+        self.media_timer.stop()
+        super().done(result)
 
     def closeEvent(self, event):
         # Fenster-Schließen behandelt denselben Rückweg wie Esc.
@@ -647,6 +671,7 @@ class CameraBrowser(QDialog):
             if not ok:
                 return
             root = choice
+        self.show_overview()
         try:
             source = subprocess.check_output(["findmnt", "--mountpoint", root, "-o", "SOURCE", "-n"],
                                              text=True, timeout=5).strip()

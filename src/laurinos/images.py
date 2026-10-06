@@ -8,10 +8,10 @@ import uuid
 from datetime import datetime
 from PyQt5.QtCore import QObject, QRunnable, QThreadPool, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QImage, QImageReader
+from laurinos.media_files import IMAGE_EXTS, scan_media
 
 CACHE_DIR = os.path.expanduser("~/.cache/laurinos/thumbnails")
 TUXPAINT_DIR = os.path.expanduser("~/.tuxpaint")
-IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff"}
 _prune_lock = threading.Lock()
 _last_prune = 0.0
 
@@ -115,16 +115,7 @@ def prune_cache():
 
 
 def scan_images(roots, cancelled):
-    found = []
-    for root in roots:
-        for directory, subdirs, names in os.walk(root):
-            if cancelled.is_set():
-                return []
-            subdirs[:] = [name for name in subdirs if not name.startswith(".") and name != "System Volume Information"]
-            for name in names:
-                if os.path.splitext(name)[1].lower() in IMAGE_EXTS:
-                    found.append(os.path.join(directory, name))
-    return sorted(set(found), key=lambda path: (os.path.basename(path).casefold(), path))
+    return scan_media(roots, cancelled, IMAGE_EXTS)
 
 
 def prepare_tuxpaint_image(path):

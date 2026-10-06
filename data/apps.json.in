@@ -3,7 +3,7 @@ ${APP_ENTRIES}
 ${WEBAPP_ENTRIES},
   {
     "id": "camera",
-    "title": "Kamera / Bilder",
+    "title": "Kamera / Bilder / Videos",
     "type": "camera",
     "icon_text": "📷",
     "command": "__CAMERA__"

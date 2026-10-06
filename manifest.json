@@ -10,6 +10,7 @@
         "src/laurinos/state.py",
         "src/laurinos/diagnostics.py",
         "src/laurinos/images.py",
+        "src/laurinos/media_files.py",
         "src/laurinos/categories.py",
         "src/laurinos/fullscreen.py",
         "src/laurinos/webapp.py",
@@ -21,6 +22,7 @@
     "desktop": {
       "files": [
         "src/laurinos/menu.py",
+        "src/laurinos/video.py",
         "src/laurinos/parent_ui.py",
         "src/laurinos/status_overlay.py",
         "src/laurinos/close_overlay.py",

@@ -13,6 +13,9 @@ Die automatischen Prüfungen decken Syntax, Paketimporte, Ressourcen, Emulator-A
 - Bluetooth koppelt den Controller; Menüsteuerung, Belegungsassistent und Cursor-Ausblenden funktionieren. Den auf dem T450 bislang zuverlässigen D-Input-Modus zuerst verwenden.
 - WLAN kann scannen, verbinden und gespeicherte Verbindungen verwalten. Erweiterte Einstellungen öffnen den NetworkManager-Editor.
 - Kamera-/SD-/USB-Bilder werden angezeigt; Tux Paint startet ein gewähltes Bild und beendet sich ohne CameraBrowser-Fehler.
+- Kamera-/SD-/USB-Videos (mindestens MP4/H.264 und MOV/MJPEG) erscheinen als Videokacheln. Wiedergabe mit Ton, Pause, Zeitleiste, Lautstärke und Clipwechsel prüfen; Bilder wechseln weiterhin nur zwischen Bildern, Tux Paint erhält keine Videodatei.
+- Während eines Clips zur Übersicht wechseln, Esc zweimal drücken, Alt-F4 verwenden und die SD-Karte/den Stick entfernen. Ton und Dateizugriff müssen enden; das Kamerafenster darf keinen Fehler über ein gelöschtes Qt-Objekt zeigen. Danach Medium wieder einstecken und einen neuen Clip öffnen.
+- Beschädigten Clip und ein Gerät ohne Qt-Multimedia-Pakete prüfen: Hinweis im Player, weiter erreichbare Übersicht und unverändert funktionierende Bildanzeige. Die einmalige Paketinstallation für bestehende Geräte steht in `docs/installation.md`.
 - Gewählte Emulatoren starten mit eigenem Testspiel; Nachinstallation im Elternbackend und Controller-Belegung prüfen. BIOS-/PSP-Dateien und Spielstände berücksichtigen.
 
 Dienstzustände und Protokolle:
