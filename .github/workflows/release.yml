@@ -1,0 +1,80 @@
+name: LaurinOS Release vorbereiten
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Versions-Tag, z. B. v0.63.0 (muss zu VERSION passen)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: laurinos-release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Tag und Quellstand bestimmen
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          tag = os.environ['RELEASE_TAG']
+          if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', tag):
+              raise SystemExit('Tag muss vMAJOR.MINOR.PATCH heißen.')
+          result = subprocess.run(['gh', 'api', 'repos/' + os.environ['GH_REPO']
+                                   + '/git/matching-refs/tags/' + tag],
+                                  check=True, capture_output=True, text=True)
+          exists = any(item['ref'] == 'refs/tags/' + tag for item in json.loads(result.stdout))
+          ref = 'refs/tags/' + tag if exists else os.environ['SOURCE_SHA']
+          with Path(os.environ['GITHUB_OUTPUT']).open('a') as output:
+              output.write('tag=' + tag + '\nref=' + ref + '\n')
+          PY
+
+      - name: Release-Quellcode laden
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ steps.source.outputs.ref }}
+          persist-credentials: false
+
+      - name: Versionsdateien prüfen
+        env:
+          RELEASE_TAG: ${{ steps.source.outputs.tag }}
+        run: python3 .github/scripts/release.py "$RELEASE_TAG" --check-version
+
+      - name: Testabhängigkeiten installieren
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3-flask python3-pyqt5 libegl1 libopengl0
+
+      - name: Manifest, Tests, ZIP und SHA-256 prüfen
+        run: |
+          python3 -c 'import sys; sys.path.insert(0, "src"); import flask; from laurinos import menu'
+          python3 tools/build-manifest.py
+          git diff --exit-code -- manifest.json
+          python3 -B tools/build-release.py
+
+      - name: Release-Entwurf mit beiden Dateien anlegen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.source.outputs.tag }}
+        run: python3 .github/scripts/release.py "$RELEASE_TAG"

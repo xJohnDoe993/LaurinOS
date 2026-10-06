@@ -41,6 +41,8 @@ Bei Erfolg erscheint unter `Global` die Routing-Domain `~.`. Bei fehlgeschlagene
 
 Im Eltern-Webbackend unter **Updates** neue stabile Versionen prüfen und installieren. Ein Hinweis erscheint auf allen angemeldeten Backend-Seiten, sobald ein neueres Release verfügbar ist. Quelle ist [xJohnDoe993/LaurinOS](https://github.com/xJohnDoe993/LaurinOS/releases).
 
+ZIP und SHA-256 lassen sich automatisch auf GitHub erzeugen: **Actions → LaurinOS Release vorbereiten → Run workflow**. Der Workflow erstellt einen Release-Entwurf mit beiden Dateien. Anleitung: [Automatischer Release-Build](docs/updating.md#automatischer-release-build-auf-github).
+
 Für die einmalige Einrichtung auf 0.60.0 oder ein manuelles Update das neue Release auf das Gerät kopieren, in dessen Ordner wechseln und zunächst prüfen:
 
 ```bash
