@@ -23,10 +23,10 @@ Der Workflow `.github/workflows/release.yml` baut das LaurinOS-Update-ZIP und se
 
 Einmalig diesen Workflow in `main` übernehmen. Danach für jede neue Version:
 
-1. Alle gewünschten Änderungen in `main` zusammenführen. `VERSION`, `src/laurinos/__init__.py` und `pyproject.toml` auf dieselbe höhere Version setzen, beispielsweise `0.63.3`. `python3 tools/build-manifest.py` ausführen und die Versionsdateien samt Manifest committen/pushen. Bereits veröffentlichte Versionen bekommen keine neuen ZIPs; für Korrekturen eine neue Versionsnummer verwenden.
-2. [GitHub → Actions](https://github.com/xJohnDoe993/LaurinOS/actions) öffnen, **LaurinOS Release vorbereiten → Run workflow** wählen. Als Branch `main` und als Tag `v0.63.3` angeben. **Run workflow** klicken. Der Tag muss zu den Versionsdateien passen.
+1. Alle gewünschten Änderungen in `main` zusammenführen. `VERSION`, `src/laurinos/__init__.py` und `pyproject.toml` auf dieselbe höhere Version setzen, beispielsweise `0.63.4`. `python3 tools/build-manifest.py` ausführen und die Versionsdateien samt Manifest committen/pushen. Bereits veröffentlichte Versionen bekommen keine neuen ZIPs; für Korrekturen eine neue Versionsnummer verwenden.
+2. [GitHub → Actions](https://github.com/xJohnDoe993/LaurinOS/actions) öffnen, **LaurinOS Release vorbereiten → Run workflow** wählen. Als Branch `main` und als Tag `v0.63.4` angeben. **Run workflow** klicken. Der Tag muss zu den Versionsdateien passen.
 3. Den erfolgreichen Lauf abwarten. GitHub prüft Versionen, Manifest, Python-/Shell-Dateien sowie Tests inklusive Flask und Qt-Widgets und baut mit `tools/build-release.py`. Die Zusammenfassung des Laufs enthält den Link zum Release-Entwurf.
-4. Unter [Releases](https://github.com/xJohnDoe993/LaurinOS/releases) den Entwurf öffnen. Prüfen, dass `LaurinOS-0.63.3.zip` **und** `LaurinOS-0.63.3.zip.sha256` vorhanden sind. Die automatisch erzeugten Release-Notizen ergänzen, insbesondere nötige Systemeinrichtungsschritte und bekannte Einschränkungen.
+4. Unter [Releases](https://github.com/xJohnDoe993/LaurinOS/releases) den Entwurf öffnen. Prüfen, dass `LaurinOS-0.63.4.zip` **und** `LaurinOS-0.63.4.zip.sha256` vorhanden sind. Die automatisch erzeugten Release-Notizen ergänzen, insbesondere nötige Systemeinrichtungsschritte und bekannte Einschränkungen.
 5. Die Dateien herunterladen und die [Geräteprüfung](device-validation.md) durchführen. Danach **Publish release** wählen. Für das stabile Geräteupdate **Pre-release** ausschalten und das Release als neuestes Release markieren.
 6. Im Elternbackend **Updates → Nach Updates suchen** öffnen. Bei einer bereits identischen Version wird kein Update angeboten.
 
@@ -35,8 +35,8 @@ Bei einem bereits vorhandenen Tag baut der manuelle Lauf dessen Commit, auch wen
 Alternativ nach dem Commit der Versionsdateien einen Tag pushen:
 
 ```bash
-git tag v0.63.3
-git push origin v0.63.3
+git tag v0.63.4
+git push origin v0.63.4
 ```
 
 Auch dieser Weg startet den Workflow automatisch. Der getaggte Commit muss den Workflow und seinen Helfer enthalten. Ein direkt auf der Releases-Seite veröffentlichtes Release löst diesen Build nicht aus; stattdessen zuerst den Workflow starten und anschließend seinen fertigen Entwurf veröffentlichen.

@@ -1,8 +1,7 @@
 """Video playback within the existing camera browser; optional on older installs."""
 import os
 from PyQt5.QtCore import Qt, QUrl, QEvent
-from PyQt5.QtGui import QKeySequence
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QSlider, QShortcut
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QSlider
 from laurinos.diagnostics import log_event
 
 
@@ -31,7 +30,7 @@ class CameraVideoViewer(QWidget):
         self.surface = None
         self.video_fullscreen = False
         self.fullscreen_restore = None
-        self.shortcuts = []
+        self.input_filter_installed = False
         layout = QVBoxLayout(self)
         self.name_label = QLabel(self)
         self.name_label.setTextFormat(Qt.PlainText)
@@ -47,7 +46,6 @@ class CameraVideoViewer(QWidget):
             self.surface = surface_type(self)
             self.surface.setStyleSheet("background: black;")
             self.surface.setFocusPolicy(Qt.StrongFocus)
-            self.surface.installEventFilter(self)
             layout.addWidget(self.surface, 1)
             self.player = self.player_type(self)
             self.player.setVideoOutput(self.surface)
@@ -90,12 +88,6 @@ class CameraVideoViewer(QWidget):
         help_label = QLabel("Doppelklick / F11: Vollbild · Leertaste: Pause · Esc: Zurück", self)
         help_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(help_label)
-        for key, callback in ((Qt.Key_Space, self.toggle_play), (Qt.Key_Escape, self.escape),
-                              (Qt.Key_F11, self.toggle_fullscreen)):
-            shortcut = QShortcut(QKeySequence(key), self)
-            shortcut.setContext(Qt.WidgetWithChildrenShortcut)
-            shortcut.activated.connect(callback)
-            self.shortcuts.append(shortcut)
         self.setFocusPolicy(Qt.StrongFocus)
 
     def button(self, text, callback, layout):
@@ -106,11 +98,48 @@ class CameraVideoViewer(QWidget):
         return button
 
     def eventFilter(self, watched, event):
-        if watched is self.surface and event.type() == QEvent.MouseButtonDblClick and event.button() == Qt.LeftButton:
-            self.toggle_fullscreen()
+        kind = event.type()
+        if kind not in (QEvent.MouseButtonPress, QEvent.MouseButtonRelease, QEvent.MouseButtonDblClick,
+                        QEvent.ShortcutOverride, QEvent.KeyPress):
+            return False
+        if (not self.active or not self.isVisible() or not isinstance(watched, QWidget)
+                or watched.window() is not self.browser):
+            return False
+        # Qt/GStreamer inserts its own native child inside QVideoWidget, often
+        # after playback starts. Filter the application's delivery to that child
+        # as well, before backend handlers can consume mouse/keyboard events.
+        if kind in (QEvent.ShortcutOverride, QEvent.KeyPress):
+            if event.modifiers() != Qt.NoModifier:
+                return False
+            callbacks = {Qt.Key_Escape: self.escape, Qt.Key_F11: self.toggle_fullscreen,
+                         Qt.Key_Space: self.toggle_play}
+            callback = callbacks.get(event.key())
+            if callback is not None:
+                event.accept()
+                if kind == QEvent.KeyPress and not event.isAutoRepeat():
+                    callback()
+                return True
+        elif (self.surface is not None and (watched is self.surface or self.surface.isAncestorOf(watched))
+              and event.button() == Qt.LeftButton):
+            # Accept the first press too: keep focus and double-click delivery
+            # on the video instead of propagating to the modal dialog.
+            if kind == QEvent.MouseButtonPress:
+                self.setFocus(Qt.MouseFocusReason)
+            elif kind == QEvent.MouseButtonDblClick:
+                self.toggle_fullscreen()
             event.accept()
             return True
         return super().eventFilter(watched, event)
+
+    def filter_input(self, enabled):
+        if enabled == self.input_filter_installed:
+            return
+        app = QApplication.instance()
+        if enabled:
+            app.installEventFilter(self)
+        else:
+            app.removeEventFilter(self)
+        self.input_filter_installed = enabled
 
     def toggle_fullscreen(self):
         self.set_fullscreen(not self.video_fullscreen)
@@ -169,6 +198,7 @@ class CameraVideoViewer(QWidget):
         self.stop()
         self.path = self.paths[self.index]
         self.active, self.failed = True, False
+        self.filter_input(True)
         self.name_label.setText(f"{self.index + 1} / {len(self.paths)} · {os.path.basename(self.path)}")
         self.previous_button.setEnabled(self.index > 0)
         self.next_button.setEnabled(self.index + 1 < len(self.paths))
@@ -191,6 +221,7 @@ class CameraVideoViewer(QWidget):
             self.player.play()
 
     def stop(self):
+        self.filter_input(False)
         self.set_fullscreen(False)
         # Ignore queued backend errors while returning, unplugging or closing.
         self.active = False
