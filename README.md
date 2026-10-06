@@ -51,7 +51,7 @@ Zur vorherigen Code-Version zurückkehren:
 sudo bash update.sh --rollback
 ```
 
-Updates starten die LaurinOS-Dienste und eine aktive Kindersitzung neu. Vorher laufende Apps und Spiele beenden. Eltern-Einstellungen, App-Listen, eigene Bilder, ROMs und Spielstände werden nicht aus dem Repo überschrieben. Die Systemkonfiguration und Debian-/Flatpak-Pakete werden durch `update.sh` nicht eingerichtet; Systemd-Units lassen sich über die Komponente `services` aktualisieren.
+Updates starten die LaurinOS-Dienste und eine aktive Kindersitzung neu. Vorher laufende Apps und Spiele beenden. Eltern-Einstellungen, App-Listen, eigene Bilder, ROMs und Spielstände werden nicht aus dem Repo überschrieben. Fehlende Debian-Pakete aus `data/update-packages.json` werden beim Backend-Update und mit `update.sh` automatisch nachinstalliert. Dafür ist Internet erforderlich. Übrige Systemkonfiguration und Flatpak-Einrichtung benötigen weiterhin eigene Einrichtungsschritte; Systemd-Units lassen sich über die Komponente `services` aktualisieren.
 
 [docs/updating.md](docs/updating.md) enthält die Schritt-für-Schritt-Anleitung für GitHub-Releases, die einmalige Einrichtung, Grenzen, Teilupdates und Rollback.
 

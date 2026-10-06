@@ -39,4 +39,20 @@ Vorher eine App-Liste, eigene PIN, Controller-Profil und einen Spielstand anlege
 
 Diese Tests benötigen echte GitHub-Releases und ein Debian-Gerät mit Systemd. Die automatischen Tests ersetzen sie nicht.
 
+## Paket-Nachinstallation
+
+Auf einem separaten Testgerät mit fehlenden deklarierten Paketen prüfen:
+
+- Ein vollständiges Backend-Update vom bisherigen 0.61.0/0.62.0 installiert die fehlenden Pakete ohne zusätzlichen Befehl. Erst danach starten Elternbackend und Prüfdienst. Das Backend kann beim ersten Übergang während der Installation kurzzeitig unerreichbar sein.
+- Ein weiteres Release mit einer zusätzlichen gültigen Paketanforderung zeigt die Nachinstallation im Backend-Fortschritt. Code und Dienste wechseln erst nach erfolgreicher Installation. Neuinstallation und `sudo bash update.sh` berücksichtigen dieselben Anforderungen.
+- Bei unterbrochener Internetverbindung oder einer nicht verfügbaren Paketanforderung bleibt die bisherige Code-Version aktiv bzw. wird beim ersten Übergang wieder aktiviert. Der Auftrag zeigt einen Fehler. Nach Korrektur der Verbindung/Anforderung funktioniert ein neuer Versuch.
+- Ein Neustart mit bereits vorhandenen Paketen löst keinen APT-Download aus. Backend und Prüfdienst starten normal. Der erfolgreiche Oneshot-Paketdienst darf danach `inactive (dead)` sein.
+- Ein Code-Rollback erhält hinzugekommene Debian-Pakete sowie Eltern-Daten. Ein Teilupdate erhält die Paketanforderungen der nicht gewählten Komponenten.
+
+```bash
+sudo journalctl -b -u laurinos-packages.service -u laurinos-update-job.service --no-pager
+cat /usr/local/lib/laurinos/current/installed.json
+dpkg-query -W python3-pyqt5.qtmultimedia libqt5multimedia5-plugins gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-libav
+```
+
 Erst nach diesen Geräteprüfungen den Stand als auf Debian/T450 praktisch getestet markieren.

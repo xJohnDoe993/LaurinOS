@@ -20,6 +20,8 @@ Das Setup startet das Gerät standardmäßig nicht automatisch neu. Ein WLAN-Pro
 
 Eine unvollständige modulare Installation lässt sich mit `sudo bash install.sh --resume` fortsetzen. Bereits vorhandene Eltern-Einstellungen werden dabei erhalten. Für abgeschlossene modulare Installationen ist `update.sh` zuständig. Eine v59-Installation wird weder beim Setup noch beim Update übernommen.
 
+Das Setup installiert auch die in `data/update-packages.json` deklarierten Debian-Pakete. Spätere Releases können dort weitere Abhängigkeiten aufnehmen: Backend-Updates und manuelle Updates installieren fehlende Pakete automatisch. Auch der erste vollständige Übergang von 0.61.0/0.62.0 auf ein Release mit dieser Funktion benötigt keinen zusätzlichen Paketbefehl. Weitere Einzelheiten stehen unter [Updates](updating.md#debian-pakete-bei-updates).
+
 ## DNS während des Setups
 
 Vor der Basis-Paketinstallation prüft das Setup die Auflösung von `deb.debian.org`, sichert `resolv.conf` und übernimmt bekannte Upstream-DNS-Server als Bootstrap-Konfiguration. Das ist nötig, weil die Installation von `systemd-resolved` selbst `resolv.conf` ersetzen kann. Nach der Paketinstallation wird DNS erneut geprüft; bei einem Fehler wird der vorherige Resolver-Zustand wiederhergestellt und geprüft.

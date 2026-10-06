@@ -192,6 +192,7 @@ class WorkerTests(unittest.TestCase):
                         patch.object(source, 'release_metadata', return_value=self.release),
                         patch.object(source, 'download', side_effect=self.download),
                         patch.object(self.deploy, 'install_launchers'), patch.object(self.deploy, 'apply_units'),
+                        patch.object(self.deploy, 'ensure_packages', return_value=[]),
                         patch.object(self.deploy, 'restart_services')]
         for item in self.patches: item.start()
     def tearDown(self):
@@ -221,6 +222,15 @@ class WorkerTests(unittest.TestCase):
         with self.assertRaises(subprocess.CalledProcessError): self.apply()
         self.assertEqual((self.base / 'current').resolve(), self.old)
         self.assertEqual(self.store.read()['job']['status'], 'failed')
+    def test_package_failure_records_backend_error_without_activation(self):
+        self.deploy.ensure_packages.side_effect = ValueError('Paket-Nachinstallation fehlgeschlagen: APT/DNS')
+        with patch.object(self.deploy, 'activate') as activate:
+            with self.assertRaisesRegex(ValueError, 'APT/DNS'): self.apply()
+            activate.assert_not_called()
+        self.assertEqual((self.base / 'current').resolve(), self.old)
+        job = self.store.read()['job']
+        self.assertEqual(job['status'], 'failed')
+        self.assertIn('APT/DNS', job['message'])
     def test_release_edit_is_rejected_before_download(self):
         changed = copy.deepcopy(self.release); changed['archive']['size'] += 1
         with patch.object(source, 'release_metadata', return_value=changed), patch.object(source, 'download') as download:

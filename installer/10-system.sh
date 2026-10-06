@@ -74,6 +74,7 @@ if apt-get install -y \
     procps \
     util-linux; then
     /usr/bin/python3 "${REPO_DIR}/tools/configure-dns.py" recover
+    /usr/bin/python3 /usr/local/lib/laurinos/current/tools/install-update-packages.py
 else
     /usr/bin/python3 "${REPO_DIR}/tools/configure-dns.py" recover || true
     echo "FEHLER: Basispakete konnten nicht vollständig installiert werden." >&2

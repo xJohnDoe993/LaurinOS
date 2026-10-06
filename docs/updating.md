@@ -70,12 +70,12 @@ Der Dienst lädt nur über HTTPS von GitHub und den erlaubten GitHub-Asset-Hosts
 
 Die SHA-Datei sichert die Integrität; sie ist keine unabhängige Signatur. Schreibberechtigte dieses Repos sind damit auch Herausgeber von root-ausgeführten Updates. Der lokale Kontroll-Socket akzeptiert ausschließlich root und den fest vorgesehenen `kids`-Benutzer; die Webaktionen benötigen zusätzlich Eltern-Anmeldung und CSRF-Token. Quelle, Download-URLs und Systembefehle sind nicht frei über den Socket wählbar. Private Repos mit Token werden derzeit nicht unterstützt.
 
-Code und Systemd-Units werden aktualisiert. APT-/Flatpak-Pakete, übrige Systemkonfiguration und Datenmigrationen sind nicht Teil dieses Updaters. Benötigt ein Release solche Änderungen oder eine vom installierten Deployment-Code nicht unterstützte Paket-API, müssen eigene Einrichtungsschritte bzw. eine Neuinstallation in den Release-Notizen stehen.
+Code, Systemd-Units und deklarierte fehlende Debian-Abhängigkeiten werden aktualisiert. Flatpak-Einrichtung, übrige Systemkonfiguration und Datenmigrationen benötigen eigene Einrichtungsschritte. Bei einer vom installierten Deployment-Code nicht unterstützten Paket-API ist weiterhin eine manuelle Aktualisierung oder Neuinstallation nötig; dies muss in den Release-Notizen stehen.
 
 Status und Fehlersuche auf dem Gerät:
 
 ```bash
-sudo journalctl -u laurinos-updates.service -u laurinos-update-job.service -n 100 --no-pager
+sudo journalctl -u laurinos-updates.service -u laurinos-update-job.service -u laurinos-packages.service -n 100 --no-pager
 sudo cat /var/lib/laurinos/updates/state.json
 cat /usr/local/lib/laurinos/current/installed.json
 ```
@@ -105,7 +105,30 @@ sudo bash update.sh
 
 Apps und Spiele vor dem Update schließen. Ein aktives Kinder-Menü und die Gerätedienste werden zur Übernahme des Codes neu gestartet. Ohne laufende Benutzersitzung startet der neue Sitzungscode bei der nächsten Anmeldung.
 
-`update.sh` installiert keine APT-/Flatpak-Pakete, überschreibt keine Eltern-Daten und verändert keine WLAN-Profile, Firefox-Profile, TLP-Regeln oder andere Systemkonfigurationen. Solche Änderungen müssen als gesonderte Einrichtungsschritte dokumentiert werden. Die Komponente `services` installiert die im Release enthaltenen LaurinOS-Systemd-Units neu.
+`update.sh` installiert deklarierte fehlende Debian-Pakete. Es überschreibt keine Eltern-Daten und verändert keine WLAN-Profile, Firefox-Profile, TLP-Regeln oder andere LaurinOS-Systemkonfigurationen. Flatpak-Einrichtung und weitere Systemänderungen müssen als gesonderte Einrichtungsschritte dokumentiert werden. Die Komponente `services` installiert die im Release enthaltenen LaurinOS-Systemd-Units neu.
+
+## Debian-Pakete bei Updates
+
+Releases deklarieren benötigte Pakete in `data/update-packages.json`, getrennt nach Manifest-Komponenten. Beispiel:
+
+```json
+{
+  "schema": 1,
+  "components": {
+    "desktop": ["python3-pyqt5.qtmultimedia", "gstreamer1.0-libav"]
+  }
+}
+```
+
+Die aktuelle Datei enthält die fünf Qt-Multimedia-/GStreamer-Pakete für die Videowiedergabe. Für eine neue Funktion deren benötigte Debian-Paketnamen ergänzen und ein neues Release bauen. Erlaubt sind reine Paketnamen aus den bereits eingerichteten APT-Quellen; Shell-Befehle, neue Quellen, URLs und Paketversionen gehören nicht in diese Datei. Die Zuordnung wird beim Staging in `installed.json` gespeichert. Teilupdates ersetzen nur Anforderungen der gewählten Komponenten und behalten die übrigen Anforderungen bei. Der erste Übergang auf diesen Mechanismus muss ein vollständiges Update einschließlich `tools` und `services` sein.
+
+Bei späteren Updates prüft der bereits installierte Pakethelfer vor dem Codewechsel die Anforderungen des vorbereiteten Releases. Wenn alle Pakete installiert sind, werden keine Paketlisten geladen und kein APT-Installationslauf gestartet. Sonst aktualisiert er die Paketlisten und installiert fehlende Pakete ohne Rückfragen. Er verwendet die exakten Kandidatenversionen aus den bestehenden Quellen, übernimmt bestehende Konfigurationsdateien und verweigert Paketentfernungen. APT kann für die neuen Pakete weitere Abhängigkeiten installieren oder vorhandene Abhängigkeiten aktualisieren; ein allgemeines Systemupgrade oder automatisches Entfernen alter Pakete erfolgt nicht. Ein eventuell installiertes `needrestart` wird für diesen Aufruf auf reine Anzeige gestellt; LaurinOS startet seine Dienste selbst bei der Aktivierung neu.
+
+Der Backend-Fortschritt zeigt Paketprüfung und Nachinstallation. APT-/DNS-Fehler brechen das Update vor dem Codewechsel ab; der bisherige Code bleibt aktiv. Nach Behebung des Fehlers das Update erneut anbieten lassen und starten. Bereits installierte Pakete bleiben erhalten und werden beim nächsten Versuch übersprungen. Ein Code-Rollback entfernt oder degradiert keine Debian-Pakete.
+
+Der bisherige Updater aus 0.61.0/0.62.0 kennt diese Vorbereitung noch nicht. Deshalb enthält das neue Release zusätzlich `laurinos-packages.service`: Nach dem ersten Codewechsel muss dieser Dienst die Pakete erfolgreich prüfen/installieren, bevor Elternbackend und Update-Prüfdienst starten dürfen. Schlägt das fehl, setzt der bisherige Deployer Code und Units zurück. Beim ersten Übergang kann das Backend während der Paketinstallation vorübergehend unerreichbar sein; der bisherige Fortschritt zeigt dann noch die Aktivierung. Kein zusätzlicher manueller Paketbefehl ist erforderlich. Der Dienst prüft auch nach einem Neustart erneut und lädt nichts herunter, solange keine Pakete fehlen.
+
+Paketinstallation und andere LaurinOS-Wartung werden durch Sperren serialisiert. APT wartet bis zu zwei Minuten auf seine Paketsperre und verwendet begrenzte Verbindungswartezeiten sowie Wiederholungen. Wird ein Installationslauf durch Ausschalten unterbrochen und meldet APT anschließend eine beschädigte Paketverwaltung, muss diese auf dem Gerät repariert werden; der Updater führt keine pauschalen Reparaturbefehle aus.
 
 ## Teilupdates
 
@@ -136,9 +159,10 @@ Ein Teilupdate kopiert nur gewählte Bereiche in eine Kopie des aktiven Releases
 2. Laufende Emulator-Paketinstallation bzw. parallele Wartung ausschließen.
 3. Neuen Stand in einem Staging-Verzeichnis aufbauen; vorherige Dateien ausgewählter Komponenten entfernen.
 4. Ressourcen und gemeinsame Python-Imports prüfen.
-5. Den aktiven Link atomar auf den fertigen Code-Stand umschalten.
-6. Gegebenenfalls Systemd-Units kopieren, Dienste neu starten und deren aktiven Zustand prüfen.
-7. Bei einem erkannten Startfehler den bisherigen Code und gegebenenfalls die bisherigen Units wieder aktivieren und erneut starten.
+5. Fehlende deklarierte Debian-Pakete installieren; bei Fehler den Codewechsel abbrechen. Beim ersten Übergang vom bisherigen Updater übernimmt stattdessen der Paketdienst in Schritt 7 die Prüfung.
+6. Den aktiven Link atomar auf den fertigen Code-Stand umschalten.
+7. Gegebenenfalls Systemd-Units kopieren, Dienste neu starten und deren aktiven Zustand prüfen.
+8. Bei einem erkannten Startfehler den bisherigen Code und gegebenenfalls die bisherigen Units wieder aktivieren und erneut starten.
 
 Die Aktivierung der Code-Version ist atomar. Dienstneustarts und das Kopieren von Systemd-Units sind keine atomare Gesamttransaktion. Ein Stromausfall während dieser Schritte kann manuelle Wiederherstellung erfordern. Ein aktiver Dienst bedeutet außerdem nicht, dass jede Hardwarefunktion erfolgreich getestet wurde.
 
@@ -148,7 +172,7 @@ Manuell zurückkehren:
 sudo bash update.sh --rollback
 ```
 
-Das betrifft Code und LaurinOS-Units. Spielstände, Eltern-Einstellungen, heruntergeladene Cores, BIOS-Dateien, App-Pakete und sonstige Daten werden nicht zurückgesetzt. Ein Code-Rollback ist keine Datensicherung.
+Das betrifft Code und LaurinOS-Units. Spielstände, Eltern-Einstellungen, heruntergeladene Cores, BIOS-Dateien, Debian-/Flatpak-Pakete und sonstige Daten werden nicht zurückgesetzt. Ein Code-Rollback ist keine Datensicherung.
 
 Versionen anzeigen:
 
