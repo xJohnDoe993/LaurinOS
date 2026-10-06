@@ -2,9 +2,12 @@
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
+import textwrap
 import unittest
 import zipfile
 
@@ -125,6 +128,41 @@ class GitHubReleaseTests(unittest.TestCase):
         self.github.incomplete = True
         with self.assertRaisesRegex(ValueError, 'nicht vollständig'): self.prepare()
         self.assertTrue(self.github.release['draft'])
+
+
+class WorkflowSourceTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(dir=ROOT.parent)
+        self.root = Path(self.temp.name)
+        workflow = (ROOT / '.github/workflows/release.yml').read_text()
+        step = workflow.split('      - name: Versionsdateien prüfen\n', 1)[1].split('      - name:', 1)[0]
+        self.code = textwrap.dedent(step.split("python3 - <<'PY'\n", 1)[1].rsplit('          PY', 1)[0])
+    def tearDown(self): self.temp.cleanup()
+    def check(self, tag):
+        return subprocess.run([sys.executable, '-c', self.code], cwd=self.root,
+                              env=dict(os.environ, RELEASE_TAG=tag), capture_output=True, text=True)
+    def test_actual_failed_tag_reports_its_old_version_before_missing_helper(self):
+        (self.root / 'VERSION').write_text('0.62.0\n')
+        result = self.check('v0.63.0')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('v0.63.0', result.stderr)
+        self.assertIn('Projektversion 0.62.0', result.stderr)
+        self.assertIn('vorhandener Tag', result.stderr)
+        self.assertNotIn("can't open file", result.stderr)
+    def test_matching_tag_without_helper_has_an_actionable_error(self):
+        (self.root / 'VERSION').write_text('0.63.1\n')
+        result = self.check('v0.63.1')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('fehlt der Release-Helfer', result.stderr)
+    def test_correct_checkout_runs_real_release_version_validation(self):
+        (self.root / '.github/scripts').mkdir(parents=True)
+        (self.root / 'src/laurinos').mkdir(parents=True)
+        for path in ['VERSION', 'manifest.json', 'pyproject.toml', 'src/laurinos/__init__.py', '.github/scripts/release.py']:
+            (self.root / path).write_bytes((ROOT / path).read_bytes())
+        version = (ROOT / 'VERSION').read_text().strip()
+        result = self.check('v' + version)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('OK: Version ' + version, result.stdout)
 
 
 if __name__ == '__main__': unittest.main()

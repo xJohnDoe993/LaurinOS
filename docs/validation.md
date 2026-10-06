@@ -26,3 +26,9 @@ Die Videoansicht wurde mit realen Qt-Widgets bei 1366×768 gerendert und visuell
 Am 6. Oktober 2026: 86 Tests mit Flask und Qt im Offscreen-Modus erfolgreich; Syntaxprüfung von 67 Python-Dateien und 27 Shell-Dateien. Neun neue Tests prüfen identische Versionsdateien, gültige Tags, ZIP-/SHA-Abgleich, Commitbindung einschließlich annotierter Tags, neue/vorhandene Entwürfe ohne Veröffentlichung, Schutz bestehender Assets und veröffentlichter Releases, fehlende Berechtigungen sowie unvollständige Uploads. GitHub-CLI-Antworten sind dabei simuliert; es wird kein echtes Release erstellt.
 
 Der Workflow wurde als YAML gelesen, seine Shell- und eingebettete Python-Syntax geprüft und die Tag-Auswahl mit fehlendem, vorhandenem und ungültigem Tag simuliert. Der ZIP-Build und die Prüfung des entpackten Archivs wurden lokal ausgeführt. Ein vollständiger Lauf auf einem GitHub-Runner mit echtem Entwurf/Asset-Upload steht noch aus und erfolgt beim ersten Release nach Übernahme des Workflows.
+
+## Release-Korrektur 0.63.1
+
+Der erste GitHub-Lauf wurde geprüft: `v0.63.0` checkte Commit `400b1a5` mit Projektversion `0.62.0` und ohne `.github/scripts/release.py` aus. Für den neuen Tag `v0.63.1` sind die Versionsdateien und das Manifest synchronisiert; Checkout wurde auf Version 6 mit Node.js 24 aktualisiert.
+
+89 Tests mit Flask/Qt erfolgreich. Die drei zusätzlichen Workflow-Tests führen den tatsächlichen Versionsprüfungsblock aus: falsche alte Version ohne Helfer, passende Version ohne Helfer und gültiger Stand mit dem echten Versionshelfer. Workflow-YAML/Shell-Syntax und der ZIP-/SHA-Build wurden geprüft. Der korrigierte Workflow wurde noch nicht auf GitHub ausgeführt; nach Übernahme muss ein neuer Lauf für `v0.63.1` gestartet werden.
