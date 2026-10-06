@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Versions-Tag, z. B. v0.63.0 (muss zu VERSION passen)'
+        description: 'Versions-Tag, z. B. v0.63.1 (muss zu VERSION passen)'
         required: true
         type: string
 
@@ -50,7 +50,7 @@ jobs:
           PY
 
       - name: Release-Quellcode laden
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6, Node.js 24
         with:
           ref: ${{ steps.source.outputs.ref }}
           persist-credentials: false
@@ -58,7 +58,22 @@ jobs:
       - name: Versionsdateien prüfen
         env:
           RELEASE_TAG: ${{ steps.source.outputs.tag }}
-        run: python3 .github/scripts/release.py "$RELEASE_TAG" --check-version
+        run: |
+          python3 - <<'PY'
+          import os, subprocess, sys
+          from pathlib import Path
+          tag = os.environ['RELEASE_TAG']
+          version = Path('VERSION').read_text().strip()
+          if tag != 'v' + version:
+              raise SystemExit('FEHLER: Tag ' + tag + ' zeigt auf Projektversion ' + version
+                               + '. Nach Übernahme der Versionsänderung einen neuen passenden Tag verwenden. '
+                               'Ein vorhandener Tag wird auch bei Auswahl von main verwendet.')
+          helper = Path('.github/scripts/release.py')
+          if not helper.is_file():
+              raise SystemExit('FEHLER: Im Stand von ' + tag + ' fehlt der Release-Helfer. '
+                               'Workflow in main übernehmen und einen neuen Versions-Tag für diesen Stand verwenden.')
+          raise SystemExit(subprocess.call([sys.executable, str(helper), tag, '--check-version']))
+          PY
 
       - name: Testabhängigkeiten installieren
         run: |
