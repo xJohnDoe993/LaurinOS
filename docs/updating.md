@@ -23,10 +23,10 @@ Der Workflow `.github/workflows/release.yml` baut das LaurinOS-Update-ZIP und se
 
 Einmalig diesen Workflow in `main` übernehmen. Danach für jede neue Version:
 
-1. Alle gewünschten Änderungen in `main` zusammenführen. `VERSION`, `src/laurinos/__init__.py` und `pyproject.toml` auf dieselbe höhere Version setzen, beispielsweise `0.63.1`. `python3 tools/build-manifest.py` ausführen und die Versionsdateien samt Manifest committen/pushen. Bereits veröffentlichte Versionen bekommen keine neuen ZIPs; für Korrekturen eine neue Versionsnummer verwenden.
-2. [GitHub → Actions](https://github.com/xJohnDoe993/LaurinOS/actions) öffnen, **LaurinOS Release vorbereiten → Run workflow** wählen. Als Branch `main` und als Tag `v0.63.1` angeben. **Run workflow** klicken. Der Tag muss zu den Versionsdateien passen.
+1. Alle gewünschten Änderungen in `main` zusammenführen. `VERSION`, `src/laurinos/__init__.py` und `pyproject.toml` auf dieselbe höhere Version setzen, beispielsweise `0.63.3`. `python3 tools/build-manifest.py` ausführen und die Versionsdateien samt Manifest committen/pushen. Bereits veröffentlichte Versionen bekommen keine neuen ZIPs; für Korrekturen eine neue Versionsnummer verwenden.
+2. [GitHub → Actions](https://github.com/xJohnDoe993/LaurinOS/actions) öffnen, **LaurinOS Release vorbereiten → Run workflow** wählen. Als Branch `main` und als Tag `v0.63.3` angeben. **Run workflow** klicken. Der Tag muss zu den Versionsdateien passen.
 3. Den erfolgreichen Lauf abwarten. GitHub prüft Versionen, Manifest, Python-/Shell-Dateien sowie Tests inklusive Flask und Qt-Widgets und baut mit `tools/build-release.py`. Die Zusammenfassung des Laufs enthält den Link zum Release-Entwurf.
-4. Unter [Releases](https://github.com/xJohnDoe993/LaurinOS/releases) den Entwurf öffnen. Prüfen, dass `LaurinOS-0.63.1.zip` **und** `LaurinOS-0.63.1.zip.sha256` vorhanden sind. Die automatisch erzeugten Release-Notizen ergänzen, insbesondere nötige Systemeinrichtungsschritte und bekannte Einschränkungen.
+4. Unter [Releases](https://github.com/xJohnDoe993/LaurinOS/releases) den Entwurf öffnen. Prüfen, dass `LaurinOS-0.63.3.zip` **und** `LaurinOS-0.63.3.zip.sha256` vorhanden sind. Die automatisch erzeugten Release-Notizen ergänzen, insbesondere nötige Systemeinrichtungsschritte und bekannte Einschränkungen.
 5. Die Dateien herunterladen und die [Geräteprüfung](device-validation.md) durchführen. Danach **Publish release** wählen. Für das stabile Geräteupdate **Pre-release** ausschalten und das Release als neuestes Release markieren.
 6. Im Elternbackend **Updates → Nach Updates suchen** öffnen. Bei einer bereits identischen Version wird kein Update angeboten.
 
@@ -35,8 +35,8 @@ Bei einem bereits vorhandenen Tag baut der manuelle Lauf dessen Commit, auch wen
 Alternativ nach dem Commit der Versionsdateien einen Tag pushen:
 
 ```bash
-git tag v0.63.1
-git push origin v0.63.1
+git tag v0.63.3
+git push origin v0.63.3
 ```
 
 Auch dieser Weg startet den Workflow automatisch. Der getaggte Commit muss den Workflow und seinen Helfer enthalten. Ein direkt auf der Releases-Seite veröffentlichtes Release löst diesen Build nicht aus; stattdessen zuerst den Workflow starten und anschließend seinen fertigen Entwurf veröffentlichen.
@@ -44,6 +44,14 @@ Auch dieser Weg startet den Workflow automatisch. Der getaggte Commit muss den W
 Es ist kein persönlicher Token oder zusätzliches Secret nötig: Der Workflow nutzt den von GitHub bereitgestellten `GITHUB_TOKEN` mit `contents: write`. Sind Actions durch Repository-/Organisationsregeln deaktiviert oder Schreibrechte eingeschränkt, müssen diese Regeln angepasst werden. Manuelles **Run workflow** ist erst sichtbar, wenn die Workflow-Datei in `main` liegt.
 
 Bei Fehlern die Logs im Actions-Lauf ansehen. Versions-/Manifest-Fehler vor dem Upload erzeugen kein Release. Vorhandene veröffentlichte Releases sowie vorhandene ZIP-/SHA-Dateien werden nicht überschrieben. Nach einem teilweise fehlgeschlagenen Upload den Entwurf unveröffentlicht lassen, nur dessen vorhandene LaurinOS-ZIP-/SHA-Dateien löschen und den Lauf erneut starten. Bei Quellcodekorrekturen nach dem Taggen einen neuen Versions-Tag verwenden.
+
+### Versionsfehler beim Start mit v0.63.3
+
+Die Angabe eines neuen Tags in **Run workflow** erhöht die Projektversion nicht automatisch. Meldet der Lauf `Tag v0.63.3 zeigt auf Projektversion 0.63.1`, fehlen im ausgewählten Quellstand die Änderungen an den Versionsdateien.
+
+Für diesen Stand sind `VERSION`, Python-Paket, `pyproject.toml` und Manifest auf `0.63.3` vorbereitet. Erst den Pull Request für diese Version in `main` zusammenführen. Danach einen **neuen** Lauf mit Branch `main` und Tag `v0.63.3` starten. Ein erneutes Ausführen des alten fehlgeschlagenen Laufs verwendet dessen alten Quellstand. Ein vorhandener Tag wird ebenfalls weiter verwendet; er muss bereits auf einen Commit mit der passenden Projektversion zeigen.
+
+Das veröffentlichte `v0.63.2` enthält keine Update-Assets. Für den nächsten Geräteupdate deshalb den vollständigen Entwurf für `v0.63.3` bauen und erst nach erfolgreichem Build mit ZIP und SHA-256 veröffentlichen. Der neue Stand enthält auch die Korrektur des Kamera-Namens auf bestehenden Geräten und Video-Vollbild per Doppelklick.
 
 ### Fehlgeschlagener erster Lauf mit v0.63.0
 
