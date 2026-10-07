@@ -1,6 +1,6 @@
 # Prüfung auf dem Gerät
 
-Die automatischen Prüfungen decken Syntax, Paketimporte, Ressourcen, Emulator-Auswahl, Einstellungszugriff, Webapp-Profile, Gerätefilter und Code-Deployment ab. Sie führen keine echte Debian-Installation, APT-Vorgänge, Systemd-Aktivierung, X11-Sitzung oder Hardwaretests aus.
+Die lokale Prüfung mit `tools/check.py` deckt Syntax, Paketimporte, Ressourcen, Emulator-Auswahl, Einstellungszugriff, Webapp-Profile, Gerätefilter und Code-Deployment ab. Zusätzlich prüft der unten beschriebene GitHub-VM-Test die Debian-Installation, APT, Systemd und WLAN nach dem Neustart. X11-Sitzung und echte Geräte bleiben separat zu prüfen.
 
 ## Neuinstallation nach dem Neustart
 

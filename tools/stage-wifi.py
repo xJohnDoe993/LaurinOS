@@ -52,6 +52,8 @@ class Migration:
             if os.path.exists(temporary): os.unlink(temporary)
 
     def prepare(self):
+        if self.journal.exists():
+            raise ValueError("Unvollständige WLAN-Boot-Übernahme; Wiederherstellung beim Neustart erforderlich.")
         if self.command('getent', 'ahostsv4', 'deb.debian.org', required=False).returncode:
             raise ValueError('Netzwerk/DNS funktioniert vor der WLAN-Vorbereitung nicht.')
         devices = self.command('nmcli', '--terse', '--escape', 'no', '--fields', 'DEVICE,TYPE', 'device', 'status').stdout
@@ -62,6 +64,7 @@ class Migration:
                 if not re.fullmatch(r'[a-zA-Z0-9_-]{1,15}', device): raise ValueError('Ungültiger WLAN-Adaptername.')
                 legacy.append(device)
         if not legacy:
+            self.pending.unlink(missing_ok=True)
             print('Bestehende NetworkManager-Verbindungen bleiben unverändert.')
             return False
         self.state.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -130,7 +133,12 @@ class Migration:
                     self.commit(); return
                 self.rollback(interrupted)
                 self.journal.unlink()
-            self.apply_plan()
+            try:
+                self.apply_plan()
+            except (OSError, ValueError, subprocess.TimeoutExpired):
+                if self.pending.exists() and not self.journal.exists():
+                    os.replace(self.pending, self.state/'failed.json')
+                raise
         finally:
             handoff.CONFIG_ROOT = previous_root
 
@@ -199,8 +207,8 @@ def main():
         migration = Migration()
         if action == 'prepare': migration.prepare()
         else: migration.apply()
-    except (OSError, ValueError, subprocess.TimeoutExpired):
-        print('FEHLER: WLAN-Vorbereitung/Übernahme nicht abgeschlossen. Debian-Konfiguration wurde beibehalten bzw. zurückgesetzt. Details nur im lokalen Boot-Protokoll.', file=__import__('sys').stderr)
+    except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
+        print('FEHLER: WLAN-Vorbereitung/Übernahme nicht abgeschlossen. Debian-Konfiguration wurde beibehalten bzw. zurückgesetzt. Grund: ' + str(exc), file=__import__('sys').stderr)
         return 1
     return 0
 
