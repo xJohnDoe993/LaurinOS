@@ -1,5 +1,7 @@
 # PaimenOS
 
+<img src="assets/branding/paimenos-logo.png" alt="PaimenOS" width="240">
+
 PaimenOS macht einen Debian-Laptop zum Kinder-PC mit Kachelmenü, lokalen und webbasierten Eltern-Einstellungen, Bildschirmzeit, Kamera-/USB-Medien, Controller-Steuerung und auswählbaren Emulatoren.
 
 **Version 0.64.0: LaurinOS heißt jetzt PaimenOS.** Paimen ist Finnisch für Schäfer. Oberfläche, Python-Paket, Dienste, Befehle, Datenverzeichnisse und Release-Dateien verwenden den neuen Namen. Diese Version benötigt eine Neuinstallation auf frischem Debian 12 oder 13; bestehende LaurinOS-Installationen werden nicht automatisch übernommen. Eigene Bilder, ROMs und Spielstände vor der Neuinstallation sichern.

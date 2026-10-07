@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from paimenos.paths import CONFIG_DIR, USER_DATA_DIR
+from paimenos.paths import CONFIG_DIR, USER_DATA_DIR, ASSETS_DIR
 from paimenos.paths import STATE_DIR
 import json, os, shlex, shutil, socket, subprocess, sys, fcntl, traceback, threading, signal
 from collections import deque
@@ -812,6 +812,14 @@ class PaimenOSMenu(QWidget):
         self.main_layout.setContentsMargins(40, 20, 40, 30)
 
         top_layout = QHBoxLayout()
+        logo = QLabel()
+        logo.setFixedSize(90, 90)
+        logo.setAlignment(Qt.AlignCenter)
+        logo.setStyleSheet('background:#fffdf6;border-radius:14px;')
+        logo.setPixmap(QPixmap(str(ASSETS_DIR / 'branding/paimenos-logo.png')).scaled(
+            80, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        logo.setAccessibleName('PaimenOS Logo')
+        top_layout.addWidget(logo)
         time_box = QVBoxLayout()
         self.time_label = QLabel()
         self.time_label.setFont(QFont("DejaVu Sans", 38, QFont.Bold))
@@ -1356,6 +1364,7 @@ if __name__ == "__main__":
         sys.exit(0)
     sys.excepthook = report_exception
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon(str(ASSETS_DIR / 'branding/paimenos-logo.png')))
     window = PaimenOSMenu()
     window.showFullScreen()
     window.raise_()

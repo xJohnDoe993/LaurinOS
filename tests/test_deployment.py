@@ -34,6 +34,8 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual((self.base / 'current').resolve(), release)
         self.assertTrue((release / 'app/paimenos/menu.py').is_file())
         self.assertTrue((release / 'assets/parent-web/base.html').is_file())
+        self.assertEqual((release / 'assets/branding/paimenos-logo.png').read_bytes(),
+                         (ROOT / 'assets/branding/paimenos-logo.png').read_bytes())
         self.assertEqual(release.stat().st_mode & 0o777, 0o755)
         self.assertEqual((release / 'app/paimenos/menu.py').stat().st_mode & 0o777, 0o644)
     def test_component_update_preserves_other_code_and_user_data(self):

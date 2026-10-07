@@ -61,7 +61,7 @@
     };
     if (kind === 'audio-headset') kind = 'audio-headphones';
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    Object.entries({viewBox:'0 0 24 24',width:'40',height:'40',fill:'none',stroke:'#ffb347','stroke-width':'1.7','stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true'}).forEach(([key,value]) => svg.setAttribute(key,value));
+    Object.entries({viewBox:'0 0 24 24',width:'40',height:'40',fill:'none',stroke:'currentColor','stroke-width':'1.7','stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true'}).forEach(([key,value]) => svg.setAttribute(key,value));
     (paths[kind] || ['M12 3l6 5-12 8 6 5V3M6 8l12 8']).forEach(d => {
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d',d); svg.append(path);

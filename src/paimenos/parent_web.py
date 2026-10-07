@@ -96,6 +96,12 @@ def response_headers(response):
 BASE = _template('base.html')
 
 
+@app.get('/branding/logo.png')
+def brand_logo():
+    # Public on the PIN page too; expose only this bundled asset.
+    return send_file(ASSETS_DIR / 'branding/paimenos-logo.png', mimetype='image/png')
+
+
 def render(body, title='Übersicht', section='dashboard'):
     field = '<input type="hidden" name="csrf_token" value="' + csrf_token() + '">'
     body = re.sub(r'(<form\b[^>]*method="post"[^>]*>)', lambda m: m.group(1) + field, body)

@@ -16,7 +16,8 @@
         "src/paimenos/webapp.py",
         "src/paimenos/osd_state.py",
         "run.py",
-        "assets/webapp.css"
+        "assets/webapp.css",
+        "assets/branding/paimenos-logo.png"
       ]
     },
     "desktop": {

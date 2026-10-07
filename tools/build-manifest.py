@@ -17,6 +17,7 @@ groups = {
 }
 components = {key: {'files': ['src/paimenos/' + name + '.py' for name in names]} for key, names in groups.items()}
 components['shared']['files'] += ['run.py', 'assets/webapp.css']
+components['shared']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'assets/branding').glob('*.png'))
 components['backend']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'assets/parent-web').glob('*.html'))
 components['emulators']['files'] += ['data/emulator-catalog.json']
 components['cli']['files'] += sorted(str(p.relative_to(ROOT)) for folder in ('bin', 'sbin') for p in (ROOT / folder).glob('*') if p.is_file())

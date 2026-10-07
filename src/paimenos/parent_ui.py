@@ -4,36 +4,38 @@ import shlex
 import shutil
 import subprocess
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QIcon, QPixmap
 from PyQt5.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLabel, QPushButton, QLineEdit, QSpinBox, QTabWidget, QScrollArea, QCheckBox,
     QComboBox, QMessageBox, QColorDialog, QPlainTextEdit, QFileDialog, QProgressBar)
 import paimenos.parent as parents
 import paimenos.emulators as emulators
 from paimenos.state import read_settings
+from paimenos.paths import ASSETS_DIR
 from paimenos.images import TaskSignals, submit_task
 from paimenos.diagnostics import collect_diagnostics, diagnostics_text
 
 STYLE = '''
-QDialog,QWidget {background:#101827;color:#f5f7fb;font-size:14px;}
+QDialog,QWidget {background:#f7f3e8;color:#102c40;font-size:14px;}
 QLabel {background:transparent;} QLabel#heading {font-size:25px;font-weight:bold;}
-QLabel#muted {color:#b4c0d1;} QLabel#metric {font-size:23px;font-weight:bold;color:#ffb347;}
-QWidget#card {background:#182335;border:1px solid #344358;border-radius:12px;}
-QPushButton {background:#ffb347;color:#18202c;border:1px solid transparent;border-radius:8px;padding:10px 14px;font-weight:bold;min-height:22px;}
-QPushButton:hover {background:#ffc477;} QPushButton:focus {border:2px solid #fff;}
-QPushButton[secondary="true"] {background:#26374e;color:#f5f7fb;border-color:#46556a;}
-QPushButton[danger="true"] {background:#462c36;color:#ffb1ac;border-color:#84505b;}
-QPushButton:disabled {background:#253044;color:#8694a6;}
-QLineEdit,QSpinBox,QComboBox,QPlainTextEdit {background:#182335;color:white;border:1px solid #52647d;border-radius:7px;padding:8px;selection-background-color:#46668d;}
-QLineEdit:focus,QSpinBox:focus,QComboBox:focus {border:2px solid #ffb347;}
-QCheckBox {spacing:10px;background:transparent;} QCheckBox::indicator {width:22px;height:22px;border:1px solid #7a8da8;border-radius:5px;background:#101827;}
-QCheckBox::indicator:checked {background:#ffb347;border:2px solid #ffd79b;}
-QTabWidget::pane {border:0;} QTabBar::tab {background:#182335;color:#b4c0d1;padding:12px 16px;margin:0 4px 12px 0;border-radius:8px;}
-QTabBar::tab:selected {background:#2a3a50;color:white;} QScrollArea {border:0;}
-QScrollBar:vertical {background:#101827;width:10px;margin:0;} QScrollBar::handle:vertical {background:#52647d;min-height:24px;border-radius:5px;}
+QLabel#muted {color:#526459;} QLabel#metric {font-size:23px;font-weight:bold;color:#254c42;}
+QWidget#card {background:#fffdf6;border:1px solid #c7d3c0;border-radius:12px;}
+QPushButton {background:#254c42;color:#fffdf6;border:1px solid transparent;border-radius:8px;padding:10px 14px;font-weight:bold;min-height:22px;}
+QPushButton:hover {background:#356354;} QPushButton:focus {border:2px solid #102c40;}
+QPushButton[secondary="true"] {background:#e6eddf;color:#102c40;border-color:#bacdb5;}
+QPushButton[danger="true"] {background:#f9e7e4;color:#923c42;border-color:#d8a5a0;}
+QPushButton:disabled {background:#e3e6dc;color:#68756b;}
+QComboBox QAbstractItemView {background:#fffdf6;color:#102c40;selection-background-color:#d7e3cd;}
+QLineEdit,QSpinBox,QComboBox,QPlainTextEdit {background:#fffdf6;color:#102c40;border:1px solid #9bab95;border-radius:7px;padding:8px;selection-background-color:#d7e3cd;}
+QLineEdit:focus,QSpinBox:focus,QComboBox:focus {border:2px solid #254c42;}
+QCheckBox {spacing:10px;background:transparent;} QCheckBox::indicator {width:22px;height:22px;border:1px solid #9bab95;border-radius:5px;background:#f7f3e8;}
+QCheckBox::indicator:checked {background:#254c42;border:2px solid #7b9971;}
+QTabWidget::pane {border:0;} QTabBar::tab {background:#fffdf6;color:#526459;padding:12px 16px;margin:0 4px 12px 0;border-radius:8px;}
+QTabBar::tab:selected {background:#d7e3cd;color:#102c40;} QScrollArea {border:0;}
+QScrollBar:vertical {background:#f7f3e8;width:10px;margin:0;} QScrollBar::handle:vertical {background:#9bab95;min-height:24px;border-radius:5px;}
 QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical {height:0;} QScrollBar::add-page:vertical,QScrollBar::sub-page:vertical {background:none;}
-QProgressBar {border:0;background:#304057;border-radius:5px;height:10px;}
-QProgressBar::chunk {background:#ffb347;border-radius:5px;}
+QProgressBar {border:0;background:#d6e0cd;border-radius:5px;height:10px;}
+QProgressBar::chunk {background:#254c42;border-radius:5px;}
 '''
 
 
@@ -246,6 +248,7 @@ class ParentDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('PaimenOS · Elternbereich')
+        self.setWindowIcon(QIcon(str(ASSETS_DIR / 'branding/paimenos-logo.png')))
         self.setStyleSheet(STYLE)
         self.resize(860, 650)
         if self.screen():
@@ -254,8 +257,15 @@ class ParentDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(22, 20, 22, 16)
         layout.setSpacing(12)
-        heading = label('PaimenOS Eltern'); heading.setObjectName('heading')
-        layout.addWidget(heading)
+        brand_row = QHBoxLayout()
+        logo = QLabel()
+        logo.setPixmap(QPixmap(str(ASSETS_DIR / 'branding/paimenos-logo.png')).scaled(
+            80, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        logo.setAccessibleName('PaimenOS Logo')
+        brand_row.addWidget(logo)
+        heading = label('Elternbereich'); heading.setObjectName('heading')
+        brand_row.addWidget(heading, 1)
+        layout.addLayout(brand_row)
         layout.addWidget(label('Apps freigeben, Zeit verwalten und das Gerät einrichten.', True))
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs, 1)
