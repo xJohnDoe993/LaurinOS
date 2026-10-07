@@ -41,6 +41,10 @@ sudo python3 /usr/local/lib/paimenos/current/tools/install-paimenos-plymouth.py 
 Anschließend selbst neu starten. Weitere Hinweise und Rückkehr zu einem bisherigen Theme stehen unter [Plymouth](docs/installation.md#paimenos-plymouth-theme).
 
 
+## Eigenes Debian-ISO
+
+**Actions → Build PaimenOS ISO → Run workflow** baut ein Debian-13-Hybrid-ISO mit PaimenOS und Installer. ISO und SHA-256 stehen anschließend als Workflow-Artefakt bereit. Die Eltern-PIN wird auf dem Gerät festgelegt. Anleitung und Teststatus: [docs/iso.md](docs/iso.md).
+
 ## Code aktualisieren
 
 Im Eltern-Webbackend unter **Updates** neue stabile Versionen prüfen und installieren. Ein Hinweis erscheint auf allen angemeldeten Backend-Seiten, sobald ein neueres Release verfügbar ist. Quelle ist das [bestehende GitHub-Repo](https://github.com/xJohnDoe993/LaurinOS/releases). Sein Repository-Name wird separat geändert; [Hinweise zur Umbenennung](docs/updating.md#repository-auf-github-umbenennen).
