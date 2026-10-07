@@ -91,10 +91,10 @@ def prepare(device, backup):
                         prefix = raw[:len(raw)-len(raw.lstrip())]
                         result.append(prefix + ' '.join([word]+others) + '\n')
                     else:
-                        result.extend('# LaurinOS / NetworkManager: '+line for line in raw.splitlines(keepends=True))
+                        result.extend('# PaimenOS / NetworkManager: '+line for line in raw.splitlines(keepends=True))
                     continue
             if in_target:
-                result.extend('# LaurinOS / NetworkManager: '+line for line in raw.splitlines(keepends=True))
+                result.extend('# PaimenOS / NetworkManager: '+line for line in raw.splitlines(keepends=True))
             else:
                 result.append(raw)
         replacement = ''.join(result).encode('utf-8', 'surrogateescape')
@@ -126,7 +126,7 @@ def write_files(backup, restore=False):
         if digest != item[expected]:
             raise ValueError('ifupdown-Datei wurde zwischenzeitlich geändert: '+str(path))
         data = (backup/f'{item["index"]}.{target}').read_bytes()
-        fd, temporary = tempfile.mkstemp(prefix='.laurinos-ifupdown-',dir=path.parent)
+        fd, temporary = tempfile.mkstemp(prefix='.paimenos-ifupdown-',dir=path.parent)
         try:
             with os.fdopen(fd,'wb') as stream:
                 stream.write(data)

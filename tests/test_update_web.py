@@ -15,10 +15,10 @@ sys.path.insert(0, str(ROOT / 'src'))
 class UpdateWebTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from laurinos import paths
+        from paimenos import paths
         cls.temp = tempfile.TemporaryDirectory(dir=ROOT.parent)
         with patch.object(paths, 'CONFIG_DIR', Path(cls.temp.name)):
-            from laurinos import parent_web
+            from paimenos import parent_web
         cls.web = parent_web
         cls.web.app.config['TESTING'] = True
     @classmethod

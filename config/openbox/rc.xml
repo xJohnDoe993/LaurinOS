@@ -18,29 +18,29 @@
   <keyboard>
     <keybind key="W-m">
       <action name="Execute">
-        <command>/usr/bin/python3 -I /usr/local/lib/laurinos/current/run.py menu</command>
+        <command>/usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py menu</command>
       </action>
     </keybind>
 
     <keybind key="A-F4"><action name="Close"/></keybind>
 
-    <keybind key="F1"><action name="Execute"><command>/usr/local/bin/laurinos-volume-mute</command></action></keybind>
-    <keybind key="F2"><action name="Execute"><command>/usr/local/bin/laurinos-volume-down</command></action></keybind>
-    <keybind key="F3"><action name="Execute"><command>/usr/local/bin/laurinos-volume-up</command></action></keybind>
-    <keybind key="F5"><action name="Execute"><command>/usr/local/bin/laurinos-brightness-down</command></action></keybind>
-    <keybind key="F6"><action name="Execute"><command>/usr/local/bin/laurinos-brightness-up</command></action></keybind>
-    <keybind key="XF86AudioMute"><action name="Execute"><command>/usr/local/bin/laurinos-volume-mute</command></action></keybind>
-    <keybind key="XF86AudioLowerVolume"><action name="Execute"><command>/usr/local/bin/laurinos-volume-down</command></action></keybind>
-    <keybind key="XF86AudioRaiseVolume"><action name="Execute"><command>/usr/local/bin/laurinos-volume-up</command></action></keybind>
-    <keybind key="XF86MonBrightnessUp"><action name="Execute"><command>/usr/local/bin/laurinos-brightness-up</command></action></keybind>
-    <keybind key="XF86MonBrightnessDown"><action name="Execute"><command>/usr/local/bin/laurinos-brightness-down</command></action></keybind>
+    <keybind key="F1"><action name="Execute"><command>/usr/local/bin/paimenos-volume-mute</command></action></keybind>
+    <keybind key="F2"><action name="Execute"><command>/usr/local/bin/paimenos-volume-down</command></action></keybind>
+    <keybind key="F3"><action name="Execute"><command>/usr/local/bin/paimenos-volume-up</command></action></keybind>
+    <keybind key="F5"><action name="Execute"><command>/usr/local/bin/paimenos-brightness-down</command></action></keybind>
+    <keybind key="F6"><action name="Execute"><command>/usr/local/bin/paimenos-brightness-up</command></action></keybind>
+    <keybind key="XF86AudioMute"><action name="Execute"><command>/usr/local/bin/paimenos-volume-mute</command></action></keybind>
+    <keybind key="XF86AudioLowerVolume"><action name="Execute"><command>/usr/local/bin/paimenos-volume-down</command></action></keybind>
+    <keybind key="XF86AudioRaiseVolume"><action name="Execute"><command>/usr/local/bin/paimenos-volume-up</command></action></keybind>
+    <keybind key="XF86MonBrightnessUp"><action name="Execute"><command>/usr/local/bin/paimenos-brightness-up</command></action></keybind>
+    <keybind key="XF86MonBrightnessDown"><action name="Execute"><command>/usr/local/bin/paimenos-brightness-down</command></action></keybind>
   </keyboard>
 
   <mouse>
     <context name="Root">
       <mousebind button="Right" action="Press">
         <action name="Execute">
-          <command>/usr/bin/python3 -I /usr/local/lib/laurinos/current/run.py menu</command>
+          <command>/usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py menu</command>
         </action>
       </mousebind>
     </context>

@@ -56,15 +56,15 @@ class GitHubReleaseTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=ROOT.parent)
         self.root = Path(self.temp.name)
-        (self.root / 'src/laurinos').mkdir(parents=True)
+        (self.root / 'src/paimenos').mkdir(parents=True)
         (self.root / 'VERSION').write_text('0.63.0\n')
-        (self.root / 'src/laurinos/__init__.py').write_text('__version__ = "0.63.0"\n')
+        (self.root / 'src/paimenos/__init__.py').write_text('__version__ = "0.63.0"\n')
         (self.root / 'manifest.json').write_text('{"version":"0.63.0"}')
-        (self.root / 'pyproject.toml').write_text('[tool.laurinos]\nversion="0.63.0"\n')
+        (self.root / 'pyproject.toml').write_text('[tool.paimenos]\nversion="0.63.0"\n')
         (self.root / 'dist').mkdir()
-        self.archive = self.root / 'dist/LaurinOS-0.63.0.zip'
+        self.archive = self.root / 'dist/PaimenOS-0.63.0.zip'
         with zipfile.ZipFile(self.archive, 'w') as package:
-            package.writestr('LaurinOS/VERSION', '0.63.0\n')
+            package.writestr('PaimenOS/VERSION', '0.63.0\n')
         self.checksum = self.archive.with_suffix('.zip.sha256')
         self.checksum.write_text(hashlib.sha256(self.archive.read_bytes()).hexdigest() + '  ' + self.archive.name + '\n')
         self.github = FakeGitHub(self.root)
@@ -114,7 +114,7 @@ class GitHubReleaseTests(unittest.TestCase):
         for tag in ('v0.62.0', '0.63.0', 'v0.63.0-beta', 'v0.63.0;echo bad'):
             with self.subTest(tag=tag), self.assertRaises(ValueError):
                 release.checked_version(self.root, tag)
-        for path in ['manifest.json', 'pyproject.toml', 'src/laurinos/__init__.py']:
+        for path in ['manifest.json', 'pyproject.toml', 'src/paimenos/__init__.py']:
             file = self.root / path; original = file.read_text()
             file.write_text(original.replace('0.63.0', '0.64.0'))
             with self.subTest(path=path), self.assertRaises(ValueError): self.prepare()
@@ -156,8 +156,8 @@ class WorkflowSourceTests(unittest.TestCase):
         self.assertIn('fehlt der Release-Helfer', result.stderr)
     def test_correct_checkout_runs_real_release_version_validation(self):
         (self.root / '.github/scripts').mkdir(parents=True)
-        (self.root / 'src/laurinos').mkdir(parents=True)
-        for path in ['VERSION', 'manifest.json', 'pyproject.toml', 'src/laurinos/__init__.py', '.github/scripts/release.py']:
+        (self.root / 'src/paimenos').mkdir(parents=True)
+        for path in ['VERSION', 'manifest.json', 'pyproject.toml', 'src/paimenos/__init__.py', '.github/scripts/release.py']:
             (self.root / path).write_bytes((ROOT / path).read_bytes())
         version = (ROOT / 'VERSION').read_text().strip()
         result = self.check('v' + version)

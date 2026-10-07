@@ -13,18 +13,18 @@ fi
 install_repo_file config/openbox/rc.xml "${OPENBOX_DIR}/rc.xml"
 
 mkdir -p /etc/systemd/user
-install_repo_file systemd/user/laurinos-session.target /etc/systemd/user/laurinos-session.target
+install_repo_file systemd/user/paimenos-session.target /etc/systemd/user/paimenos-session.target
 
-install_repo_file systemd/user/laurinos-osd.service /etc/systemd/user/laurinos-osd.service
+install_repo_file systemd/user/paimenos-osd.service /etc/systemd/user/paimenos-osd.service
 
-install_repo_file systemd/user/laurinos-menu.service /etc/systemd/user/laurinos-menu.service
+install_repo_file systemd/user/paimenos-menu.service /etc/systemd/user/paimenos-menu.service
 
-install_repo_file systemd/user/laurinos-timer.service /etc/systemd/user/laurinos-timer.service
+install_repo_file systemd/user/paimenos-timer.service /etc/systemd/user/paimenos-timer.service
 
-install_repo_file systemd/user/laurinos-media.service /etc/systemd/user/laurinos-media.service
+install_repo_file systemd/user/paimenos-media.service /etc/systemd/user/paimenos-media.service
 
 # Sitzungsweit und unabhängig von Bluetooth/Controller; Mausbewegung zeigt ihn wieder.
-install_repo_file systemd/user/laurinos-cursor.service /etc/systemd/user/laurinos-cursor.service
+install_repo_file systemd/user/paimenos-cursor.service /etc/systemd/user/paimenos-cursor.service
 
 install_repo_file config/openbox/autostart "${OPENBOX_DIR}/autostart"
 

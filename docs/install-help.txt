@@ -1,19 +1,21 @@
-LaurinOS 0.62.0 – modulare Installation für frisches Debian 12/13
+PaimenOS 0.64.0 – modulare Installation für frisches Debian 12/13
 
 Installieren: sudo bash install.sh
 Abgebrochenes modulares Setup fortsetzen: sudo bash install.sh --resume
 Neustart danach: sudo reboot
-Code prüfen/aktualisieren: bash update.sh --check; sudo bash update.sh
-Family-DNS auf bestehenden Geräten separat übernehmen:
-sudo python3 tools/configure-dns.py family config/resolved/laurinos-family-dns.conf
+Code einer PaimenOS-Installation prüfen/aktualisieren: bash update.sh --check; sudo bash update.sh
+Family-DNS bei Bedarf auf PaimenOS-Geräten erneut einrichten:
+sudo python3 tools/configure-dns.py family config/resolved/paimenos-family-dns.conf
 Danach muss resolvectl status unter Global die DNS Domain ~. anzeigen.
 
-Apps: LAURINOS_APPS="2 6 9" (leer: interaktiv, 13: keine)
-Paketquelle: LAURINOS_APP_SOURCE=flathub|debian
-Emulatoren: LAURINOS_EMULATORS=empfohlen|all|none|nes,snes,gb,gba,...
-TLP/ZRAM/System-/App-Updates: LAURINOS_ENABLE_TLP, LAURINOS_ENABLE_ZRAM,
-LAURINOS_ENABLE_AUTO_UPDATES, LAURINOS_ENABLE_APP_UPDATES jeweils 0|1.
-Automatischer Neustart: LAURINOS_REBOOT=1 (Standard: 0).
+Apps: PAIMENOS_APPS="2 6 9" (leer: interaktiv, 13: keine)
+Paketquelle: PAIMENOS_APP_SOURCE=flathub|debian
+Emulatoren: PAIMENOS_EMULATORS=empfohlen|all|none|nes,snes,gb,gba,...
+TLP/ZRAM/System-/App-Updates: PAIMENOS_ENABLE_TLP, PAIMENOS_ENABLE_ZRAM,
+PAIMENOS_ENABLE_AUTO_UPDATES, PAIMENOS_ENABLE_APP_UPDATES jeweils 0|1.
+Automatischer Neustart: PAIMENOS_REBOOT=1 (Standard: 0).
 Die neue Eltern-PIN wird verdeckt abgefragt.
 
 Details: README.md und docs/installation.md
+
+LaurinOS-Installationen werden nicht migriert. Vor Neuinstallation eigene Daten sichern.

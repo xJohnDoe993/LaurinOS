@@ -1,0 +1,25 @@
+[Unit]
+Description=PaimenOS Eltern-Webbackend
+After=network-online.target paimenos-packages.service
+Requires=paimenos-packages.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kids
+Group=kids
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+WorkingDirectory=/usr/local/lib/paimenos/current
+Environment=PYTHONUNBUFFERED=1
+ExecStartPre=/usr/bin/python3 -c "import flask"
+ExecStart=/usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py parent_web
+Restart=always
+RestartSec=3
+TimeoutStartSec=15
+NoNewPrivileges=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

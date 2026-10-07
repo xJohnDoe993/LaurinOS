@@ -1,6 +1,6 @@
 # Ausgangspunkt und Änderungen
 
-Basis: angehängte `LaurinOS-Setup-v59-emulator-auswahl(1).sh`, 10.384 Zeilen.
+Basis: angehängte `PaimenOS-Setup-v59-emulator-auswahl(1).sh`, 10.384 Zeilen.
 
 SHA-256 der Referenz:
 

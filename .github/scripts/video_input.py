@@ -14,7 +14,7 @@ from PyQt5 import sip
 from PyQt5.QtWidgets import QApplication, QWidget
 from Xlib import X, XK, display
 from Xlib.ext import xtest
-from laurinos import menu
+from paimenos import menu
 
 
 def main():

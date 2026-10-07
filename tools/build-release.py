@@ -11,14 +11,14 @@ subprocess.run([sys.executable, '-B', str(ROOT / 'tools/check.py')], check=True)
 version = (ROOT / 'VERSION').read_text().strip()
 output = ROOT / 'dist'
 output.mkdir(exist_ok=True)
-archive = output / ('LaurinOS-' + version + '.zip')
+archive = output / ('PaimenOS-' + version + '.zip')
 folders = ['src', 'installer', 'config', 'systemd', 'assets', 'data', 'bin', 'sbin', 'tools', 'tests', 'docs', '.github']
 files = [p for p in ROOT.iterdir() if p.is_file() and p.name not in {'.DS_Store'}]
 for folder in folders:
     files.extend(p for p in (ROOT / folder).rglob('*') if p.is_file() and '__pycache__' not in p.parts and p.suffix not in {'.pyc', '.pyo'})
 with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED) as target:
     for path in sorted(files):
-        target.write(path, 'LaurinOS/' + str(path.relative_to(ROOT)))
+        target.write(path, 'PaimenOS/' + str(path.relative_to(ROOT)))
 checksum = archive.with_suffix('.zip.sha256')
 checksum.write_text(hashlib.sha256(archive.read_bytes()).hexdigest() + '  ' + archive.name + '\n')
 print(archive)

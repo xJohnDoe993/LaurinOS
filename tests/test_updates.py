@@ -17,12 +17,12 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
-from laurinos import release_source as source, update_service as service, updates
+from paimenos import release_source as source, update_service as service, updates
 
 
 def release_payload(version='0.62.0'):
     tag = 'v' + version
-    name = 'LaurinOS-' + version + '.zip'
+    name = 'PaimenOS-' + version + '.zip'
     return {'tag_name': tag, 'name': 'Release ' + tag, 'body': '<script>untrusted notes</script>',
             'draft': False, 'prerelease': False, 'published_at': '2026-10-05T12:00:00Z',
             'assets': [{'name': filename, 'state': 'uploaded', 'size': 128,
@@ -79,18 +79,18 @@ class ReleaseTests(unittest.TestCase):
     def test_zip_rejects_traversal_symlinks_and_duplicate_names_before_writing(self):
         with tempfile.TemporaryDirectory(dir=ROOT.parent) as folder:
             root = Path(folder)
-            cases = ['LaurinOS/../../outside', '/LaurinOS/VERSION', 'LaurinOS\\VERSION', 'Other/VERSION']
+            cases = ['PaimenOS/../../outside', '/PaimenOS/VERSION', 'PaimenOS\\VERSION', 'Other/VERSION']
             for name in cases:
                 archive = root / 'bad.zip'
                 with zipfile.ZipFile(archive, 'w') as package: package.writestr(name, b'bad')
                 with self.assertRaises(updates.UpdateError): source.extract_archive(archive, root / 'out')
                 self.assertFalse((root / 'out').exists())
-            link = zipfile.ZipInfo('LaurinOS/link'); link.external_attr = (stat.S_IFLNK | 0o777) << 16
+            link = zipfile.ZipInfo('PaimenOS/link'); link.external_attr = (stat.S_IFLNK | 0o777) << 16
             with zipfile.ZipFile(archive, 'w') as package: package.writestr(link, '../../etc/shadow')
             with self.assertRaises(updates.UpdateError): source.extract_archive(archive, root / 'out')
             with zipfile.ZipFile(archive, 'w') as package:
-                package.writestr('LaurinOS/VERSION', '0.62.0')
-                package.writestr('LaurinOS/./VERSION', '0.62.0')
+                package.writestr('PaimenOS/VERSION', '0.62.0')
+                package.writestr('PaimenOS/./VERSION', '0.62.0')
             with self.assertRaises(updates.UpdateError): source.extract_archive(archive, root / 'out')
     def test_download_size_limit_and_truncated_response(self):
         class Response(io.BytesIO):
@@ -179,15 +179,15 @@ class WorkerTests(unittest.TestCase):
         major, minor, patch_version = updates.version_key(current_version)
         self.new_version = f'{major}.{minor}.{patch_version + 1}'
         (self.new_source / 'VERSION').write_text(self.new_version + '\n')
-        for name in ('src/laurinos/__init__.py', 'pyproject.toml'):
+        for name in ('src/paimenos/__init__.py', 'pyproject.toml'):
             path = self.new_source / name
             path.write_text(path.read_text().replace(current_version, self.new_version))
         manifest = json.loads((self.new_source / 'manifest.json').read_text()); manifest['version'] = self.new_version
         (self.new_source / 'manifest.json').write_text(json.dumps(manifest))
-        self.archive = self.root / f'LaurinOS-{self.new_version}.zip'
+        self.archive = self.root / f'PaimenOS-{self.new_version}.zip'
         with zipfile.ZipFile(self.archive, 'w', compression=zipfile.ZIP_DEFLATED) as package:
             for file in self.new_source.rglob('*'):
-                if file.is_file(): package.write(file, 'LaurinOS/' + str(file.relative_to(self.new_source)))
+                if file.is_file(): package.write(file, 'PaimenOS/' + str(file.relative_to(self.new_source)))
         self.checksum = hashlib.sha256(self.archive.read_bytes()).hexdigest() + '  ' + self.archive.name + '\n'
         payload = release_payload(self.new_version); payload['assets'][0]['size'] = self.archive.stat().st_size; payload['assets'][1]['size'] = len(self.checksum)
         self.release = source.parse_release(payload)

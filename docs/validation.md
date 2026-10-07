@@ -61,3 +61,12 @@ Am 6. Oktober 2026 wurde das gemeldete Verhalten mit einem echten QMediaPlayer, 
 Die neue CameraVideoSurface zeichnet ein QGraphicsVideoItem in einer normalen QGraphicsView. GStreamer erhält dieses Videoobjekt anstelle eines nativen QVideoWidget-Overlayfensters. Unter derselben `glimagesink`-Umgebung bestehen die Eingabetests mit laufender Wiedergabe. Der neue Test `.github/scripts/video_input.py` prüft sichtbare decodierte Testbilder, beide Richtungen von Doppelklick und F11, Esc zuerst zur Bedienung und danach zur Übersicht, Pause/Fortsetzung sowie fortlaufende Wiedergabe beim Wechsel. Der Release-Workflow führt ihn separat mit Xvfb aus; Testbild und Eingaben werden tatsächlich erzeugt, der Player wird nicht ersetzt.
 
 Der vollständige Release-Build prüft weiterhin 98 Unit-/Integrationstests mit Flask und Qt. Versionsdateien und Manifest sind auf 0.63.5 synchronisiert. Die neue X11-Prüfung testet einen MJPEG-Clip ohne Ton. Hardwarebeschleunigung, andere Codecs, Ton und das Verhalten auf dem KidsPad müssen nach Installation geprüft werden. Insbesondere kann die Qt-Zeichenausgabe mehr CPU benötigen als ein natives Overlay.
+
+
+## Umbenennung in PaimenOS, Version 0.64.0
+
+Am 7. Oktober 2026: Oberfläche, Python-Paket, Installer-Variablen, Startbefehle, Systemd-Units, Daten-/Socket-/Release-Pfade und ZIP/SHA-Dateinamen heißen PaimenOS bzw. paimenos. Die Paket-API wurde auf 2 erhöht. Das tatsächlich vorhandene GitHub-Repo bleibt die Quelle bis zu dessen separater Umbenennung. Historische Prüfprotokolle oben und der originale 0.62-Deployer-Teststand bleiben unter ihrem damaligen Namen erhalten.
+
+99 Tests mit Flask und PyQt5 bestehen; Syntax-/Ressourcenprüfung für 68 Python-Dateien und 27 Shell-Dateien erfolgreich. Der unveränderte alte LaurinOS-Deployer verweigert das PaimenOS-Manifest vor Aktivierung; der neue Deployer verweigert die alte API sowie Teilupdates über API-Grenzen. Der Installer weist eine erkannte LaurinOS-Installation vor Systemänderungen zurück. Eine automatische Migration ist nicht implementiert; Neuinstallation auf frischem Debian ist erforderlich.
+
+Zusätzlich wurde die echte MJPEG-Wiedergabe mit X11-Eingaben über das neue paimenos-Paket geprüft. Der Release-Build erzeugt PaimenOS-0.64.0.zip mit Stammordner PaimenOS/ und SHA-256-Datei. Die historische Hardware-/Ton-Einschränkung gilt weiter: Neuinstallation, Ton und Verhalten auf dem KidsPad sind am Gerät zu prüfen. Es wurde kein Release veröffentlicht.

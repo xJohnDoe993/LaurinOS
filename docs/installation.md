@@ -8,7 +8,7 @@ Das frühere monolithische Setup wird nicht mehr benötigt. `install.sh` lädt d
 
 ## Ablauf
 
-1. Projekt entpacken und in den Ordner `LaurinOS` wechseln.
+1. Projekt entpacken und in den Ordner `PaimenOS` wechseln.
 2. `sudo bash install.sh` ausführen.
 3. Neue Eltern-PIN mit 4 bis 12 Ziffern festlegen und wiederholen.
 4. Emulatoren wählen. `empfohlen` entspricht der Auswahl aus v59; N64 und PSP bleiben optional.
@@ -18,9 +18,9 @@ Das frühere monolithische Setup wird nicht mehr benötigt. `install.sh` lädt d
 
 Das Setup startet das Gerät standardmäßig nicht automatisch neu. Ein WLAN-Problem wird weiterhin sichtbar gemeldet, ohne die übrige Installation unnötig zu blockieren.
 
-Eine unvollständige modulare Installation lässt sich mit `sudo bash install.sh --resume` fortsetzen. Bereits vorhandene Eltern-Einstellungen werden dabei erhalten. Für abgeschlossene modulare Installationen ist `update.sh` zuständig. Eine v59-Installation wird weder beim Setup noch beim Update übernommen.
+Eine unvollständige modulare Installation lässt sich mit `sudo bash install.sh --resume` fortsetzen. Bereits vorhandene Eltern-Einstellungen werden dabei erhalten. Für abgeschlossene modulare Installationen ist `update.sh` zuständig. Bestehende LaurinOS-Installationen einschließlich 0.63.x werden weder beim Setup noch beim Update übernommen. PaimenOS 0.64.0 benötigt frisches Debian; eigene Daten vorher sichern. Der Installer bricht beim Erkennen der alten Installation vor Systemänderungen ab.
 
-Das Setup installiert auch die in `data/update-packages.json` deklarierten Debian-Pakete. Spätere Releases können dort weitere Abhängigkeiten aufnehmen: Backend-Updates und manuelle Updates installieren fehlende Pakete automatisch. Auch der erste vollständige Übergang von 0.61.0/0.62.0 auf ein Release mit dieser Funktion benötigt keinen zusätzlichen Paketbefehl. Weitere Einzelheiten stehen unter [Updates](updating.md#debian-pakete-bei-updates).
+Das Setup installiert auch die in `data/update-packages.json` deklarierten Debian-Pakete. Spätere Releases können dort weitere Abhängigkeiten aufnehmen: Backend-Updates und manuelle Updates installieren fehlende Pakete automatisch. Weitere Einzelheiten stehen unter [Updates](updating.md#debian-pakete-bei-updates).
 
 ## DNS während des Setups
 
@@ -32,30 +32,30 @@ Die globale Familien-DNS-Konfiguration setzt `Domains=~.`: Normale Internetabfra
 
 `update.sh` und das Backend-Update ersetzen keine Systemkonfiguration. Auf bereits installierten Geräten muss diese DNS-Änderung daher separat angewendet werden.
 
-Die DNS-Sicherung liegt root-eigen unter `/var/lib/laurinos/install-dns.json`. Die Bootstrap-Konfiguration bleibt bis zur erfolgreichen Familien-DNS-Übernahme erhalten; sie kann auch eine bewusst gesetzte temporäre DNS-Reparatur übernehmen. Die Prüfungen bestätigen Namensauflösung, nicht die Filterwirkung auf jeder Netzwerkverbindung.
+Die DNS-Sicherung liegt root-eigen unter `/var/lib/paimenos/install-dns.json`. Die Bootstrap-Konfiguration bleibt bis zur erfolgreichen Familien-DNS-Übernahme erhalten; sie kann auch eine bewusst gesetzte temporäre DNS-Reparatur übernehmen. Die Prüfungen bestätigen Namensauflösung, nicht die Filterwirkung auf jeder Netzwerkverbindung.
 
 ## Schalter
 
 Umgebungsvariablen mit `sudo env` übergeben, wenn `sudo` die Umgebung bereinigt:
 
 ```bash
-sudo env LAURINOS_APPS="2 6 9 11" \
-  LAURINOS_APP_SOURCE=debian \
-  LAURINOS_EMULATORS=empfohlen \
+sudo env PAIMENOS_APPS="2 6 9 11" \
+  PAIMENOS_APP_SOURCE=debian \
+  PAIMENOS_EMULATORS=empfohlen \
   bash install.sh
 ```
 
 | Variable | Werte / Standard |
 |---|---|
-| `LAURINOS_APPS` | Leer: interaktive Auswahl. Nummern aus dem Setup; `13`: keine nativen Apps |
-| `LAURINOS_APP_SOURCE` | Leer: interaktiv; `flathub` oder `debian` |
-| `LAURINOS_EMULATORS` | Leer: interaktiv; `empfohlen`, `all`, `none` oder IDs mit Kommas |
-| `LAURINOS_ENABLE_TLP` | `1` / `0`, Standard `1` |
-| `LAURINOS_ENABLE_ZRAM` | `1` / `0`, Standard `1` |
-| `LAURINOS_ENABLE_AUTO_UPDATES` | Debian-Sicherheitsupdates, Standard `1` |
-| `LAURINOS_ENABLE_APP_UPDATES` | Verwaltete Flatpak-Apps, Standard wie Auto-Updates |
-| `LAURINOS_REBOOT` | `1`: am Ende automatisch neu starten; Standard `0` |
-| `LAURINOS_PARENT_PIN` | Für automatisierte Installationen; sonst verdeckte Eingabe. Keine feste Standard-PIN |
+| `PAIMENOS_APPS` | Leer: interaktive Auswahl. Nummern aus dem Setup; `13`: keine nativen Apps |
+| `PAIMENOS_APP_SOURCE` | Leer: interaktiv; `flathub` oder `debian` |
+| `PAIMENOS_EMULATORS` | Leer: interaktiv; `empfohlen`, `all`, `none` oder IDs mit Kommas |
+| `PAIMENOS_ENABLE_TLP` | `1` / `0`, Standard `1` |
+| `PAIMENOS_ENABLE_ZRAM` | `1` / `0`, Standard `1` |
+| `PAIMENOS_ENABLE_AUTO_UPDATES` | Debian-Sicherheitsupdates, Standard `1` |
+| `PAIMENOS_ENABLE_APP_UPDATES` | Verwaltete Flatpak-Apps, Standard wie Auto-Updates |
+| `PAIMENOS_REBOOT` | `1`: am Ende automatisch neu starten; Standard `0` |
+| `PAIMENOS_PARENT_PIN` | Für automatisierte Installationen; sonst verdeckte Eingabe. Keine feste Standard-PIN |
 
 Die Emulator-IDs stehen in `data/emulator-catalog.json`. Das Setup bzw. Backend installiert Emulator-Software; ROMs und erforderliche BIOS-Dateien bringt man selbst mit.
 
@@ -71,7 +71,7 @@ Der Kamera-Medienbrowser zeigt Bilder und Videoclips gemeinsam und kennzeichnet 
 
 Erkannt werden MP4, M4V, MOV, AVI, MKV, WebM, MPEG/MPG, 3GP, MTS/M2TS/TS und OGV. Der Codec innerhalb der Datei entscheidet über die tatsächliche Abspielbarkeit. Defekte, entfernte oder nicht unterstützte Dateien zeigen einen Hinweis im Player; weitere Dateien bleiben auswählbar.
 
-Version `0.63.5` zeichnet Videos über eine Qt-Grafikfläche. Die bisherige native GStreamer-Ausgabe kann mit `glimagesink` Eingaben außerhalb der Qt-Ereignisbehandlung konsumieren; der Filter aus `0.63.4` reicht dafür nicht aus. Das neue Release benötigt keine manuelle Einrichtung nach einem vollständigen Backend-Update.
+Die aus Version `0.63.5` übernommene Videoausgabe zeichnet über eine Qt-Grafikfläche. Die bisherige native GStreamer-Ausgabe kann mit `glimagesink` Eingaben außerhalb der Qt-Ereignisbehandlung konsumieren; der Filter aus `0.63.4` reicht dafür nicht aus. Das neue Release benötigt keine manuelle Einrichtung nach einem vollständigen Backend-Update.
 
 Neuinstallationen und vollständige Backend-Updates installieren fehlende Qt-Multimedia- und GStreamer-Pakete automatisch. Für ein manuelles Code-Teilupdate können die Abhängigkeiten separat installiert werden:
 

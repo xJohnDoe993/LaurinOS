@@ -1,4 +1,4 @@
-name: LaurinOS Release vorbereiten
+name: PaimenOS Release vorbereiten
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Versions-Tag, z. B. v0.63.5 (muss zu VERSION passen)'
+        description: 'Versions-Tag, z. B. v0.64.0 (muss zu VERSION passen)'
         required: true
         type: string
 
@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: laurinos-release-${{ inputs.tag || github.ref_name }}
+  group: paimenos-release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -88,7 +88,7 @@ jobs:
 
       - name: Manifest, Tests, ZIP und SHA-256 prüfen
         run: |
-          python3 -c 'import sys; sys.path.insert(0, "src"); import flask; from laurinos import menu; from PyQt5.QtMultimediaWidgets import QVideoWidget'
+          python3 -c 'import sys; sys.path.insert(0, "src"); import flask; from paimenos import menu; from PyQt5.QtMultimediaWidgets import QVideoWidget'
           python3 tools/build-manifest.py
           git diff --exit-code -- manifest.json
           python3 -B tools/build-release.py

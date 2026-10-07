@@ -2,24 +2,26 @@
 
 ## Programmcode und Daten
 
+Seit 0.64.0 heißt das Produkt PaimenOS (Paimen: Finnisch für Schäfer). Das Python-Paket heißt `paimenos`, die Paket-API ist `2`. Die neue Installation verwendet eigene Pfade und Dienste; LaurinOS-Paket-API `1` und dessen Daten werden nicht automatisch migriert.
+
 | Zielpfad | Zweck / Eigentümer |
 |---|---|
-| `/usr/local/lib/laurinos/releases/<Version>-<Hash>/` | Vollständiger Code-Stand, root-eigen |
-| `/usr/local/lib/laurinos/current` | Atomar umgeschalteter Link auf den aktiven Stand |
-| `/usr/local/lib/laurinos/previous` | Vorheriger Code-Stand für Rollback |
-| `<Release>/app/laurinos/` | Installiertes Python-Paket aus `src/laurinos/` |
+| `/usr/local/lib/paimenos/releases/<Version>-<Hash>/` | Vollständiger Code-Stand, root-eigen |
+| `/usr/local/lib/paimenos/current` | Atomar umgeschalteter Link auf den aktiven Stand |
+| `/usr/local/lib/paimenos/previous` | Vorheriger Code-Stand für Rollback |
+| `<Release>/app/paimenos/` | Installiertes Python-Paket aus `src/paimenos/` |
 | `<Release>/assets/`, `<Release>/data/`, `<Release>/tools/` | Ressourcen und Programmhelfer |
-| `/usr/local/bin/laurinos-*`, `/usr/local/sbin/laurinos-wlan-handoff` | Links auf Startprogramme des aktiven Releases; Flatpak-App-Starter werden vom Setup erzeugt |
-| `/home/kids/.config/laurinos/` | `settings.json`, `apps.json`, Web-Sitzungsschlüssel; Eigentümer `kids` |
-| `/home/kids/.local/state/laurinos/` | Protokolle, Sperren, Menüanforderungen und Medienstatus |
-| `/home/kids/.local/share/laurinos/` | Icons, Controller-Profile, Emulator-Spiele und Spielstände |
+| `/usr/local/bin/paimenos-*`, `/usr/local/sbin/paimenos-wlan-handoff` | Links auf Startprogramme des aktiven Releases; Flatpak-App-Starter werden vom Setup erzeugt |
+| `/home/kids/.config/paimenos/` | `settings.json`, `apps.json`, Web-Sitzungsschlüssel; Eigentümer `kids` |
+| `/home/kids/.local/state/paimenos/` | Protokolle, Sperren, Menüanforderungen und Medienstatus |
+| `/home/kids/.local/share/paimenos/` | Icons, Controller-Profile, Emulator-Spiele und Spielstände |
 | `/home/kids/.config/openbox/` | Nur Openbox-Konfiguration und Autostart |
-| `/home/kids/.mozilla/laurinos-webapps/` | Browserprofile der Webapps |
-| `/var/lib/laurinos/` | Systemzustand der Emulator-Installation und Liste verwalteter Flatpak-Apps |
-| `/var/lib/laurinos/updates/` | root-eigener Versionscache und dauerhafter Update-Auftrag |
-| `/var/cache/laurinos-updates/` | Temporäre Release-Downloads; nach Abschluss entfernt |
-| `/usr/local/share/laurinos/` | Heruntergeladene RetroArch-Profile und PSP-Zusatzdateien; kein Python-Programmcode |
-| `/run/laurinos-*` | Dienst-Sockets und Wartungssperren |
+| `/home/kids/.mozilla/paimenos-webapps/` | Browserprofile der Webapps |
+| `/var/lib/paimenos/` | Systemzustand der Emulator-Installation und Liste verwalteter Flatpak-Apps |
+| `/var/lib/paimenos/updates/` | root-eigener Versionscache und dauerhafter Update-Auftrag |
+| `/var/cache/paimenos-updates/` | Temporäre Release-Downloads; nach Abschluss entfernt |
+| `/usr/local/share/paimenos/` | Heruntergeladene RetroArch-Profile und PSP-Zusatzdateien; kein Python-Programmcode |
+| `/run/paimenos-*` | Dienst-Sockets und Wartungssperren |
 
 Root-Dienste importieren keinen Programmcode aus dem Kinderverzeichnis. `run.py` startet das Paket aus seinem eigenen, aufgelösten Release-Verzeichnis. Der Aufruf mit `python3 -I` verhindert das Übernehmen eines fremden `PYTHONPATH` oder benutzereigener Python-Pakete. Laufende Prozesse behalten ihren geladenen Release; nach einem Update werden die Dienste neu gestartet.
 
@@ -45,7 +47,7 @@ Die eigentliche Programmfunktion bleibt in Python-Dateien. Konfigurationen werde
 
 ## Paketgrenzen
 
-Die vorhandenen v59-Funktionsbereiche wurden zunächst als eigenständige Python-Module übernommen und ihre Imports auf `laurinos.*` umgestellt. Das Menü bleibt ein größeres Modul; eine weitere Aufteilung in einzelne Widgets kann separat erfolgen. WLAN-Client und privilegierter WLAN-Dienst verwenden jetzt dieselbe root-eigene Datei. Der Emulator-Katalog liegt in JSON, die Eltern-Webansichten in HTML-Dateien.
+Die vorhandenen v59-Funktionsbereiche wurden zunächst als eigenständige Python-Module übernommen und ihre Imports auf `paimenos.*` umgestellt. Das Menü bleibt ein größeres Modul; eine weitere Aufteilung in einzelne Widgets kann separat erfolgen. WLAN-Client und privilegierter WLAN-Dienst verwenden jetzt dieselbe root-eigene Datei. Der Emulator-Katalog liegt in JSON, die Eltern-Webansichten in HTML-Dateien.
 
 Seit 0.61.0 sprechen die authentifizierten Backend-Routen über den lokalen Update-Socket mit `update_service.py`. Der Prüfdienst holt ausschließlich Metadaten aus dem festgelegten GitHub-Repo. Ein Klick startet einen separaten Systemd-Worker, der den Release-Download mit `release_source.py` prüft und anschließend das vorhandene Deployment unter den gemeinsamen Wartungssperren aufruft. Der Prüfdienst kann beim Aktivieren des neuen Releases neu starten, ohne den Worker zu beenden.
 

@@ -19,7 +19,7 @@ def valid_archive(path):
 
 
 def install(root=Path('/')):
-    cache = root / 'usr/local/share/laurinos/cache/plymouth/pixels-v1.0.tar.gz'
+    cache = root / 'usr/local/share/paimenos/cache/plymouth/pixels-v1.0.tar.gz'
     cache.parent.mkdir(parents=True, exist_ok=True)
     if not valid_archive(cache):
         fd, temporary = tempfile.mkstemp(prefix='.pixels-', dir=cache.parent)
@@ -64,7 +64,7 @@ def install(root=Path('/')):
         (stage / 'SOURCE.txt').write_text('Pixels aus Pack 3 · Aditya Shakya (@adi1090x)\n'
             'https://github.com/adi1090x/plymouth-themes\nRelease v1.0 · SHA256: ' + SHA256 + '\n')
         stage.chmod(0o755)
-        backup = themes / '.pixels-laurinos-backup'
+        backup = themes / '.pixels-paimenos-backup'
         if backup.exists():
             raise ValueError('Ein Theme-Backup liegt noch vor. Bitte vorige Installation prüfen: ' + str(backup))
         if destination.is_symlink():
@@ -114,10 +114,10 @@ def configure_grub(path):
     else:
         changed = original.rstrip('\n') + '\n' + replacement + '\n'
     if changed != original:
-        backup = path.with_name(path.name + '.before-laurinos-pixels')
+        backup = path.with_name(path.name + '.before-paimenos-pixels')
         if not backup.exists():
             shutil.copy2(path, backup)
-        fd, temporary = tempfile.mkstemp(prefix='.grub-laurinos-', dir=path.parent)
+        fd, temporary = tempfile.mkstemp(prefix='.grub-paimenos-', dir=path.parent)
         try:
             with os.fdopen(fd, 'w') as handle:
                 handle.write(changed)

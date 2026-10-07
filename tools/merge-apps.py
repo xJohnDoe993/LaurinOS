@@ -36,7 +36,7 @@ for item in generated:
                 old_program = old_command[0]
                 standard = (os.path.basename(old_program) in defaults[item['id']] and
                             ('/' not in old_program or os.path.dirname(old_program) in ('/usr/bin', '/usr/games', '/bin')))
-                wrapper = old_program == '/usr/local/bin/laurinos-app-' + item['id']
+                wrapper = old_program == '/usr/local/bin/paimenos-app-' + item['id']
                 if standard or wrapper:
                     saved['command'] = shlex.join(new_command + old_command[1:])
                     for key in ('install_source', 'flatpak_id', 'package'):

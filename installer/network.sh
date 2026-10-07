@@ -1,10 +1,10 @@
 #!/bin/bash
 # WLAN dauerhaft und zur Laufzeit an NetworkManager übergeben.
-laurinos_configure_wifi() {
+paimenos_configure_wifi() {
     local selected="${1:-}" devices device kind found=false policy temp backup state code failed=false
     local ifaces legacy_empty=false reload_needed=false attempt config_dir
     if ! command -v nmcli >/dev/null 2>&1; then
-        echo "FEHLER: NetworkManager / nmcli fehlt. Bitte zuerst LaurinOS v43 oder neuer installieren." >&2
+        echo "FEHLER: NetworkManager / nmcli fehlt. Bitte zuerst PaimenOS v43 oder neuer installieren." >&2
         return 1
     fi
     systemctl enable --now NetworkManager.service || return 1
@@ -29,14 +29,14 @@ laurinos_configure_wifi() {
         fi
     fi
     config_dir=/etc/NetworkManager/conf.d
-    policy="$config_dir/99-laurinos-wifi-managed.conf"
+    policy="$config_dir/99-paimenos-wifi-managed.conf"
     if [[ -L "$policy" || ( -e "$policy" && ! -f "$policy" ) ]]; then
         echo "FEHLER: WLAN-Konfigurationsdatei ist kein reguläres Ziel." >&2
         return 1
     fi
     install -d -o root -g root -m 0755 "$config_dir" || return 1
-    temp=$(mktemp "$config_dir/.laurinos-wifi.XXXXXX") || return 1
-    if ! install_repo_file config/networkmanager/99-laurinos-wifi-managed.conf "$temp"
+    temp=$(mktemp "$config_dir/.paimenos-wifi.XXXXXX") || return 1
+    if ! install_repo_file config/networkmanager/99-paimenos-wifi-managed.conf "$temp"
     then
         rm -f -- "$temp"; return 1
     fi
@@ -44,7 +44,7 @@ laurinos_configure_wifi() {
         printf '\n[ifupdown]\nmanaged=true\n' >> "$temp" || { rm -f -- "$temp"; return 1; }
     fi
     if [[ -f "$policy" ]] && ! cmp -s "$temp" "$policy"; then
-        backup=$(mktemp -d /var/backups/laurinos-wifi-manage.XXXXXX) || { rm -f -- "$temp"; return 1; }
+        backup=$(mktemp -d /var/backups/paimenos-wifi-manage.XXXXXX) || { rm -f -- "$temp"; return 1; }
         chmod 0700 "$backup" || { rm -f -- "$temp"; return 1; }
         cp -a -- "$policy" "$backup/" || { rm -f -- "$temp"; return 1; }
         echo "Bisherige WLAN-Verwaltungsregel gesichert: $backup"
@@ -97,26 +97,26 @@ laurinos_configure_wifi() {
     fi
 }
 
-LAURINOS_WIFI_READY=false
-if laurinos_configure_wifi; then
-    LAURINOS_WIFI_READY=true
+PAIMENOS_WIFI_READY=false
+if paimenos_configure_wifi; then
+    PAIMENOS_WIFI_READY=true
 else
-    echo "HINWEIS: WLAN noch nicht verfügbar. Das übrige LaurinOS-Setup wird abgeschlossen." >&2
+    echo "HINWEIS: WLAN noch nicht verfügbar. Das übrige PaimenOS-Setup wird abgeschlossen." >&2
 fi
 
 # Bestehende ifupdown-WLAN-Verwaltung gezielt übernehmen (v60 / 0.60.0).
 # Startprogramm ist bereits als root-verwalteter Release-Link installiert.
 while IFS=: read -r device kind; do
     if [[ "$kind" == wifi ]] && systemctl is-active --quiet "ifup@$device.service"; then
-        if /bin/bash /usr/local/sbin/laurinos-wlan-handoff "$device"; then
-            LAURINOS_WIFI_READY=true
+        if /bin/bash /usr/local/sbin/paimenos-wlan-handoff "$device"; then
+            PAIMENOS_WIFI_READY=true
         else
             echo "HINWEIS: WLAN-Übergabe für $device fehlgeschlagen; übriges Setup wird abgeschlossen." >&2
         fi
     fi
 done < <(LC_ALL=C nmcli --terse --escape no --fields DEVICE,TYPE device status)
-systemctl restart laurinos-wifi.service
-if ! systemctl is-active --quiet laurinos-wifi.service; then
-    echo "FEHLER: WLAN-Verwaltung nicht gestartet. Siehe systemctl status laurinos-wifi.service" >&2
+systemctl restart paimenos-wifi.service
+if ! systemctl is-active --quiet paimenos-wifi.service; then
+    echo "FEHLER: WLAN-Verwaltung nicht gestartet. Siehe systemctl status paimenos-wifi.service" >&2
     exit 1
 fi

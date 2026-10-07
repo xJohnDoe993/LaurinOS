@@ -8,8 +8,8 @@ mkdir -p /etc/polkit-1/rules.d
 install_repo_file config/polkit/49-kids-shutdown.rules /etc/polkit-1/rules.d/49-kids-shutdown.rules
 chown root:root /etc/polkit-1/rules.d/49-kids-shutdown.rules
 chmod 0644 /etc/polkit-1/rules.d/49-kids-shutdown.rules
-install_repo_file config/polkit/50-laurinos-removable-media.rules /etc/polkit-1/rules.d/50-laurinos-removable-media.rules
-chmod 0644 /etc/polkit-1/rules.d/50-laurinos-removable-media.rules
+install_repo_file config/polkit/50-paimenos-removable-media.rules /etc/polkit-1/rules.d/50-paimenos-removable-media.rules
+chmod 0644 /etc/polkit-1/rules.d/50-paimenos-removable-media.rules
 
 # Squid Konfiguration
 install_repo_file config/squid/squid.conf /etc/squid/squid.conf
@@ -28,12 +28,12 @@ PROFILE_PATH=$(find "$FIREFOX_DIR" -maxdepth 2 -type d \( -name "*.default*" -o 
 
 if [ -n "$PROFILE_PATH" ]; then
     install_repo_file config/firefox/user.js "$PROFILE_PATH/user.js"
-    cp "$PROFILE_PATH/user.js" "$FIREFOX_DIR/laurinos-user.js"
+    cp "$PROFILE_PATH/user.js" "$FIREFOX_DIR/paimenos-user.js"
     chown -R "${KIDS_USER}:${KIDS_USER}" "$FIREFOX_DIR"
 fi
 
 /usr/bin/python3 "${REPO_DIR}/tools/configure-dns.py" family \
-    "${REPO_DIR}/config/resolved/laurinos-family-dns.conf"
+    "${REPO_DIR}/config/resolved/paimenos-family-dns.conf"
 
 mkdir -p /etc/firefox/policies
 install_repo_file config/firefox/policies.json /etc/firefox/policies/policies.json
@@ -41,7 +41,7 @@ install_repo_file config/firefox/policies.json /etc/firefox/policies/policies.js
 webapp_icon_download() {
     local url="$1"
     local name="$2"
-    local tmp="/tmp/laurinos-${name}.download"
+    local tmp="/tmp/paimenos-${name}.download"
     local dest="${ICONS_DIR}/${name}.png"
 
     echo "  -> ${name}.png"
@@ -76,6 +76,6 @@ if [[ ! -s "${ICONS_DIR}/youtube-kids.png" ]]; then
     convert -size 256x256 xc:'#FF3B30' -gravity center -fill white -pointsize 90 -annotate +0+0 '▶' "${ICONS_DIR}/youtube-kids.png" 2>/dev/null || true
 fi
 
-rm -f /tmp/laurinos-*.download /tmp/laurinos-*.tmp
-chown -R "${KIDS_USER}:${KIDS_USER}" "${KIDS_HOME}/.local/share/laurinos"
-chmod -R 755 "${KIDS_HOME}/.local/share/laurinos"
+rm -f /tmp/paimenos-*.download /tmp/paimenos-*.tmp
+chown -R "${KIDS_USER}:${KIDS_USER}" "${KIDS_HOME}/.local/share/paimenos"
+chmod -R 755 "${KIDS_HOME}/.local/share/paimenos"

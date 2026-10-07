@@ -37,9 +37,9 @@ case "$(awk '/vendor_id/ {print $3; exit}' /proc/cpuinfo)" in
     AuthenticAMD) install_available_firmware amd64-microcode ;;
 esac
 
-if [[ "$LAURINOS_ENABLE_TLP" == 1 ]]; then
+if [[ "$PAIMENOS_ENABLE_TLP" == 1 ]]; then
     mkdir -p /etc/tlp.d
-    install_repo_file config/tlp/01-laurinos.conf /etc/tlp.d/01-laurinos.conf
+    install_repo_file config/tlp/01-paimenos.conf /etc/tlp.d/01-paimenos.conf
     # Regeln vor Installation schreiben: auch ein Start durch das Paket nutzt sie.
     # Debian löst den Paketkonflikt mit power-profiles-daemon selbst auf.
     apt-get install -y --no-install-recommends tlp tlp-rdw
@@ -55,7 +55,7 @@ if [[ "$LAURINOS_ENABLE_TLP" == 1 ]]; then
     # während Kamera, Medien oder eine bestehende Kindersitzung aktiv sein könnten.
 fi
 
-if [[ "$LAURINOS_ENABLE_ZRAM" == 1 ]]; then
+if [[ "$PAIMENOS_ENABLE_ZRAM" == 1 ]]; then
     ZRAM_OTHER_MANAGER=false
     if package_installed systemd-zram-generator || package_installed zram-config || \
         [[ -f /etc/systemd/zram-generator.conf || -d /etc/systemd/zram-generator.conf.d ]] || \
@@ -71,7 +71,7 @@ if [[ "$LAURINOS_ENABLE_ZRAM" == 1 ]]; then
         # Paketinstallation kann den Dienst bereits starten. Deshalb keinen
         # laufenden Swap abschalten/neustarten; neue Werte gelten ab Neustart.
         if [[ ! -f /etc/default/zramswap ]] || \
-            grep -q '^# LaurinOS managed ZRAM$' /etc/default/zramswap || \
+            grep -q '^# PaimenOS managed ZRAM$' /etc/default/zramswap || \
             ! grep -Eq '^[[:space:]]*[^#[:space:]]' /etc/default/zramswap; then
             mkdir -p /etc/default
             install_repo_file config/zram/zramswap /etc/default/zramswap
@@ -83,18 +83,18 @@ if [[ "$LAURINOS_ENABLE_ZRAM" == 1 ]]; then
 fi
 
 echo "Sicherheitsupdates, SSD-Wartung und Eingabegeräte ..."
-if [[ "$LAURINOS_ENABLE_AUTO_UPDATES" == 1 ]]; then
+if [[ "$PAIMENOS_ENABLE_AUTO_UPDATES" == 1 ]]; then
     mkdir -p /etc/apt/apt.conf.d
-    install_repo_file config/apt/90-laurinos-updates /etc/apt/apt.conf.d/90-laurinos-updates
+    install_repo_file config/apt/90-paimenos-updates /etc/apt/apt.conf.d/90-paimenos-updates
     systemctl enable apt-daily.timer apt-daily-upgrade.timer
 fi
 
 # Wöchentliches TRIM über die Debian-Unit, ohne permanente discard-Mountoption.
 systemctl enable fstrim.timer
-mkdir -p /etc/systemd/journald.conf.d /etc/X11/xorg.conf.d /usr/local/share/laurinos
-install_repo_file config/journald/10-laurinos.conf /etc/systemd/journald.conf.d/10-laurinos.conf
-install_repo_file config/xorg/40-laurinos-touchpad.conf /etc/X11/xorg.conf.d/40-laurinos-touchpad.conf
-install_repo_file docs/laptop-setup.txt /usr/local/share/laurinos/laptop-setup.txt
+mkdir -p /etc/systemd/journald.conf.d /etc/X11/xorg.conf.d /usr/local/share/paimenos
+install_repo_file config/journald/10-paimenos.conf /etc/systemd/journald.conf.d/10-paimenos.conf
+install_repo_file config/xorg/40-paimenos-touchpad.conf /etc/X11/xorg.conf.d/40-paimenos-touchpad.conf
+install_repo_file docs/laptop-setup.txt /usr/local/share/paimenos/laptop-setup.txt
 
 # Verifizierung kritischer Python-Pakete
 /usr/bin/python3 -c "import flask, dbus, evdev; from gi.repository import GLib; from PyQt5.QtWidgets import QApplication" >/dev/null 2>&1 || {

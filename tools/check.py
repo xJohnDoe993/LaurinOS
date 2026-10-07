@@ -27,7 +27,7 @@ for path in [*ROOT.joinpath('data').glob('*.json'), ROOT / 'config/firefox/polic
 for path in [ROOT / 'config/openbox/rc.xml', *ROOT.joinpath('assets/icons').glob('*.svg')]:
     ET.parse(path)
 # Imported package files and symbols must exist after extraction.
-module_trees = {p.stem: ast.parse(p.read_text()) for p in (ROOT / 'src/laurinos').glob('*.py')}
+module_trees = {p.stem: ast.parse(p.read_text()) for p in (ROOT / 'src/paimenos').glob('*.py')}
 def bindings(tree):
     names = set()
     for node in ast.walk(tree):
@@ -38,16 +38,16 @@ def bindings(tree):
         elif isinstance(node, (ast.Import, ast.ImportFrom)):
             names.update(alias.asname or alias.name.split('.')[0] for alias in node.names)
     return names
-for path in (ROOT / 'src/laurinos').glob('*.py'):
+for path in (ROOT / 'src/paimenos').glob('*.py'):
     for node in ast.walk(module_trees[path.stem]):
-        if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith('laurinos.'):
+        if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith('paimenos.'):
             name = node.module.split('.')[1]
             assert name in module_trees, (path.name, name)
             for alias in node.names:
                 assert alias.name in bindings(module_trees[name]), (path.name, name, alias.name)
         elif isinstance(node, ast.Import):
             for alias in node.names:
-                if alias.name.startswith('laurinos.'):
+                if alias.name.startswith('paimenos.'):
                     assert alias.name.split('.')[1] in module_trees, (path.name, alias.name)
 # All service launcher targets are allowlisted, and privileged code never comes from the child home.
 launcher = ast.parse((ROOT / 'run.py').read_text())

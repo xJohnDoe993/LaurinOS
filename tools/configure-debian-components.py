@@ -47,7 +47,7 @@ def configure(root, codename):
     if not keyring.is_file():
         raise ValueError('debian-archive-keyring fehlt.')
     folder = root / 'etc/apt/sources.list.d'; folder.mkdir(parents=True, exist_ok=True)
-    target = folder / 'laurinos-components.sources'
+    target = folder / 'paimenos-components.sources'
     suites = [codename, codename + '-updates', codename + '-security']
     existing = {suite: set() for suite in suites}
     # Eigene Quelle beim Berechnen ausschließen, damit Wiederholungen stabil bleiben.
@@ -79,9 +79,9 @@ def configure(root, codename):
         key = signing.get(uri, '/usr/share/keyrings/debian-archive-keyring.gpg')
         signature = 'Signed-By: ' + key + '\n' if key else ''
         blocks.append('Types: deb\nURIs: ' + uri + '\nSuites: ' + suite + '\nComponents: ' + ' '.join(missing) + '\n' + signature)
-    content = '# LaurinOS: zusätzliche Bereiche derselben Debian-Version.\n\n' + '\n'.join(blocks)
+    content = '# PaimenOS: zusätzliche Bereiche derselben Debian-Version.\n\n' + '\n'.join(blocks)
     if not blocks:
-        content = '# LaurinOS: alle zusätzlichen Bereiche sind bereits eingerichtet.\n'
+        content = '# PaimenOS: alle zusätzlichen Bereiche sind bereits eingerichtet.\n'
     if not target.exists() or target.read_text() != content:
         if target.exists():
             shutil.copy2(target, target.with_suffix('.sources.before-update'))
