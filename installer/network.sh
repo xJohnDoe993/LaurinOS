@@ -2,7 +2,7 @@
 # WLAN dauerhaft und zur Laufzeit an NetworkManager übergeben.
 paimenos_configure_wifi() {
     local selected="${1:-}" devices device kind found=false policy temp backup state code failed=false
-    local ifaces legacy_empty=false reload_needed=false attempt config_dir
+    local reload_needed=false attempt config_dir
     if ! command -v nmcli >/dev/null 2>&1; then
         echo "FEHLER: NetworkManager / nmcli fehlt. Bitte zuerst PaimenOS v43 oder neuer installieren." >&2
         return 1
@@ -18,16 +18,6 @@ paimenos_configure_wifi() {
             return 1
         fi
     fi
-    # Bei ausschließlich Loopback kann das ifupdown-Plugin sicher freigegeben
-    # werden. Es kann ältere Geräte-Sperren bis zum Dienstneustart behalten.
-    if command -v ifquery >/dev/null 2>&1; then
-        if ifaces=$(ifquery --list 2>/dev/null); then
-            legacy_empty=true
-            while IFS= read -r device; do
-                [[ -z "$device" || "$device" == lo ]] || legacy_empty=false
-            done <<< "$ifaces"
-        fi
-    fi
     config_dir=/etc/NetworkManager/conf.d
     policy="$config_dir/99-paimenos-wifi-managed.conf"
     if [[ -L "$policy" || ( -e "$policy" && ! -f "$policy" ) ]]; then
@@ -39,9 +29,6 @@ paimenos_configure_wifi() {
     if ! install_repo_file config/networkmanager/99-paimenos-wifi-managed.conf "$temp"
     then
         rm -f -- "$temp"; return 1
-    fi
-    if [[ "$legacy_empty" == true ]]; then
-        printf '\n[ifupdown]\nmanaged=true\n' >> "$temp" || { rm -f -- "$temp"; return 1; }
     fi
     if [[ -f "$policy" ]] && ! cmp -s "$temp" "$policy"; then
         backup=$(mktemp -d /var/backups/paimenos-wifi-manage.XXXXXX) || { rm -f -- "$temp"; return 1; }
@@ -56,7 +43,7 @@ paimenos_configure_wifi() {
     if ! mv -Tf -- "$temp".ready "$policy"; then
         rm -f -- "$temp".ready; return 1
     fi
-    # Erst ohne Neustart anwenden. Strikte Plugin-Sperren ggf. neu initialisieren.
+    # Konfiguration anwenden, ohne bereits aktive Verbindungen zu beenden.
     LC_ALL=C nmcli --wait 10 general reload conf || return 1
     while IFS=: read -r device kind; do
         [[ "$kind" == wifi ]] || continue
@@ -67,8 +54,7 @@ paimenos_configure_wifi() {
         [[ "$code" =~ ^[0-9]+$ && "$code" != 10 ]] || reload_needed=true
     done <<< "$devices"
     if [[ "$reload_needed" == true ]]; then
-        echo "NetworkManager wird zur Aufhebung der Plugin-Sperre neu gestartet; Netzwerkverbindungen können kurz unterbrochen werden."
-        systemctl restart NetworkManager.service || return 1
+        echo "HINWEIS: WLAN-Freigabe wird erneut geprüft; aktive Netzwerkverbindungen bleiben erhalten." >&2
     fi
     while IFS=: read -r device kind; do
         [[ "$kind" == wifi ]] || continue
@@ -98,23 +84,27 @@ paimenos_configure_wifi() {
 }
 
 PAIMENOS_WIFI_READY=false
+# Bestehende Debian-Profile zuerst übernehmen, bevor eine allgemeine managed-
+# Regel installiert wird. Auch networking.service nutzt ifupdown, ohne dass
+# ifup@<Adapter>.service aktiv sein muss.
+systemctl enable --now NetworkManager.service
+devices=$(LC_ALL=C nmcli --terse --escape no --fields DEVICE,TYPE device status) || exit 1
+while IFS=: read -r device kind; do
+    [[ "$kind" == wifi ]] || continue
+    if systemctl is-active --quiet "ifup@$device.service" ||
+        { command -v ifquery >/dev/null 2>&1 && ifquery "$device" >/dev/null 2>&1; }; then
+        if ! /bin/bash /usr/local/sbin/paimenos-wlan-handoff "$device"; then
+            echo "FEHLER: WLAN-Übergabe für $device fehlgeschlagen. Setup angehalten; nach Prüfung mit --resume fortsetzen." >&2
+            exit 1
+        fi
+    fi
+done <<< "$devices"
 if paimenos_configure_wifi; then
     PAIMENOS_WIFI_READY=true
 else
-    echo "HINWEIS: WLAN noch nicht verfügbar. Das übrige PaimenOS-Setup wird abgeschlossen." >&2
+    echo "FEHLER: WLAN-Freigabe fehlgeschlagen. Setup angehalten; aktive Verbindungen wurden nicht neu gestartet." >&2
+    exit 1
 fi
-
-# Bestehende ifupdown-WLAN-Verwaltung gezielt übernehmen (v60 / 0.60.0).
-# Startprogramm ist bereits als root-verwalteter Release-Link installiert.
-while IFS=: read -r device kind; do
-    if [[ "$kind" == wifi ]] && systemctl is-active --quiet "ifup@$device.service"; then
-        if /bin/bash /usr/local/sbin/paimenos-wlan-handoff "$device"; then
-            PAIMENOS_WIFI_READY=true
-        else
-            echo "HINWEIS: WLAN-Übergabe für $device fehlgeschlagen; übriges Setup wird abgeschlossen." >&2
-        fi
-    fi
-done < <(LC_ALL=C nmcli --terse --escape no --fields DEVICE,TYPE device status)
 systemctl restart paimenos-wifi.service
 if ! systemctl is-active --quiet paimenos-wifi.service; then
     echo "FEHLER: WLAN-Verwaltung nicht gestartet. Siehe systemctl status paimenos-wifi.service" >&2
