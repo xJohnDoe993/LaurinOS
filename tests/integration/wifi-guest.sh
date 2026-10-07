@@ -4,6 +4,7 @@ set -euo pipefail
 [[ -f /etc/paimenos-integration-vm ]] || { echo 'Disposable test VM required.' >&2; exit 1; }
 export DEBIAN_FRONTEND=noninteractive
 phase=$1
+trap 'code=$?; echo "Guest test failed ($phase), line $LINENO" >&2; ip -br address; ip route; journalctl -b --no-pager -n 80 -u paimenos-test-ap -u paimenos-wifi-migration -u NetworkManager -u paimenos-packages -u paimenos-parent-web; exit "$code"' ERR
 if [[ "$phase" == install ]]; then
     apt-get update
     apt-get install -y network-manager wpasupplicant ifupdown hostapd dnsmasq iw iptables isc-dhcp-client rfkill
