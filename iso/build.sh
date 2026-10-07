@@ -14,14 +14,14 @@ lb config --mode debian --distribution trixie --architectures amd64 \
     --debian-installer live --debian-installer-gui true \
     --debian-installer-preseedfile "" \
     --bootappend-install 'preseed/file=/cdrom/preseed.cfg' \
-    --bootappend-live 'boot=live components username=kids hostname=paimenos locales=de_DE.UTF-8 keyboard-layouts=de timezone=Europe/Berlin live-config.nocomponents=sudo quiet splash' \
+    --bootappend-live 'boot=live components username=live hostname=paimenos locales=de_DE.UTF-8 keyboard-layouts=de timezone=Europe/Berlin live-config.nocomponents=sudo quiet splash' \
     --iso-application PaimenOS --iso-volume PAIMENOS --iso-publisher PaimenOS
 mkdir -p config/includes.chroot/opt/paimenos-source config/hooks/live config/package-lists config/includes.binary
 # Installer paths refer to the installation medium, not the build container.
 install -m 0644 "$ROOT/iso/preseed.cfg" config/includes.binary/preseed.cfg
 # Tracked source only: no credentials, git history or previous build output.
 git -C "$ROOT" archive HEAD | tar -x -C config/includes.chroot/opt/paimenos-source
-printf '%s\n' 'live-boot live-config live-config-systemd linux-image-amd64 systemd-sysv locales sudo python3' > config/package-lists/base.list.chroot
+printf '%s\n' 'live-boot live-config live-config-systemd linux-image-amd64 systemd-sysv locales sudo python3 ca-certificates network-manager wpasupplicant firmware-iwlwifi firmware-realtek firmware-atheros firmware-misc-nonfree' > config/package-lists/base.list.chroot
 cat > config/hooks/live/0900-paimenos.hook.chroot <<'HOOK'
 #!/bin/bash
 set -Eeuo pipefail

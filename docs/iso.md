@@ -1,40 +1,52 @@
-# PaimenOS-ISO bauen
+# PaimenOS-ISO: Debian-Basis und interaktives Setup
 
 Unter **Actions → Build PaimenOS ISO → Run workflow** den gewünschten
-Branch auswählen. Nach erfolgreichem Build das Artefakt **PaimenOS-ISO-amd64**
-herunterladen und entpacken. Es enthält ISO und SHA-256-Prüfsumme.
-Buildprotokolle werden auch bei einem fehlgeschlagenen Build bereitgestellt.
-Die Downloads bleiben sieben Tage verfügbar. Es wird kein Release veröffentlicht.
+Branch auswählen. Das Artefakt **PaimenOS-ISO-amd64** enthält ISO und SHA-256.
+Buildprotokolle stehen auch bei Fehlern bereit. Downloads bleiben sieben Tage
+verfügbar; der Workflow veröffentlicht keinen Release.
 
-Das Hybrid-ISO ist für amd64-PCs wie den T450 ausgelegt, mit BIOS- und UEFI-
-Bootloader. ISO mit einem USB-Imager auf den Stick schreiben. Im Bootmenü
-kann PaimenOS live ausprobiert oder der Debian-Installer gestartet werden.
-Der Installer fragt weiterhin nach Zielplatte und Administrator-Zugang.
-Als Administrator einen anderen Benutzernamen als `kids` wählen.
-Es werden keine Partitionierungsentscheidungen vorgegeben.
+## Installation
 
-Die Kinderoberfläche, Eltern-Dienste und das PaimenOS-Plymouth-Theme werden
-bereits im Image eingerichtet. Vorinstallierte Debian-Apps: Tux Paint,
-SuperTux, GCompris und VLC. Emulatoren können später im Elternbackend
-installiert werden. Flatpak-Apps sind in dieser ersten ISO-Konfiguration
-nicht vorinstalliert.
+1. ISO auf einen USB-Stick schreiben und davon booten.
+2. Im Bootmenü den Debian-Installer starten. Zielplatte und Administrator-Zugang
+   selbst wählen; als Administrator einen anderen Namen als `kids` verwenden.
+3. Installation abschließen, USB-Stick entfernen und neu starten.
+4. Auf der ersten Textkonsole erscheint die PaimenOS-Einrichtung automatisch.
+   Bei Bedarf mit **1** über `nmtui` WLAN einrichten; mit **2** das Setup starten.
+5. Eltern-PIN, Emulatoren, Apps und Debian/Flathub-Paketquelle im normalen
+   Setup selbst wählen. Nach Abschluss neu starten: Die Kinderoberfläche erscheint.
 
-Beim ersten Live-Start bzw. ersten Start nach der Installation öffnet sich
-ein Terminal für die neue Eltern-PIN. Danach startet das Kinder-Menü.
-Das Image enthält keine nutzbare vorgegebene PIN. Das Eltern-Webbackend und
-der Release-Updater starten erst nach der PIN-Einrichtung. Eine im Live-Modus
-gewählte PIN wird bei der Installation zurückgesetzt. Abbruch der PIN-Eingabe
-öffnet die Einrichtung erneut. Die PIN ist kein Linux-Administratorpasswort.
+Das ISO enthält das Debian-Grundsystem, NetworkManager, WLAN-Firmware und
+root-eigenen PaimenOS-Quellcode. Es installiert beim ISO-Bau keine Kinderprogramme,
+Emulatoren, Eltern-Dienste oder voreingestellte PIN. Das vollständige Setup
+benötigt auf dem Gerät eine Internetverbindung und verwendet unverändert
+`/opt/paimenos-source/install.sh`, den aktuellen modularen Setup-Prozess des Repos.
+Das Plymouth-Theme wird ebenfalls erst durch dieses Setup aktiviert.
+
+Der Live-Modus bietet eine Debian-Textkonsole zum Prüfen der Basis, keine fertige
+Kinderoberfläche. Die automatische Einrichtung wird nur auf dem installierten
+System durch den Debian-Installer aktiviert. Nach erfolgreichem Setup wird sie
+deaktiviert und erscheint bei späteren Neustarts nicht erneut.
+
+Bei einem Fehler kann das Setup im selben Menü erneut gestartet werden. Eine
+bereits angelegte modulare Installation wird mit `--resume` fortgesetzt. Wird
+das Gerät vorher ausgeschaltet, startet die Einrichtung beim nächsten Boot wieder.
+Manuell ist das Fortsetzen auch möglich:
+
+```bash
+sudo bash /opt/paimenos-source/install.sh --resume
+```
+
+## Build und Prüfung
 
 Der Build läuft in einem privilegierten Debian-13-Container auf einem
-GitHub-Runner. Er benötigt keine zusätzlichen Repository-Secrets. Nur
-vertrauenswürdige Branches bauen: die Installer-Hooks laufen als root.
-ISO-Größe, Laufzeit und Actions-Speicher hängen von den Debian-Paketen ab.
-Ein erfolgreicher Build ersetzt keinen Installations- und Hardwaretest.
+GitHub-Runner, ohne zusätzliche Repository-Secrets. BIOS- und UEFI-Bootloader
+sind enthalten; Secure Boot ist noch nicht verifiziert. Nur vertrauenswürdige
+Branches bauen. Das ISO enthält den eingecheckten Stand, keine Git-Zugangsdaten.
+Die Installer-Vorkonfiguration liegt unter `/cdrom/preseed.cfg`; der Build
+extrahiert sie aus dem fertigen ISO und prüft den Inhalt gegen die Quelle.
 
-## Lokal bauen
-
-In einem frischen Debian-13-System mit root-Rechten:
+Für einen lokalen Build in Debian 13 mit root-Rechten:
 
 ```bash
 apt-get update
@@ -42,15 +54,13 @@ apt-get install -y live-build debootstrap git ca-certificates xorriso squashfs-t
 bash iso/build.sh
 ```
 
-Der Build verwendet ausschließlich den eingecheckten Stand (`git archive HEAD`).
-Änderungen vorher committen. Das Buildverzeichnis `/var/tmp/paimenos-live`
-muss noch nicht existieren; für weitere Builds ein neues Verzeichnis mit
-`PAIMENOS_BUILD_DIR` wählen. Ergebnis: `dist/iso/`.
+Änderungen vorher committen: Der Build verwendet `git archive HEAD`.
+`/var/tmp/paimenos-live` darf noch nicht existieren; für weitere Builds ein neues
+Verzeichnis über `PAIMENOS_BUILD_DIR` wählen. Ergebnis: `dist/iso/`.
 
-## Vor Freigabe testen
-
-ISO in einer VM jeweils mit BIOS und UEFI booten, Live-PIN setzen und Menü
-prüfen. Anschließend offline auf eine leere virtuelle Platte installieren:
-Administrator anlegen, ISO auswerfen, Neustart, neue PIN setzen und Backend
-prüfen. Danach T450-WLAN, Bluetooth, Ton, Suspend und Controller prüfen.
-Secure Boot ist mit dieser Konfiguration noch nicht verifiziert.
+Vor Freigabe in einer VM BIOS/UEFI-Boot und Debian-Installation testen. Nach
+Entfernen des ISO prüfen: Setup startet, Netzwerk lässt sich einrichten,
+App-/Emulator-Auswahl funktioniert, Fehler lassen sich fortsetzen, danach
+startet die Kinderoberfläche und die Einrichtung bleibt deaktiviert. Anschließend
+T450-WLAN, Bluetooth, Ton, Suspend und Controller prüfen. Ein vollständiger
+ISO-/Installations- und Hardwaretest wurde für diese Umstellung noch nicht ausgeführt.
