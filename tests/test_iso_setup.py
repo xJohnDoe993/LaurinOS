@@ -14,6 +14,8 @@ class SetupLoopTests(unittest.TestCase):
             pending, success = base / 'pending', base / 'success'
             current, calls = base / 'current', base / 'calls'
             pending.touch()
+            (base / 'iso').mkdir()
+            (base / 'iso/prepare-apt.py').write_text('# test double: no real APT changes\n')
             installer = base / 'install.sh'
             installer.write_text(f'''#!/bin/bash
 printf '%s\\n' "args:$* reboot:$PAIMENOS_REBOOT" >> '{calls}'
