@@ -1,0 +1,203 @@
+# PaimenOS v1 — native Plymouth script plugin, no video decoder or shell in initrd.
+# The script plugin refreshes at 50 Hz; the tiny spinner uses 24 frames/second.
+# Images are loaded once. Resizing only occurs when the display geometry changes.
+Window.SetBackgroundTopColor(0.965, 0.969, 0.949);
+Window.SetBackgroundBottomColor(0.965, 0.969, 0.949);
+
+global.logo_source = Image("logo.png");
+global.logo = Sprite(global.logo_source);
+global.logo.SetZ(10);
+global.logo.SetOpacity(0);
+global.spinner = Sprite();
+global.spinner.SetZ(10);
+global.spinner.SetOpacity(0);
+for (i = 0; i < 48; i++)
+    global.spin_source[i] = Image("spin-" + i + ".png");
+
+global.entry_source = Image("entry.png");
+global.entry = Sprite(global.entry_source);
+global.entry.SetZ(20);
+global.entry.SetOpacity(0);
+global.prompt = Sprite();
+global.prompt.SetZ(21);
+global.prompt.SetOpacity(0);
+global.answer = Sprite();
+global.answer.SetZ(22);
+global.answer.SetOpacity(0);
+global.message = Sprite();
+global.message.SetZ(30);
+global.message.SetOpacity(0);
+global.prompt_text = "";
+global.answer_text = "";
+global.message_text = "";
+global.status = "normal";
+global.frame = 0;
+global.last_spin = -1;
+global.last_width = 0;
+global.last_height = 0;
+global.last_x = -1;
+global.last_y = -1;
+
+fun clamp(value, low, high)
+{
+    if (value < low) return low;
+    if (value > high) return high;
+    return value;
+}
+
+fun ease(value)
+{
+    local.v = clamp(value, 0, 1);
+    return local.v * local.v * (3 - 2 * local.v);
+}
+
+fun fit_text(text, max_width)
+{
+    local.img = Image.Text(text, 0.06, 0.16, 0.21);
+    if (local.img.GetWidth() > max_width)
+        local.img = local.img.Scale(Math.Int(max_width),
+            Math.Int(local.img.GetHeight() * max_width / local.img.GetWidth()));
+    return local.img;
+}
+
+fun place_dialog()
+{
+    if (global.status == "normal") return;
+    local.prompt_img = fit_text(global.prompt_text, global.width * 0.86);
+    global.prompt.SetImage(local.prompt_img);
+    global.prompt.SetPosition(global.cx - local.prompt_img.GetWidth() / 2,
+        global.dialog_y, 21);
+    global.prompt.SetOpacity(1);
+    global.entry.SetPosition(global.cx - global.entry_img.GetWidth() / 2,
+        global.dialog_y + local.prompt_img.GetHeight() + 12, 20);
+    global.entry.SetOpacity(1);
+    local.answer_img = fit_text(global.answer_text, global.entry_img.GetWidth() - 28);
+    global.answer.SetImage(local.answer_img);
+    global.answer.SetPosition(global.cx - local.answer_img.GetWidth() / 2,
+        global.entry.GetY() + (global.entry_img.GetHeight() - local.answer_img.GetHeight()) / 2, 22);
+    global.answer.SetOpacity(1);
+}
+
+fun place_message()
+{
+    if (global.message_text == "")
+    {
+        global.message.SetOpacity(0);
+        return;
+    }
+    local.img = fit_text(global.message_text, global.width * 0.88);
+    global.message.SetImage(local.img);
+    global.message.SetPosition(global.cx - local.img.GetWidth() / 2,
+        global.screen_y + global.height - local.img.GetHeight() - 24, 30);
+    global.message.SetOpacity(1);
+}
+
+fun layout()
+{
+    global.width = Window.GetWidth();
+    global.height = Window.GetHeight();
+    global.screen_x = Window.GetX();
+    global.screen_y = Window.GetY();
+    if (global.width == global.last_width && global.height == global.last_height &&
+        global.screen_x == global.last_x && global.screen_y == global.last_y) return;
+    global.last_width = global.width;
+    global.last_height = global.height;
+    global.last_x = global.screen_x;
+    global.last_y = global.screen_y;
+    global.cx = global.screen_x + global.width / 2;
+    local.factor = 360 / global.logo_source.GetWidth();
+    if (global.width * 0.58 / global.logo_source.GetWidth() < local.factor)
+        local.factor = global.width * 0.58 / global.logo_source.GetWidth();
+    if (global.height * 0.44 / global.logo_source.GetHeight() < local.factor)
+        local.factor = global.height * 0.44 / global.logo_source.GetHeight();
+    global.logo_img = global.logo_source.Scale(
+        Math.Int(global.logo_source.GetWidth() * local.factor),
+        Math.Int(global.logo_source.GetHeight() * local.factor));
+    global.logo.SetImage(global.logo_img);
+    global.logo_y = Math.Int(global.screen_y + global.height * 0.43 - global.logo_img.GetHeight() / 2);
+    global.logo.SetPosition(Math.Int(global.cx - global.logo_img.GetWidth() / 2), global.logo_y, 10);
+    local.spin_size = Math.Int(clamp(global.height * 0.058, 28, 44));
+    for (local.i = 0; local.i < 48; local.i++)
+        global.spin_img[local.i] = global.spin_source[local.i].Scale(local.spin_size, local.spin_size);
+    global.spinner.SetPosition(Math.Int(global.cx - local.spin_size / 2),
+        global.logo_y + global.logo_img.GetHeight() + 22, 10);
+    global.last_spin = -1;
+    local.entry_width = Math.Int(clamp(global.width * 0.7, 120, 340));
+    global.entry_img = global.entry_source.Scale(local.entry_width, 44);
+    global.entry.SetImage(global.entry_img);
+    global.dialog_y = global.logo_y + global.logo_img.GetHeight() + 20;
+    place_dialog();
+    place_message();
+}
+
+fun refresh()
+{
+    layout();
+    global.frame++;
+    if (global.status != "normal")
+    {
+        global.logo.SetOpacity(1);
+        global.spinner.SetOpacity(0);
+        return;
+    }
+    local.t = global.frame / 50;
+    local.fade = ease(local.t / 0.9);
+    local.breathe = 0.97 + 0.03 * Math.Cos((local.t - 0.9) * 6.283185 / 3.2);
+    global.logo.SetOpacity(local.fade * local.breathe);
+    global.spinner.SetOpacity(ease((local.t - 0.55) / 0.5));
+    local.index = Math.Int(global.frame * 24 / 50) % 48;
+    if (local.index != global.last_spin)
+    {
+        global.spinner.SetImage(global.spin_img[local.index]);
+        global.last_spin = local.index;
+    }
+}
+
+fun display_normal()
+{
+    global.status = "normal";
+    global.prompt.SetOpacity(0);
+    global.entry.SetOpacity(0);
+    global.answer.SetOpacity(0);
+    global.prompt_text = "";
+    global.answer_text = "";
+}
+
+fun display_password(prompt, bullets)
+{
+    global.status = "password";
+    global.prompt_text = prompt;
+    if (global.prompt_text == null || global.prompt_text == "") global.prompt_text = "Passwort eingeben";
+    global.answer_text = "";
+    # Only a bounded number of dots, never the password itself.
+    local.count = clamp(bullets, 0, 32);
+    for (local.i = 0; local.i < local.count; local.i++)
+        global.answer_text += "*";
+    layout();
+    place_dialog();
+    global.spinner.SetOpacity(0);
+}
+
+fun display_question(prompt, entry)
+{
+    global.status = "question";
+    global.prompt_text = prompt;
+    global.answer_text = entry;
+    layout();
+    place_dialog();
+    global.spinner.SetOpacity(0);
+}
+
+fun display_message(text)
+{
+    global.message_text = text;
+    layout();
+    place_message();
+}
+
+Plymouth.SetRefreshFunction(refresh);
+Plymouth.SetDisplayNormalFunction(display_normal);
+Plymouth.SetDisplayPasswordFunction(display_password);
+Plymouth.SetDisplayQuestionFunction(display_question);
+Plymouth.SetMessageFunction(display_message);
+layout();

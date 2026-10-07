@@ -23,6 +23,7 @@ components['emulators']['files'] += ['data/emulator-catalog.json']
 components['cli']['files'] += sorted(str(p.relative_to(ROOT)) for folder in ('bin', 'sbin') for p in (ROOT / folder).glob('*') if p.is_file())
 components['tools']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'tools').glob('*.py') if p.name not in {'check.py', 'build-manifest.py', 'build-release.py'})
 components['tools']['files'].append('data/update-packages.json')
+components['tools']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'assets/plymouth/paimenos').glob('*') if p.is_file())
 components['services']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'systemd').rglob('*') if p.is_file())
 manifest = {'schema': 1, 'runtime_api': 2, 'version': (ROOT / 'VERSION').read_text().strip(), 'components': components}
 (ROOT / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')

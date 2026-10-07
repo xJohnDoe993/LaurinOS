@@ -1,5 +1,31 @@
 # Validierung dieser Entwicklungsbasis
 
+## PaimenOS-Plymouth, Version 0.63.6
+
+Am 7. Oktober 2026: `python3 -B tools/check.py` prüft 69 Python-Dateien,
+27 Shell-Dateien, Manifest, Ressourcen und Dienstpfade. Von 106 Tests bestehen
+85; 21 optionale Qt-/Flask-Tests werden in dieser Umgebung mangels Abhängigkeiten
+übersprungen. Die acht neuen Plymouth-Tests benötigen nur die Standardbibliothek
+und bestehen vollständig.
+
+Geprüft wurden die vollständige Offline-Installation und Wiederholung, Dateirechte,
+Prüfsummen, abgeschnittene PNGs, fehlende Dateien und Dateilinks, Wiederherstellung
+des bisherigen Theme-Verzeichnisses bei fehlgeschlagenem Dateitausch, Erhalt und
+Idempotenz vorhandener GRUB-Optionen sowie erfolgreiche bzw. fehlgeschlagene
+Aktivierung mit Neubau aller Kernel-Startabbilder. Systembefehle werden in diesen
+Tests simuliert; Änderungen erfolgen ausschließlich in temporären Verzeichnissen.
+Die Deployment-Prüfung bestätigt, dass Helfer, Logo, Prüfsummen und alle 48
+Spinner-Bilder auch in der installierten Code-Version enthalten sind.
+
+Die eingebetteten Logo-Pixel entsprechen dem beigefügten PaimenOS-Logo; nur
+transparente Ränder und Auflösung wurden für Plymouth angepasst. Die bereits
+erstellte GIF-Vorschau wurde visuell geprüft. Ein echter Plymouth-Start,
+Laufwerksentsperrung, Herunterfahren sowie Debian-/T450-Gerätetests stehen aus;
+sie sind in `docs/device-validation.md` beschrieben. Ein Code-Update allein
+aktiviert das separat eingerichtete Theme nicht.
+
+## Entwicklungsbasis 0.62.0
+
 Stand: 5. Oktober 2026, Version 0.62.0.
 
 Ausgeführt mit `python3 -B tools/check.py`, zusätzlich mit Flask für die optionalen Backend-Integrationstests:

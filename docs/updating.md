@@ -4,7 +4,16 @@
 
 Version 0.64.0 ist das erste PaimenOS-Release. Paimen ist Finnisch für Schäfer. Die Umbenennung umfasst Oberfläche, Python-Paket (`paimenos`), Befehle, Systemd-Dienste, Verzeichnisse, Installationsvariablen (`PAIMENOS_*`) und Update-Archive. Die Paket-API ist jetzt `2`.
 
-Eine vorhandene LaurinOS-Installation einschließlich 0.63.5 kann dieses Release nicht als Backend-Update installieren. Das alte Updateformat und die alten Datenverzeichnisse werden nicht migriert. Bilder, ROMs und Spielstände vorher sichern, frisches Debian installieren und anschließend PaimenOS mit `sudo bash install.sh` einrichten. Der Installer verweigert die parallele Einrichtung über eine erkannte LaurinOS-Installation. Ab dieser PaimenOS-Neuinstallation sind die folgenden Backend-Updates wieder möglich.
+Eine vorhandene LaurinOS-Installation einschließlich 0.63.6 kann dieses Release nicht als Backend-Update installieren. Das alte Updateformat und die alten Datenverzeichnisse werden nicht migriert. Bilder, ROMs und Spielstände vorher sichern, frisches Debian installieren und anschließend PaimenOS mit `sudo bash install.sh` einrichten. Der Installer verweigert die parallele Einrichtung über eine erkannte LaurinOS-Installation. Ab dieser PaimenOS-Neuinstallation sind die folgenden Backend-Updates wieder möglich.
+
+## PaimenOS-Boot-Theme
+
+Das Setup verwendet das mitgelieferte PaimenOS-Theme. Ab einer PaimenOS-
+Installation übernimmt ein vollständiges Code-Update bzw. ein Teilupdate von
+`tools` den Helfer und alle Theme-Ressourcen. Ein Code-Update aktiviert die
+Boot-Systemkonfiguration nicht selbst. Die einmalige Aktivierung und die
+Rückkehr zu einem bisherigen Theme stehen unter
+[Plymouth](installation.md#paimenos-plymouth-theme).
 
 ## GitHub als Update-Quelle
 

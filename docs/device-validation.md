@@ -27,6 +27,22 @@ systemctl status paimenos-parent-web paimenos-wifi paimenos-bluetooth paimenos-e
 journalctl -b -u paimenos-parent-web -u paimenos-wifi -u paimenos-bluetooth -u paimenos-emulators -u paimenos-updates
 ```
 
+## PaimenOS-Plymouth
+
+- Nach Neuinstallation bzw. einmaliger Aktivierung auf einem vorhandenen Gerät
+  muss `plymouth-set-default-theme` den Wert `paimenos` ausgeben.
+- Kaltstart, Neustart und Herunterfahren prüfen: heller Hintergrund, lesbare
+  PaimenOS-Wortmarke, sanftes Einblenden und laufender grüner Ladekreis. Bei schnellem
+  Boot darf die Animation nicht auf einen vollständigen Durchlauf warten.
+- Wenn vorhanden, die Laufwerksverschlüsselung prüfen: Passwortabfrage sichtbar,
+  Sternchen bei Eingabe und Rücknahme, erfolgreicher Start nach Entsperrung.
+  Auch ein falsches Passwort testen. Passwörter werden vom Theme nicht protokolliert.
+- Kleine Auflösung und native T450-Auflösung prüfen: Logo, Ladekreis, Meldungen
+  und Eingabefeld dürfen weder abgeschnitten sein noch einander verdecken.
+- Ein normales Code-Update bzw. Code-Rollback darf die separat ausgewählte
+  Theme-Einstellung nicht verändern. Den Nachinstallationsbefehl erneut ausführen
+  und bei Bedarf die Rückkehr zum weiterhin installierten Pixels-Theme prüfen.
+
 ## Updateprüfung
 
 Vorher eine App-Liste, eigene PIN, Controller-Profil und einen Spielstand anlegen. Ein reines Controller-Update aus einem vorbereiteten Testrelease ausführen. Prüfen, dass Eltern-Daten erhalten bleiben und andere Komponentendateien dieselben Hashes in `installed.json` haben. Anschließend Code-Rollback testen und erneut prüfen.

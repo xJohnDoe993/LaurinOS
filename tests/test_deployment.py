@@ -36,6 +36,10 @@ class DeploymentTests(unittest.TestCase):
         self.assertTrue((release / 'assets/parent-web/base.html').is_file())
         self.assertEqual((release / 'assets/branding/paimenos-logo.png').read_bytes(),
                          (ROOT / 'assets/branding/paimenos-logo.png').read_bytes())
+        self.assertTrue((release / 'tools/install-paimenos-plymouth.py').is_file())
+        self.assertTrue((release / 'assets/plymouth/paimenos/logo.png').is_file())
+        self.assertTrue((release / 'assets/plymouth/paimenos/SHA256SUMS').is_file())
+        self.assertEqual(len(list((release / 'assets/plymouth/paimenos').glob('spin-*.png'))), 48)
         self.assertEqual(release.stat().st_mode & 0o777, 0o755)
         self.assertEqual((release / 'app/paimenos/menu.py').stat().st_mode & 0o777, 0o644)
     def test_component_update_preserves_other_code_and_user_data(self):

@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=PaimenOS
+Description=PaimenOS — sanftes Logo und gruener Ladekreis
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/paimenos
+ScriptFile=/usr/share/plymouth/themes/paimenos/paimenos.script

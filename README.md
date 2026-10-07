@@ -6,6 +6,8 @@ PaimenOS macht einen Debian-Laptop zum Kinder-PC mit Kachelmenü, lokalen und we
 
 **Version 0.64.0: LaurinOS heißt jetzt PaimenOS.** Paimen ist Finnisch für Schäfer. Oberfläche, Python-Paket, Dienste, Befehle, Datenverzeichnisse und Release-Dateien verwenden den neuen Namen. Diese Version benötigt eine Neuinstallation auf frischem Debian 12 oder 13; bestehende LaurinOS-Installationen werden nicht automatisch übernommen. Eigene Bilder, ROMs und Spielstände vor der Neuinstallation sichern.
 
+Das mitgelieferte PaimenOS-Plymouth-Theme mit Logo und grünem Ladekreis ersetzt Pixels.
+
 ## Installieren
 
 Archiv entpacken, in den Projektordner wechseln und ausführen:
@@ -29,6 +31,14 @@ sudo bash install.sh --resume
 ```
 
 Details und Installationsschalter stehen in [docs/installation.md](docs/installation.md).
+
+Das Setup aktiviert das mitgelieferte PaimenOS-Boot- und Shutdown-Theme ohne externen Theme-Download. Nach einem vollständigen Code-Update auf einem bereits eingerichteten PaimenOS-Gerät das Theme einmalig aktivieren:
+
+```bash
+sudo python3 /usr/local/lib/paimenos/current/tools/install-paimenos-plymouth.py --activate
+```
+
+Anschließend selbst neu starten. Weitere Hinweise und Rückkehr zu einem bisherigen Theme stehen unter [Plymouth](docs/installation.md#paimenos-plymouth-theme).
 
 
 ## Code aktualisieren
