@@ -1,0 +1,22 @@
+[Unit]
+Description=PaimenOS interactive setup after Debian installation
+After=NetworkManager.service systemd-user-sessions.service
+Wants=NetworkManager.service
+ConditionPathExists=/var/lib/paimenos/setup-pending
+After=getty@tty1.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/paimenos-setup-after-install
+StandardInput=tty-force
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+TimeoutStartSec=infinity
+Environment=TERM=linux
+
+[Install]
+WantedBy=multi-user.target
