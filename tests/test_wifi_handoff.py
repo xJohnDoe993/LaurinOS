@@ -137,6 +137,7 @@ if name == 'nmcli':
 elif name == 'systemctl':
     if 'is-active' in args:
         unit = args[-1]
+        if mode == 'wifi-service-failed' and unit == 'paimenos-wifi.service': sys.exit(3)
         sys.exit(0 if unit in ('paimenos-wifi.service', 'ifup@wlan0.service') and
                  (unit != 'ifup@wlan0.service' or mode == 'ifup-service') else 3)
     elif 'is-enabled' in args:
@@ -279,17 +280,43 @@ class ShellTests(unittest.TestCase):
         script = script.replace('config_dir=/etc/NetworkManager/conf.d', 'config_dir='+str(self.root/'etc/NetworkManager/conf.d'))
         script = script.replace('-o root -g root ', '')
         script = 'install_repo_file() { printf "policy\\n" >> "$HANDOFF_TEST_ROOT/events"; cp '+str(ROOT/'config/networkmanager/99-paimenos-wifi-managed.conf')+' "$2"; }\n'+script
-        result = subprocess.run(['bash','-c', script], env=self.env, text=True, capture_output=True, timeout=15)
+        module = self.root/'network-module.sh'
+        module.write_text(script)
+        result = subprocess.run(['bash','-c', 'source "$1"', 'installer-test', str(module)], env=self.env, text=True, capture_output=True, timeout=15)
         events = (self.root/'events').read_text().splitlines() if (self.root/'events').exists() else []
         return result, events
     def test_installer_migrates_networking_service_before_general_policy(self):
         result, events = self.run_installer()
         self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
         self.assertEqual(events, ['handoff','policy'])
-    def test_failed_handoff_stops_setup_before_general_policy(self):
+    def test_failed_handoff_preserves_working_network_without_general_policy(self):
+        result, events = self.run_installer(fail=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(events, ['handoff'])
+        self.assertIn('Setup wird fortgesetzt', result.stderr)
+    def test_failed_handoff_and_broken_dns_still_stop_setup(self):
+        self.env['HANDOFF_TEST_MODE'] = 'dns-before-failed'
         result, events = self.run_installer(fail=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(events, ['handoff'])
+    def test_preserve_mode_never_calls_handoff_or_changes_ownership(self):
+        self.env['PAIMENOS_KEEP_NETWORK'] = '1'
+        result, events = self.run_installer()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(events, [])
+        commands = [json.loads(line) for line in (self.root/'commands').read_text().splitlines()]
+        self.assertFalse(any(c[0] == 'nmcli' or c[0] == 'ifdown' for c in commands))
+    def test_preserve_mode_with_broken_dns_stops_setup(self):
+        self.env['PAIMENOS_KEEP_NETWORK'] = '1'
+        self.env['HANDOFF_TEST_MODE'] = 'dns-before-failed'
+        result, events = self.run_installer()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(events, [])
+    def test_unavailable_wifi_service_does_not_block_other_services(self):
+        self.env['HANDOFF_TEST_MODE'] = 'wifi-service-failed'
+        result, events = self.run_installer(legacy=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('WLAN-Menüdienst noch nicht verfügbar', result.stderr)
     def test_existing_nm_connection_needs_no_handoff_or_manager_restart(self):
         result, events = self.run_installer(legacy=False)
         self.assertEqual(result.returncode, 0, result.stdout+result.stderr)

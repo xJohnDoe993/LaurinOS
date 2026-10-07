@@ -16,7 +16,7 @@ Das frühere monolithische Setup wird nicht mehr benötigt. `install.sh` lädt d
 6. Abschlussmeldung und gegebenenfalls offene WLAN-Diagnose beachten.
 7. `sudo reboot` ausführen.
 
-Das Setup startet das Gerät standardmäßig nicht automatisch neu. Eine fehlgeschlagene WLAN-Übergabe hält das Setup an, statt ein getrenntes Gerät als erfolgreich eingerichtet zu markieren.
+Das Setup startet das Gerät standardmäßig nicht automatisch neu. Bei einer fehlgeschlagenen WLAN-Übergabe prüft es die bestehende Namensauflösung. Funktioniert sie, wird das Setup mit einem deutlichen Hinweis und offener WLAN-Verwaltungsprüfung fortgesetzt. Funktioniert auch die Netzwerk-/DNS-Verbindung nicht, hält es an.
 
 Eine unvollständige modulare Installation lässt sich mit `sudo bash install.sh --resume` fortsetzen. Bereits vorhandene Eltern-Einstellungen werden dabei erhalten. Für abgeschlossene modulare Installationen ist `update.sh` zuständig. Bestehende LaurinOS-Installationen einschließlich 0.63.x werden weder beim Setup noch beim Update übernommen. PaimenOS 0.64.0 benötigt frisches Debian; eigene Daten vorher sichern. Der Installer bricht beim Erkennen der alten Installation vor Systemänderungen ab.
 
@@ -76,7 +76,9 @@ Eine von Debian über ifupdown eingerichtete WLAN-Verbindung wird vor der allgem
 
 Die automatische Übernahme unterstützt eine IPv4-DHCP-Konfiguration mit WPA-PSK oder explizit offenem WLAN (`wpa-key-mgmt NONE`), optional versteckter SSID, DNS-Servern und Suchdomains. Ein einzelner entsprechender Netzwerkblock aus `wpa-conf` wird ebenfalls unterstützt. Statische Adressen, Enterprise-WLAN, eigene Netzwerk-Hooks oder mehrere WPA-Netzwerkblöcke benötigen eine manuelle Einrichtung; das Setup bricht in diesen Fällen vor dem Trennen ab.
 
-Erst eine tatsächlich verbundene Schnittstelle mit IPv4-Adresse, Standardroute und erfolgreicher Auflösung von `deb.debian.org` gilt als übergeben. Schlägt die Wiederverbindung fehl, entfernt der Helfer sein neues Profil und stellt die vorherigen ifupdown-Dateien, Autostarts und `resolv.conf` wieder her. Ein Fehler bei dieser Rückkehr wird gesondert gemeldet. Sicherungen einschließlich WLAN-Schlüssel liegen nur für root zugänglich unter `/var/backups/paimenos-wlan-ifupdown.*`. Nach Korrektur der Verbindung das Setup mit `sudo bash install.sh --resume` fortsetzen.
+Erst eine tatsächlich verbundene Schnittstelle mit IPv4-Adresse, Standardroute und erfolgreicher Auflösung von `deb.debian.org` gilt als übergeben. Schlägt die Wiederverbindung fehl, entfernt der Helfer sein neues Profil und stellt die vorherigen ifupdown-Dateien, Autostarts und `resolv.conf` wieder her. Ein Fehler bei dieser Rückkehr wird gesondert gemeldet. Der Installer wendet danach keine allgemeine WLAN-Freigabe an. Bei funktionierender Namensauflösung darf die Installation mit offener WLAN-Verwaltungsprüfung weiterlaufen. Sicherungen einschließlich WLAN-Schlüssel liegen nur für root zugänglich unter `/var/backups/paimenos-wlan-ifupdown.*`.
+
+Wenn WLAN bereits manuell wiederhergestellt wurde, kann die Übergabe ausdrücklich übersprungen werden: `sudo env PAIMENOS_KEEP_NETWORK=1 bash install.sh --resume`. Dieser Modus ändert keine Adapter-Verwaltungsregeln und trennt keine Verbindung. Er prüft die Auflösung von `deb.debian.org` und versucht nur, den WLAN-Menüdienst zu starten. Das WLAN-Menü bzw. die automatische Wiederverbindung bleiben gegebenenfalls noch einzurichten.
 
 Bereits durch NetworkManager eingerichtetes WLAN, etwa über `nmtui` beim ISO-Setup, benötigt diese Übergabe nicht. Die allgemeine Freigabe lädt nur die Konfiguration nach, ohne den Dienst neu zu starten.
 
@@ -113,6 +115,7 @@ sudo env PAIMENOS_APPS="2 6 9 11" \
 | `PAIMENOS_ENABLE_AUTO_UPDATES` | Debian-Sicherheitsupdates, Standard `1` |
 | `PAIMENOS_ENABLE_APP_UPDATES` | Verwaltete Flatpak-Apps, Standard wie Auto-Updates |
 | `PAIMENOS_REBOOT` | `1`: am Ende automatisch neu starten; Standard `0` |
+| `PAIMENOS_KEEP_NETWORK` | `1`: bestehende Verbindung erhalten und WLAN-Übergabe überspringen; Standard `0` |
 | `PAIMENOS_PARENT_PIN` | Für automatisierte Installationen; sonst verdeckte Eingabe. Keine feste Standard-PIN |
 
 Die Emulator-IDs stehen in `data/emulator-catalog.json`. Das Setup bzw. Backend installiert Emulator-Software; ROMs und erforderliche BIOS-Dateien bringt man selbst mit.

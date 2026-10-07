@@ -83,30 +83,56 @@ paimenos_configure_wifi() {
     fi
 }
 
+paimenos_start_wifi_service() {
+    if ! systemctl restart paimenos-wifi.service ||
+        ! systemctl is-active --quiet paimenos-wifi.service; then
+        echo "HINWEIS: WLAN-Menüdienst noch nicht verfügbar. Siehe systemctl status paimenos-wifi.service" >&2
+        PAIMENOS_WIFI_READY=false
+    fi
+    return 0
+}
+
+paimenos_preserve_network() {
+    # Eine nutzbare Verbindung darf auch über ifupdown oder Ethernet bestehen.
+    # Fehler bei der optionalen WLAN-Verwaltung sind kein Installationsfehler.
+    if ! timeout 15 getent ahostsv4 deb.debian.org >/dev/null; then
+        echo "FEHLER: Auch die bestehende Netzwerk-/DNS-Verbindung funktioniert nicht. Setup angehalten." >&2
+        return 1
+    fi
+    PAIMENOS_WIFI_READY=false
+    echo "HINWEIS: Bestehende Verbindung wird beibehalten; WLAN-Verwaltungsprüfung bleibt offen. Setup wird fortgesetzt." >&2
+    paimenos_start_wifi_service
+}
+
 PAIMENOS_WIFI_READY=false
+if [[ "${PAIMENOS_KEEP_NETWORK:-0}" == 1 ]]; then
+    paimenos_preserve_network || exit 1
+    return 0
+fi
 # Bestehende Debian-Profile zuerst übernehmen, bevor eine allgemeine managed-
 # Regel installiert wird. Auch networking.service nutzt ifupdown, ohne dass
 # ifup@<Adapter>.service aktiv sein muss.
-systemctl enable --now NetworkManager.service
-devices=$(LC_ALL=C nmcli --terse --escape no --fields DEVICE,TYPE device status) || exit 1
+if ! systemctl enable --now NetworkManager.service ||
+    ! devices=$(LC_ALL=C nmcli --terse --escape no --fields DEVICE,TYPE device status); then
+    paimenos_preserve_network || exit 1
+    return 0
+fi
 while IFS=: read -r device kind; do
     [[ "$kind" == wifi ]] || continue
     if systemctl is-active --quiet "ifup@$device.service" ||
         { command -v ifquery >/dev/null 2>&1 && ifquery "$device" >/dev/null 2>&1; }; then
         if ! /bin/bash /usr/local/sbin/paimenos-wlan-handoff "$device"; then
-            echo "FEHLER: WLAN-Übergabe für $device fehlgeschlagen. Setup angehalten; nach Prüfung mit --resume fortsetzen." >&2
-            exit 1
+            echo "HINWEIS: WLAN-Übergabe für $device nicht abgeschlossen; keine allgemeine WLAN-Freigabe anwenden." >&2
+            paimenos_preserve_network || exit 1
+            return 0
         fi
     fi
 done <<< "$devices"
 if paimenos_configure_wifi; then
     PAIMENOS_WIFI_READY=true
 else
-    echo "FEHLER: WLAN-Freigabe fehlgeschlagen. Setup angehalten; aktive Verbindungen wurden nicht neu gestartet." >&2
-    exit 1
+    echo "HINWEIS: WLAN-Freigabe nicht bestätigt; bestehende Verbindung prüfen." >&2
+    paimenos_preserve_network || exit 1
+    return 0
 fi
-systemctl restart paimenos-wifi.service
-if ! systemctl is-active --quiet paimenos-wifi.service; then
-    echo "FEHLER: WLAN-Verwaltung nicht gestartet. Siehe systemctl status paimenos-wifi.service" >&2
-    exit 1
-fi
+paimenos_start_wifi_service
