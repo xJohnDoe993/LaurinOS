@@ -29,13 +29,12 @@ journalctl -b -u paimenos-parent-web -u paimenos-wifi -u paimenos-bluetooth -u p
 
 ## WLAN beim initialen Setup
 
-- Frisches minimales Debian 12 und 13 ausschließlich über WLAN installieren, zunächst mit `auto` und dann `allow-hotplug` in ifupdown. Setup vom lokalen Projekt ausführen. Die Verbindung muss nach der kurzen Übergabe automatisch wiederkommen; APT und Elternbackend müssen erreichbar bleiben. Auch den Fall ohne aktive `ifup@<Adapter>.service` prüfen.
-- Frisches Debian bzw. ISO-Setup mit bereits über `nmtui` verbundenem WLAN prüfen: kein NetworkManager-Neustart und keine erneute Passworteingabe während des Setups.
-- Nach Übergabe und Neustart prüfen: `nmcli device status` zeigt verbunden, das übernommene Profil verbindet automatisch; `ip -4 route`, `getent ahostsv4 deb.debian.org` und `sudo apt-get update` funktionieren. Versteckte SSID und ein WPA-Schlüssel mit Leerzeichen, Backslash und `#` separat testen.
-- Auf einem Testgerät die Wiederverbindung scheitern lassen. Vorherige ifupdown-Dateien und Resolver müssen wiederhergestellt werden; der Installer darf keine Abschlussmarkierung schreiben. Anschließend mit `--resume` fortsetzen. Statische/Enterprise-Konfigurationen müssen vor dem Trennen abgewiesen werden.
-- Einen zweiten Netzwerkadapter parallel verbunden halten; seine Verbindung darf bei der WLAN-Übergabe nicht beendet werden. Unter `/etc/NetworkManager/system-connections/` müssen die importierten Profile root gehören und Modus `0600` haben. Keine WLAN-Schlüssel aus Sicherungen oder Protokollen weitergeben.
-
-Diese Geräteprüfungen ergänzen die automatischen Profil- und Shell-Tests; sie sind hier nicht auf echter WLAN-Hardware ausgeführt worden.
+- Frisches Debian 12/13 über ifupdown-WLAN installieren. Während aller Paket-/App-/Emulator-Schritte muss die Verbindung aktiv bleiben; keine zweite Passworteingabe und keine Live-Übergabe. Vor dem regulären Neustart müssen die ifupdown-Dateien unverändert sein und ein privater `pending.json`-Plan existieren.
+- Eine unterbrochene Installation mit `--resume` fortsetzen. Profile und Plan dürfen sich nicht duplizieren. Vorhandene PIN und Eltern-Einstellungen müssen erhalten bleiben.
+- Nach dem regulären Neustart: Migration vor den Netzwerkdiensten abgeschlossen, `completed.json` vorhanden, NetworkManager verbunden, Standardroute/DNS/APT und Elternbackend funktionsfähig. Kein zweiter WPA-/ifupdown-Besitzer desselben WLAN-Adapters.
+- Einen zweiten Neustart prüfen: keine erneute Migration und weiterhin Autoconnect. Bei vorher über `nmtui` verbundenem WLAN darf keine Migration vorbereitet werden.
+- Auf einem Testgerät Fehler bzw. Prozessabbruch während der Boot-Übernahme simulieren und Wiederherstellung prüfen. Spätere manuelle Änderungen an der Debian-Konfiguration dürfen nicht überschrieben werden.
+- Die GitHub-Prüfung `Debian Wi-Fi installation and reboot` verwendet getrennte Debian-12/13-VMs, `mac80211_hwsim`, einen WPA2-AP und echte DHCP-/NetworkManager-/WPA-Dienste. Sie führt das normale Setup, einen Abbruch mit Fortsetzung sowie den echten Neustart aus. VM-Ergebnisse ersetzen keinen T450-Test mit Intel-Firmware und Hardware-Schalter.
 
 ## PaimenOS-Plymouth
 

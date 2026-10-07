@@ -1,0 +1,34 @@
+name: Debian Wi-Fi installation and reboot
+on:
+  pull_request:
+    paths:
+      - 'installer/**'
+      - 'tools/**'
+      - 'systemd/**'
+      - 'tests/integration/**'
+      - 'manifest.json'
+      - '.github/workflows/wifi-install.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  wifi:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        release: [bookworm, trixie]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: VM-Werkzeuge
+        run: sudo apt-get update && sudo apt-get install -y qemu-system-x86 qemu-utils cloud-image-utils
+      - name: Setup und Neustart mit virtuellem WPA-WLAN
+        run: bash tests/integration/wifi-vm.sh '${{ matrix.release }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wifi-vm-${{ matrix.release }}
+          path: vm-*.log

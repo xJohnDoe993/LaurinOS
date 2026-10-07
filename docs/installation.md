@@ -16,7 +16,7 @@ Das frühere monolithische Setup wird nicht mehr benötigt. `install.sh` lädt d
 6. Abschlussmeldung und gegebenenfalls offene WLAN-Diagnose beachten.
 7. `sudo reboot` ausführen.
 
-Das Setup startet das Gerät standardmäßig nicht automatisch neu. Eine fehlgeschlagene WLAN-Übergabe hält das Setup an, statt ein getrenntes Gerät als erfolgreich eingerichtet zu markieren.
+Das Setup startet das Gerät standardmäßig nicht automatisch neu. Die bestehende Netzwerkverbindung bleibt während der Installation aktiv. Ein Debian-ifupdown-WLAN wird offline für NetworkManager vorbereitet und beim regulären Neustart vor dem Start der Netzwerkdienste übernommen.
 
 Eine unvollständige modulare Installation lässt sich mit `sudo bash install.sh --resume` fortsetzen. Bereits vorhandene Eltern-Einstellungen werden dabei erhalten. Für abgeschlossene modulare Installationen ist `update.sh` zuständig. Bestehende LaurinOS-Installationen einschließlich 0.63.x werden weder beim Setup noch beim Update übernommen. PaimenOS 0.64.0 benötigt frisches Debian; eigene Daten vorher sichern. Der Installer bricht beim Erkennen der alten Installation vor Systemänderungen ab.
 
@@ -72,13 +72,17 @@ werden; `tools/check.py` prüft diese Hashes und die PNG-Struktur.
 
 ## WLAN während des Setups
 
-Eine von Debian über ifupdown eingerichtete WLAN-Verbindung wird vor der allgemeinen NetworkManager-Freigabe übernommen. Das gilt auch für Adapter, die `networking.service` gestartet hat. WLAN-Name und Schlüssel werden zuerst als root-eigenes NetworkManager-Profil mit Dateimodus `0600` vorbereitet und geladen. Erst danach wird dieser Adapter kurz getrennt und mit demselben Profil wieder verbunden. NetworkManager und der globale WPA-Dienst werden dabei nicht neu gestartet; andere Adapter bleiben aktiv.
+Während der Installation werden WLAN-Adapter nicht getrennt, nicht per `managed no/yes` umgeschaltet und NetworkManager sowie WPA-Dienste nicht neu gestartet. Bereits über NetworkManager eingerichtete Verbindungen bleiben unverändert.
 
-Die automatische Übernahme unterstützt eine IPv4-DHCP-Konfiguration mit WPA-PSK oder explizit offenem WLAN (`wpa-key-mgmt NONE`), optional versteckter SSID, DNS-Servern und Suchdomains. Ein einzelner entsprechender Netzwerkblock aus `wpa-conf` wird ebenfalls unterstützt. Statische Adressen, Enterprise-WLAN, eigene Netzwerk-Hooks oder mehrere WPA-Netzwerkblöcke benötigen eine manuelle Einrichtung; das Setup bricht in diesen Fällen vor dem Trennen ab.
+Für WLAN aus Debian-ifupdown bereitet `tools/stage-wifi.py` die Profile offline vor. Der normale NetworkManager-Parser prüft das Format ohne laufenden Netzwerkzugriff. Die bestehende Verbindung trägt weiter alle APT-/App-/Emulator-Downloads. Ein erneuter Aufruf mit `--resume` ersetzt den vorbereiteten Plan, ohne Profile zu duplizieren oder die Verbindung zu verändern.
 
-Erst eine tatsächlich verbundene Schnittstelle mit IPv4-Adresse, Standardroute und erfolgreicher Auflösung von `deb.debian.org` gilt als übergeben. Schlägt die Wiederverbindung fehl, entfernt der Helfer sein neues Profil und stellt die vorherigen ifupdown-Dateien, Autostarts und `resolv.conf` wieder her. Ein Fehler bei dieser Rückkehr wird gesondert gemeldet. Sicherungen einschließlich WLAN-Schlüssel liegen nur für root zugänglich unter `/var/backups/paimenos-wlan-ifupdown.*`. Nach Korrektur der Verbindung das Setup mit `sudo bash install.sh --resume` fortsetzen.
+Beim regulären Neustart läuft `paimenos-wifi-migration.service` vor `networking.service`, NetworkManager und dem globalen WPA-Dienst. Erst dann werden die ifupdown-Einträge gezielt entfernt, die root-eigenen Profile mit Modus `0600` installiert und konkurrierende adapterbezogene Autostarts deaktiviert. NetworkManager startet anschließend mit dem gespeicherten Profil und Autoconnect. Die Kinderoberfläche startet ebenfalls nach diesem Neustart.
 
-Bereits durch NetworkManager eingerichtetes WLAN, etwa über `nmtui` beim ISO-Setup, benötigt diese Übergabe nicht. Die allgemeine Freigabe lädt nur die Konfiguration nach, ohne den Dienst neu zu starten.
+Ein privates Transaktionsjournal ermöglicht die Wiederherstellung nach Fehlern und einem unterbrochenen Prozess. Veränderungen an den ursprünglichen Konfigurationsdateien zwischen Vorbereitung und Neustart werden nicht überschrieben. Sicherungen und Statusdateien liegen unter `/var/lib/paimenos/wifi-migration/`, nur für root zugänglich. Erfolgreiche Übernahme: `completed.json`; zurückgesetzte fehlgeschlagene Übernahme: `failed.json`. Diagnose: `sudo journalctl -b -u paimenos-wifi-migration.service`.
+
+Die automatische Vorbereitung unterstützt IPv4-DHCP mit WPA-PSK oder explizit offenem WLAN, optionale versteckte SSID/DNS-Angaben und einen einzelnen passenden `wpa-conf`-Netzwerkblock. Erweiterte statische/Enterprise-/Hook-Konfigurationen werden vor einer Änderung abgewiesen. Sie benötigen eine eigene NetworkManager-Konfiguration.
+
+Der frühere Umgehungsschalter `PAIMENOS_KEEP_NETWORK` wird nicht benötigt. Das Standard-Setup erhält die laufende Verbindung selbst.
 
 ## DNS während des Setups
 

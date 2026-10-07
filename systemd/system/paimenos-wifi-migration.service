@@ -1,0 +1,17 @@
+[Unit]
+Description=PaimenOS WLAN-Konfiguration vor Netzwerkstart übernehmen
+DefaultDependencies=no
+After=local-fs.target
+Before=network-pre.target NetworkManager.service networking.service wpa_supplicant.service
+Wants=network-pre.target
+ConditionPathExists=|/var/lib/paimenos/wifi-migration/pending.json
+ConditionPathExists=|/var/lib/paimenos/wifi-migration/transaction.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -I /usr/local/lib/paimenos/current/tools/stage-wifi.py apply
+RemainAfterExit=yes
+UMask=0077
+
+[Install]
+WantedBy=NetworkManager.service networking.service
