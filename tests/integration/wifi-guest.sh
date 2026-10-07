@@ -5,9 +5,19 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 phase=$1
 trap 'code=$?; echo "Guest test failed ($phase), line $LINENO" >&2; ip -br address; ip route; journalctl -b --no-pager -n 80 -u paimenos-test-ap -u paimenos-wifi-migration -u NetworkManager -u paimenos-packages -u paimenos-parent-web; exit "$code"' ERR
+wifi_only() {
+    ip route del default dev ens3 || true
+    ip -6 route del default dev ens3 || true
+    # Retain SSH/DHCP management only. DNS and internet must use Wi-Fi.
+    iptables -A OUTPUT -o ens3 -p tcp --sport 22 -j ACCEPT
+    iptables -A OUTPUT -o ens3 -p udp --sport 68 --dport 67 -j ACCEPT
+    iptables -A OUTPUT -o ens3 -j REJECT
+    ip6tables -A OUTPUT -o ens3 -j REJECT
+    if command -v resolvectl >/dev/null; then resolvectl flush-caches || true; fi
+}
 if [[ "$phase" == install ]]; then
     apt-get update
-    apt-get install -y wpasupplicant ifupdown hostapd dnsmasq iw iptables isc-dhcp-client rfkill
+    apt-get install -y wpasupplicant ifupdown hostapd dnsmasq-base iw iptables isc-dhcp-client rfkill
     # Cloud images name these QEMU interfaces consistently after a reboot.
     [[ -d /sys/class/net/ens4 ]] || { ip -br link; exit 1; }
     install -m 0755 /source/tests/integration/wifi-ap.sh /usr/local/sbin/paimenos-test-ap
@@ -42,8 +52,7 @@ unmanaged-devices=interface-name:ens3;interface-name:ens4
 CONF
     ifup wlan0
     # Keep the SSH management link, but force internet traffic through Wi-Fi.
-    ip route del default dev ens3 || true
-    ip -6 route del default dev ens3 || true
+    wifi_only
     printf 'nameserver 192.168.42.1\n' > /etc/resolv.conf
     ip route get 1.1.1.1 | grep -q 'dev wlan0'
     getent ahostsv4 deb.debian.org
@@ -86,8 +95,8 @@ elif [[ "$phase" == reboot ]]; then
     [[ "${state%% *}" == 100 ]]
     ! ifquery wlan0 >/dev/null 2>&1
     nmcli -g GENERAL.CONNECTION device show wlan0 | grep -q 'PaimenOS Debian WLAN'
-    ip route del default dev ens3 || true
-    ip -6 route del default dev ens3 || true
+    wifi_only
+    nmcli -g IP4.DNS device show wlan0 | grep -q '192.168.42.1'
     ip route get 1.1.1.1 | grep -q 'dev wlan0'
     getent ahostsv4 deb.debian.org
     apt-get update
