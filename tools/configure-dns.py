@@ -14,9 +14,9 @@ class DNSSetup:
         self.root, self.run = root, run
         self.resolv = root / 'etc/resolv.conf'
         self.dropins = root / 'etc/systemd/resolved.conf.d'
-        self.bootstrap = self.dropins / 'laurinos-install-dns.conf'
-        self.family = self.dropins / 'laurinos-family-dns.conf'
-        self.state = root / 'var/lib/laurinos/install-dns.json'
+        self.bootstrap = self.dropins / 'paimenos-install-dns.conf'
+        self.family = self.dropins / 'paimenos-family-dns.conf'
+        self.state = root / 'var/lib/paimenos/install-dns.json'
 
     def command(self, *args):
         try:
@@ -36,7 +36,7 @@ class DNSSetup:
 
     def write(self, path, text, mode=0o644):
         path.parent.mkdir(parents=True, exist_ok=True)
-        fd, temporary = tempfile.mkstemp(prefix='.laurinos-dns-', dir=path.parent)
+        fd, temporary = tempfile.mkstemp(prefix='.paimenos-dns-', dir=path.parent)
         try:
             with os.fdopen(fd, 'w') as stream:
                 stream.write(text)
@@ -47,7 +47,7 @@ class DNSSetup:
 
     def restore(self, path, record):
         if 'link' in record:
-            fd, temporary = tempfile.mkstemp(prefix='.laurinos-dns-', dir=path.parent)
+            fd, temporary = tempfile.mkstemp(prefix='.paimenos-dns-', dir=path.parent)
             os.close(fd); os.unlink(temporary)
             try:
                 os.symlink(record['link'], temporary)

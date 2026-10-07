@@ -15,10 +15,10 @@ sys.path.insert(0, str(ROOT / 'src'))
 class UpdateWebTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from laurinos import paths
+        from paimenos import paths
         cls.temp = tempfile.TemporaryDirectory(dir=ROOT.parent)
         with patch.object(paths, 'CONFIG_DIR', Path(cls.temp.name)):
-            from laurinos import parent_web
+            from paimenos import parent_web
         cls.web = parent_web
         cls.web.app.config['TESTING'] = True
     @classmethod
@@ -36,6 +36,20 @@ class UpdateWebTests(unittest.TestCase):
             self.assertEqual(self.client.get('/updates').status_code, 302)
             self.assertEqual(self.client.get('/updates/status').status_code, 401)
             update.assert_not_called()
+    def test_login_and_backend_share_local_logo_without_authentication(self):
+        login = self.client.get('/login')
+        self.assertEqual(login.status_code, 200)
+        self.assertIn('/branding/logo.png', login.get_data(as_text=True))
+        response = self.client.get('/branding/logo.png')
+        try:
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.mimetype, 'image/png')
+            self.assertEqual(response.get_data(), (ROOT / 'assets/branding/paimenos-logo.png').read_bytes())
+        finally:
+            response.close()
+        self.assertEqual(self.client.get('/branding/../manifest.json').status_code, 404)
+        self.authenticate()
+        self.assertIn('/branding/logo.png', self.client.get('/updates').get_data(as_text=True))
     def test_install_requires_csrf_even_with_parent_session(self):
         self.authenticate()
         with patch.object(self.web, 'update_request') as update:

@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py cli_emulator_check "$@"

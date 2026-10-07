@@ -128,7 +128,7 @@ class PackageDeploymentTests(unittest.TestCase):
         return release
     def test_package_failure_keeps_current_and_previous_links_untouched(self):
         old = self.initial()
-        (self.source / 'src/laurinos/menu.py').write_text((self.source / 'src/laurinos/menu.py').read_text() + '\n# next\n')
+        (self.source / 'src/paimenos/menu.py').write_text((self.source / 'src/paimenos/menu.py').read_text() + '\n# next\n')
         staged, _ = deploy.stage_release(self.source, self.base)
         with patch.object(deploy, 'ensure_packages', side_effect=ValueError('APT failed')), \
                 patch.object(deploy, 'install_launchers') as launcher:
@@ -147,7 +147,7 @@ class PackageDeploymentTests(unittest.TestCase):
         self.assertEqual(actual['controller'], ['test-package'])
     def test_package_check_precedes_switch_and_offline_activation_has_no_apt(self):
         old = self.initial()
-        (self.source / 'src/laurinos/menu.py').write_text((self.source / 'src/laurinos/menu.py').read_text() + '\n# next\n')
+        (self.source / 'src/paimenos/menu.py').write_text((self.source / 'src/paimenos/menu.py').read_text() + '\n# next\n')
         staged, _ = deploy.stage_release(self.source, self.base)
         def prepare(release, progress): self.assertEqual((self.base / 'current').resolve(), old)
         with patch.object(deploy, 'ensure_packages', side_effect=prepare) as check, \
@@ -156,49 +156,34 @@ class PackageDeploymentTests(unittest.TestCase):
         with patch.object(deploy, 'ensure_packages') as check:
             deploy.activate(self.base, old, live=False); check.assert_not_called()
 
-    def test_original_062_deployer_bootstrap_success_and_failure(self):
+    def test_original_laurinos_deployer_rejects_paimenos_before_activation(self):
         old_deploy = module(OLD_DEPLOY, 'original_062_deployer')
-        old_source = self.root / 'old-source'; shutil.copytree(self.source, old_source)
-        plan = {'schema': 1, 'components': {'desktop': ['test-package']}}
-        (self.source / 'data/update-packages.json').write_text(json.dumps(plan))
-        manifest = json.loads((old_source / 'manifest.json').read_text())
-        removed = ['data/update-packages.json', 'tools/install-update-packages.py', 'systemd/system/laurinos-packages.service']
-        for item in removed:
-            (old_source / item).unlink()
-            for component in manifest['components'].values():
-                if item in component['files']: component['files'].remove(item)
-        for name in ('laurinos-parent-web.service', 'laurinos-updates.service'):
-            file = old_source / 'systemd/system' / name
-            file.write_text(file.read_text().replace(' laurinos-packages.service', '').replace('Requires=laurinos-packages.service\n', ''))
-        (old_source / 'manifest.json').write_text(json.dumps(manifest))
-        old, _ = old_deploy.stage_release(old_source, self.base)
-        old_deploy.activate(self.base, old, live=False)
-        staged, _ = old_deploy.stage_release(self.source, self.base)
-        self.assertNotIn('package_requirements', json.loads((staged / 'installed.json').read_text()))
-        apt = FakeAPT()
-        def start_units():
-            current = (self.base / 'current').resolve()
-            if (current / 'systemd/system/laurinos-packages.service').exists():
-                self.assertIn('Requires=laurinos-packages.service', (current / 'systemd/system/laurinos-updates.service').read_text())
-                self.assertIn('Requires=laurinos-packages.service', (current / 'systemd/system/laurinos-parent-web.service').read_text())
-                helper = module(current / 'tools/install-update-packages.py', 'bootstrapped_package_helper')
-                helper.ensure_release(current, lambda message: None, apt, self.root / 'apt-lock')
-        original_apply = old_deploy.apply_units
-        def apply_units(release, previous=None):
-            original_apply(release, previous, self.root / 'units')
-        with patch.object(old_deploy, 'install_launchers'), \
-                patch.object(old_deploy, 'apply_units', side_effect=apply_units), \
-                patch.object(old_deploy, 'restart_services', side_effect=start_units), \
-                patch.object(old_deploy.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0)):
-            apt.fail = 'install'
-            with self.assertRaises(ValueError): old_deploy.activate(self.base, staged, units=True)
-            self.assertEqual((self.base / 'current').resolve(), old)
-            self.assertFalse((self.root / 'units/system/laurinos-packages.service').exists())
-            apt.fail = None
-            old_deploy.activate(self.base, staged, units=True)
-        self.assertEqual((self.base / 'current').resolve(), staged)
-        self.assertEqual((self.base / 'previous').resolve(), old)
-        self.assertIn('test-package', apt.installed)
+        previous = self.base / 'releases/legacy'
+        previous.mkdir(parents=True)
+        (self.base / 'current').symlink_to(previous, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, 'Manifest/API'):
+            old_deploy.stage_release(self.source, self.base)
+        self.assertEqual((self.base / 'current').resolve(), previous)
+        self.assertEqual(list((self.base / 'releases').iterdir()), [previous])
+
+    def test_new_deployer_rejects_old_runtime_and_partial_cross_runtime_update(self):
+        manifest_path = self.source / 'manifest.json'
+        manifest = json.loads(manifest_path.read_text())
+        manifest['runtime_api'] = 1
+        manifest_path.write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(ValueError, 'Manifest/API'):
+            deploy.stage_release(self.source, self.base)
+        self.assertFalse((self.base / 'current').exists())
+        manifest['runtime_api'] = 2
+        manifest_path.write_text(json.dumps(manifest))
+        previous = self.initial()
+        receipt = previous / 'installed.json'
+        installed = json.loads(receipt.read_text())
+        installed['runtime_api'] = 1
+        receipt.write_text(json.dumps(installed))
+        with self.assertRaisesRegex(ValueError, 'Paket-API'):
+            deploy.stage_release(self.source, self.base, ['desktop'])
+        self.assertEqual((self.base / 'current').resolve(), previous)
 
 
 if __name__ == '__main__': unittest.main()

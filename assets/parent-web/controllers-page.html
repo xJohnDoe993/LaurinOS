@@ -17,7 +17,7 @@
 <p class="hint">Gespeicherte Belegungen wirken im Menü sofort und beim nächsten Spielstart. Die Analogstick-Belegung wird bei Spielen mit analogem Controller-Modus verwendet.</p></section>
 <section class="panel"><h2>Eigene Profile</h2><div id="pad-profiles" class="grid"></div><p class="hint">„Zurücksetzen“ entfernt nur deine eigene Belegung. Danach gilt wieder die automatische Erkennung.</p></section>
 <noscript><p class="flash error">Für die Controller-Konfiguration bitte JavaScript aktivieren.</p></noscript>
-<style>.pad-table{overflow-x:auto;margin:20px 0}.pad-table table{border-collapse:collapse;width:100%;min-width:560px}.pad-table th,.pad-table td{text-align:left;padding:12px 8px;border-bottom:1px solid var(--line)}.pad-table tr.current{background:#2a3a50}.pad-table td:last-child{white-space:nowrap}.pad-table button{padding:7px 12px;margin-right:6px;font-size:14px}#pad-title,#pad-profiles h3{overflow-wrap:anywhere}#pad-listening{margin-top:20px}</style>
+<style>.pad-table{overflow-x:auto;margin:20px 0}.pad-table table{border-collapse:collapse;width:100%;min-width:560px}.pad-table th,.pad-table td{text-align:left;padding:12px 8px;border-bottom:1px solid var(--line)}.pad-table tr.current{background:var(--soft)}.pad-table td:last-child{white-space:nowrap}.pad-table button{padding:7px 12px;margin-right:6px;font-size:14px}#pad-title,#pad-profiles h3{overflow-wrap:anywhere}#pad-listening{margin-top:20px}</style>
 <script>
 (() => {
   const statusUrl = {{ url_for('controllers_status')|tojson }}, actionUrl = {{ url_for('controllers_action')|tojson }}, csrf = {{ csrf_token()|tojson }};

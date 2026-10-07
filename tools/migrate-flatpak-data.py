@@ -26,7 +26,7 @@ def copy_once(home, sources, destination):
     if source is None:
         return
     target.parent.mkdir(parents=True, exist_ok=True)
-    staging = Path(tempfile.mkdtemp(prefix='.laurinos-migrate-', dir=target.parent))
+    staging = Path(tempfile.mkdtemp(prefix='.paimenos-migrate-', dir=target.parent))
     try:
         # Keine Symlinks auf außerhalb liegende Ordner oder Spezialdateien folgen.
         def ignore(directory, names):

@@ -14,32 +14,38 @@ if [[ "$EUID" -ne 0 ]]; then echo "Aufruf: sudo bash install.sh" >&2; exit 1; fi
 if [[ "${ID:-}" != debian || ! "${VERSION_CODENAME:-}" =~ ^(bookworm|trixie)$ ]]; then
     echo "Debian 12 oder 13 erforderlich." >&2; exit 1
 fi
-if [[ -f /home/kids/.config/openbox/laurinos-settings.json || -e /etc/laurinos-laptop.installed ]]; then
+if [[ -e /usr/local/lib/laurinos/current || -L /usr/local/lib/laurinos/current ||
+      -e /etc/laurinos-laptop.installed || -f /home/kids/.config/openbox/laurinos-settings.json ||
+      -d /home/kids/.config/laurinos ]]; then
+    echo "LaurinOS-Installation gefunden. PaimenOS 0.64.0 benötigt eine Neuinstallation auf frischem Debian; keine automatische Migration." >&2
+    exit 1
+fi
+if [[ -f /home/kids/.config/openbox/paimenos-settings.json || -e /etc/paimenos-laptop.installed ]]; then
     echo "Diese Version erwartet eine Neuinstallation. Für modulare Installationen: sudo bash update.sh" >&2
     exit 1
 fi
-if [[ -e /usr/local/lib/laurinos/current && "$RESUME" != 1 ]]; then
+if [[ -e /usr/local/lib/paimenos/current && "$RESUME" != 1 ]]; then
     echo "Unvollständige modulare Installation gefunden. Fortsetzen: sudo bash install.sh --resume" >&2
     exit 1
 fi
-exec 8>/run/laurinos-maintenance.lock
-if ! flock -n 8; then echo "Eine LaurinOS-Wartung läuft bereits." >&2; exit 1; fi
+exec 8>/run/paimenos-maintenance.lock
+if ! flock -n 8; then echo "Eine PaimenOS-Wartung läuft bereits." >&2; exit 1; fi
 trap 'echo "FEHLER: ${BASH_SOURCE[0]}:${LINENO}; Installation nicht abgeschlossen." >&2' ERR
 # A custom PIN is required before making changes to the system.
-if [[ "$RESUME" == 1 && -f /home/kids/.config/laurinos/settings.json ]]; then
-    LAURINOS_PARENT_PIN=""
+if [[ "$RESUME" == 1 && -f /home/kids/.config/paimenos/settings.json ]]; then
+    PAIMENOS_PARENT_PIN=""
     echo "Vorhandene Eltern-Einstellungen und PIN werden beibehalten."
 else
-    LAURINOS_PARENT_PIN="${LAURINOS_PARENT_PIN:-}"
-    if [[ -z "$LAURINOS_PARENT_PIN" ]]; then
-        read -r -s -p "Neue Eltern-PIN (4 bis 12 Ziffern): " LAURINOS_PARENT_PIN </dev/tty
+    PAIMENOS_PARENT_PIN="${PAIMENOS_PARENT_PIN:-}"
+    if [[ -z "$PAIMENOS_PARENT_PIN" ]]; then
+        read -r -s -p "Neue Eltern-PIN (4 bis 12 Ziffern): " PAIMENOS_PARENT_PIN </dev/tty
         echo
         read -r -s -p "PIN wiederholen: " pin_repeat </dev/tty
         echo
-        if [[ "$LAURINOS_PARENT_PIN" != "$pin_repeat" ]]; then echo "PINs stimmen nicht überein." >&2; exit 1; fi
+        if [[ "$PAIMENOS_PARENT_PIN" != "$pin_repeat" ]]; then echo "PINs stimmen nicht überein." >&2; exit 1; fi
         unset pin_repeat
     fi
-    if [[ ! "$LAURINOS_PARENT_PIN" =~ ^[0-9]{4,12}$ ]]; then echo "PIN: 4 bis 12 Ziffern erforderlich." >&2; exit 1; fi
+    if [[ ! "$PAIMENOS_PARENT_PIN" =~ ^[0-9]{4,12}$ ]]; then echo "PIN: 4 bis 12 Ziffern erforderlich." >&2; exit 1; fi
 fi
 unset BASH_ENV
 source "${REPO_DIR}/installer/common.sh"

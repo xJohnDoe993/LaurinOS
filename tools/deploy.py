@@ -22,12 +22,12 @@ import tempfile
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE = Path('/usr/local/lib/laurinos')
-API = 1
+BASE = Path('/usr/local/lib/paimenos')
+API = 2
 
 def package_tool():
     # This helper belongs to the trusted installed/local deployer, not the download.
-    spec = importlib.util.spec_from_file_location('laurinos_update_packages', ROOT / 'tools/install-update-packages.py')
+    spec = importlib.util.spec_from_file_location('paimenos_update_packages', ROOT / 'tools/install-update-packages.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -46,7 +46,7 @@ def destination(relative):
     if path.parts[0] not in allowed and relative != 'run.py':
         raise ValueError('Nicht verwalteter Pfad: ' + relative)
     if path.parts[0] == 'src':
-        if len(path.parts) < 3 or path.parts[1] != 'laurinos':
+        if len(path.parts) < 3 or path.parts[1] != 'paimenos':
             raise ValueError('Ungültiges Python-Paket.')
         return Path('app', *path.parts[1:])
     return Path(relative)
@@ -79,7 +79,7 @@ def validate_source(source):
                 compile(path.read_bytes(), str(path), 'exec')
             if relative.startswith(('bin/', 'sbin/')):
                 subprocess.run(['bash', '-n', str(path)], check=True)
-    source_modules = {str(p.relative_to(source)) for p in (source / 'src/laurinos').glob('*.py')}
+    source_modules = {str(p.relative_to(source)) for p in (source / 'src/paimenos').glob('*.py')}
     if not source_modules <= seen:
         raise ValueError('Python-Datei fehlt im Manifest; build-manifest.py ausführen.')
     return manifest
@@ -89,8 +89,8 @@ def validate_stage(stage):
         compile(path.read_bytes(), str(path), 'exec')
     # No optional GUI/system dependencies are imported in this smoke check.
     script = ('import sys; sys.dont_write_bytecode=True; sys.path.insert(0, sys.argv[1]); '
-              'import laurinos.state, laurinos.emulator_catalog, laurinos.categories; '
-              'assert laurinos.emulator_catalog.selection("none") == []')
+              'import paimenos.state, paimenos.emulator_catalog, paimenos.categories; '
+              'assert paimenos.emulator_catalog.selection("none") == []')
     subprocess.run([sys.executable, '-I', '-c', script, str(stage / 'app')], check=True)
 
 def stage_release(source, base, selected=None):
@@ -206,8 +206,8 @@ def apply_units(release, previous=None, unit_root=Path('/etc/systemd')):
             shutil.copyfile(file, destination_dir / file.name)
             (destination_dir / file.name).chmod(0o644)
     subprocess.run(['systemctl', 'daemon-reload'], check=True)
-    if (release / 'systemd/system/laurinos-updates.service').is_file():
-        subprocess.run(['systemctl', 'enable', 'laurinos-updates.service'], check=True)
+    if (release / 'systemd/system/paimenos-updates.service').is_file():
+        subprocess.run(['systemctl', 'enable', 'paimenos-updates.service'], check=True)
 
 def user_command(*args):
     try:
@@ -221,20 +221,20 @@ def user_command(*args):
             'DBUS_SESSION_BUS_ADDRESS=unix:path=' + str(runtime / 'bus'), 'systemctl', '--user', *args]
 
 def restart_services():
-    units = ['laurinos-wifi.service', 'laurinos-bluetooth.service', 'laurinos-emulators.service', 'laurinos-parent-web.service']
-    if (BASE / 'current/systemd/system/laurinos-updates.service').is_file():
-        units.append('laurinos-updates.service')
+    units = ['paimenos-wifi.service', 'paimenos-bluetooth.service', 'paimenos-emulators.service', 'paimenos-parent-web.service']
+    if (BASE / 'current/systemd/system/paimenos-updates.service').is_file():
+        units.append('paimenos-updates.service')
     subprocess.run(['systemctl', 'restart', *units], check=True)
     command = user_command('daemon-reload')
     if command:
         subprocess.run(command, check=True)
-        subprocess.run(user_command('restart', 'laurinos-session.target'), check=True)
+        subprocess.run(user_command('restart', 'paimenos-session.target'), check=True)
     # Waitress/BlueZ start asynchronously: allow time, then detect crash loops.
     time.sleep(2)
     for unit in units:
         subprocess.run(['systemctl', 'is-active', '--quiet', unit], check=True)
     if command:
-        for unit in ['laurinos-menu.service', 'laurinos-timer.service', 'laurinos-media.service', 'laurinos-osd.service', 'laurinos-cursor.service']:
+        for unit in ['paimenos-menu.service', 'paimenos-timer.service', 'paimenos-media.service', 'paimenos-osd.service', 'paimenos-cursor.service']:
             subprocess.run(user_command('is-active', '--quiet', unit), check=True)
 
 def activate(base, release, *, initial=False, units=False, live=True, package_progress=print, packages_prepared=False):
@@ -265,7 +265,7 @@ def activate(base, release, *, initial=False, units=False, live=True, package_pr
         switch(base, old, 'previous')
 
 def main():
-    parser = argparse.ArgumentParser(description='LaurinOS-Code aus diesem lokalen Projekt aktualisieren. Eltern-Daten bleiben erhalten.')
+    parser = argparse.ArgumentParser(description='PaimenOS-Code aus diesem lokalen Projekt aktualisieren. Eltern-Daten bleiben erhalten.')
     parser.add_argument('--component', action='append', help='z.B. controller; mehrfach verwendbar')
     parser.add_argument('--check', action='store_true', help='Quellen prüfen, nichts installieren')
     parser.add_argument('--list', action='store_true', help='Komponenten anzeigen')
@@ -286,15 +286,15 @@ def main():
         parser.error('Bitte mit sudo ausführen.')
     if not args.initial and not (BASE / 'current').is_symlink():
         parser.error('Modulare Erstinstallation fehlt. Zuerst install.sh auf einem frischen System ausführen.')
-    lock_path = '/run/laurinos-maintenance.lock'
+    lock_path = '/run/paimenos-maintenance.lock'
     with open(lock_path, 'a') as lock:
         if not args.initial:
             try:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
-                parser.error('Eine andere LaurinOS-Wartung läuft bereits.')
+                parser.error('Eine andere PaimenOS-Wartung läuft bereits.')
         # Do not interrupt a privileged backend apt/dpkg transaction.
-        with open('/run/laurinos-emulator-install.lock', 'a') as emulator_lock:
+        with open('/run/paimenos-emulator-install.lock', 'a') as emulator_lock:
             try:
                 fcntl.flock(emulator_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
@@ -314,5 +314,5 @@ if __name__ == '__main__':
     try:
         main()
     except (OSError, ValueError, SyntaxError, subprocess.CalledProcessError) as exc:
-        print('LaurinOS-Update fehlgeschlagen: ' + str(exc), file=sys.stderr)
+        print('PaimenOS-Update fehlgeschlagen: ' + str(exc), file=sys.stderr)
         raise SystemExit(1)

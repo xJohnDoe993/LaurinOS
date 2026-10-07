@@ -17,10 +17,10 @@ echo " 10) Tux Math        11) VLC             12) Terminal"
 echo " 13) Überspringen / Keine"
 echo
 
-APP_SELECTION="${LAURINOS_APPS:-}"
+APP_SELECTION="${PAIMENOS_APPS:-}"
 if [[ -z "$APP_SELECTION" ]]; then read -r -p "Auswahl: " APP_SELECTION; fi
 
-APP_SOURCE="${LAURINOS_APP_SOURCE:-}"
+APP_SOURCE="${PAIMENOS_APP_SOURCE:-}"
 if [[ -z "$APP_SOURCE" ]]; then
     echo "Paketquelle: 1 = stabile Flathub-Apps (empfohlen), 2 = nur Debian-Pakete"
     echo "Flathub: Luanti, GCompris, SuperTuxKart, GIMP und LibreOffice."
@@ -34,15 +34,15 @@ if [[ -z "$APP_SOURCE" ]]; then
 fi
 case "$APP_SOURCE" in
     flathub|debian) ;;
-    *) echo "LAURINOS_APP_SOURCE muss flathub oder debian sein." >&2; exit 1 ;;
+    *) echo "PAIMENOS_APP_SOURCE muss flathub oder debian sein." >&2; exit 1 ;;
 esac
 
 INSTALL_PKGS=()
 APP_ENTRIES=""
 SELECTED_NATIVE_APPS=""
 FLATPAK_READY=unknown
-FLATPAK_REMOTE=laurinos-flathub
-MANAGED_FLATPAKS=/var/lib/laurinos/flatpak-apps.list
+FLATPAK_REMOTE=paimenos-flathub
+MANAGED_FLATPAKS=/var/lib/paimenos/flatpak-apps.list
 declare -A SELECTED_APP_IDS=()
 declare -A FLATPAK_IDS=(
     [minetest]=org.luanti.luanti
@@ -83,7 +83,7 @@ install_flatpak_app() {
     fi
     # Kein Shell-Parsing der App-Parameter. exec hält die Prozessüberwachung intakt.
     /usr/bin/python3 "${REPO_DIR}/tools/configure-flatpak-app.py" "$id" "$app_id" || return 1
-    if ! runuser -u "$KIDS_USER" -- /usr/bin/python3 /usr/local/lib/laurinos/current/tools/migrate-flatpak-data.py "$KIDS_HOME" "$app_id"; then
+    if ! runuser -u "$KIDS_USER" -- /usr/bin/python3 /usr/local/lib/paimenos/current/tools/migrate-flatpak-data.py "$KIDS_HOME" "$app_id"; then
         echo "  ! ${title}: Datenkopie fehlgeschlagen. Originaldaten bleiben erhalten; siehe Setup-Ausgabe." >&2
     fi
     touch "$MANAGED_FLATPAKS"
@@ -100,7 +100,7 @@ select_native_app() {
     SELECTED_APP_IDS[$id]=1
     if [[ "$APP_SOURCE" == flathub && -n "$app_id" ]] && install_flatpak_app "$id" "$app_id" "$title"; then
         source=flathub
-        command="/usr/local/bin/laurinos-app-${id}"
+        command="/usr/local/bin/paimenos-app-${id}"
         icon_theme="$app_id"
         # Ein exportiertes Symbol kopieren: keine neue Anmeldung nötig.
         local location candidate
@@ -178,14 +178,14 @@ while IFS='|' read -r id pkg title icon_theme command source app_id icon_file; d
     fi
 done <<< "${SELECTED_NATIVE_APPS}"
 
-# Nur von LaurinOS eingerichtete Flatpak-Apps und deren Laufzeiten aktualisieren.
-install_repo_file systemd/system/laurinos-app-update.service /etc/systemd/system/laurinos-app-update.service
-install_repo_file systemd/system/laurinos-app-update.timer /etc/systemd/system/laurinos-app-update.timer
+# Nur von PaimenOS eingerichtete Flatpak-Apps und deren Laufzeiten aktualisieren.
+install_repo_file systemd/system/paimenos-app-update.service /etc/systemd/system/paimenos-app-update.service
+install_repo_file systemd/system/paimenos-app-update.timer /etc/systemd/system/paimenos-app-update.timer
 systemctl daemon-reload
-if [[ "$LAURINOS_ENABLE_APP_UPDATES" == 1 && -s "$MANAGED_FLATPAKS" ]]; then
-    systemctl enable --now laurinos-app-update.timer
+if [[ "$PAIMENOS_ENABLE_APP_UPDATES" == 1 && -s "$MANAGED_FLATPAKS" ]]; then
+    systemctl enable --now paimenos-app-update.timer
 else
-    systemctl disable --now laurinos-app-update.timer >/dev/null 2>&1 || true
+    systemctl disable --now paimenos-app-update.timer >/dev/null 2>&1 || true
 fi
 
 # Tux Paint auch bei einem Start außerhalb des Dashboards im Vollbild öffnen.

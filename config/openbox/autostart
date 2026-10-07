@@ -18,10 +18,10 @@ amixer sset Headphone unmute 80% || true
 if systemctl --user import-environment DISPLAY XAUTHORITY DBUS_SESSION_BUS_ADDRESS PATH XDG_CURRENT_DESKTOP XDG_DATA_DIRS; then
     dbus-update-activation-environment --systemd DISPLAY XAUTHORITY DBUS_SESSION_BUS_ADDRESS XDG_CURRENT_DESKTOP XDG_DATA_DIRS || true
     systemctl --user daemon-reload
-    systemctl --user reset-failed laurinos-menu.service laurinos-timer.service laurinos-media.service laurinos-cursor.service laurinos-osd.service
-    systemctl --user start laurinos-session.target
+    systemctl --user reset-failed paimenos-menu.service paimenos-timer.service paimenos-media.service paimenos-cursor.service paimenos-osd.service
+    systemctl --user start paimenos-session.target
 else
-    echo "LaurinOS: systemd-Benutzersitzung fehlt; siehe Geräte-Diagnose." >&2
+    echo "PaimenOS: systemd-Benutzersitzung fehlt; siehe Geräte-Diagnose." >&2
     # Auch ohne User-Manager bleiben Menü, Zeitlimit, Medien und Cursor überwacht.
     supervise_fallback() {
         while :; do
@@ -29,10 +29,10 @@ else
             sleep 3
         done
     }
-    supervise_fallback /usr/bin/python3 -I /usr/local/lib/laurinos/current/run.py menu >> /home/kids/.local/state/laurinos/laurinos-session.log 2>&1 &
-    supervise_fallback /usr/bin/python3 -I /usr/local/lib/laurinos/current/run.py timer >> /home/kids/.local/state/laurinos/laurinos-session.log 2>&1 &
-    supervise_fallback /usr/bin/python3 -I /usr/local/lib/laurinos/current/run.py media >> /home/kids/.local/state/laurinos/laurinos-session.log 2>&1 &
-    supervise_fallback /usr/bin/python3 -I /usr/local/lib/laurinos/current/run.py status_overlay >> /home/kids/.local/state/laurinos/laurinos-session.log 2>&1 &
-    supervise_fallback /usr/bin/unclutter-xfixes --timeout 5 >> /home/kids/.local/state/laurinos/laurinos-session.log 2>&1 &
+    supervise_fallback /usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py menu >> /home/kids/.local/state/paimenos/paimenos-session.log 2>&1 &
+    supervise_fallback /usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py timer >> /home/kids/.local/state/paimenos/paimenos-session.log 2>&1 &
+    supervise_fallback /usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py media >> /home/kids/.local/state/paimenos/paimenos-session.log 2>&1 &
+    supervise_fallback /usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py status_overlay >> /home/kids/.local/state/paimenos/paimenos-session.log 2>&1 &
+    supervise_fallback /usr/bin/unclutter-xfixes --timeout 5 >> /home/kids/.local/state/paimenos/paimenos-session.log 2>&1 &
 fi
 

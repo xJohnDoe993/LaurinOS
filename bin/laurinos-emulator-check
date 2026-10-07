@@ -1,2 +1,0 @@
-#!/bin/sh
-exec /usr/bin/python3 -I /usr/local/lib/laurinos/current/run.py cli_emulator_check "$@"

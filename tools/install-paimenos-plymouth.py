@@ -95,7 +95,7 @@ def install(root=Path('/'), source=None):
     contents = validate_assets(source)
     themes = root / 'usr/share/plymouth/themes'
     destination = themes / THEME
-    backup = themes / '.paimenos-laurinos-backup'
+    backup = themes / '.paimenos-backup'
     if destination.is_symlink() or (destination.exists() and not destination.is_dir()):
         raise ValueError('Ungültiges Theme-Verzeichnis: ' + str(destination))
     if backup.exists() or backup.is_symlink():
@@ -152,10 +152,10 @@ def configure_grub(path):
     else:
         changed = original.rstrip('\n') + '\n' + replacement + '\n'
     if changed != original:
-        backup = path.with_name(path.name + '.before-laurinos-paimenos')
+        backup = path.with_name(path.name + '.before-paimenos')
         if not backup.exists():
             shutil.copy2(path, backup)
-        fd, temporary = tempfile.mkstemp(prefix='.grub-laurinos-', dir=path.parent)
+        fd, temporary = tempfile.mkstemp(prefix='.grub-paimenos-', dir=path.parent)
         try:
             with os.fdopen(fd, 'w') as handle:
                 handle.write(changed)
@@ -226,13 +226,13 @@ def main():
     if args.activate:
         # Coordinate with application maintenance and package installations.
         with contextlib.ExitStack() as locks:
-            for name in ('laurinos-maintenance.lock', 'laurinos-emulator-install.lock'):
+            for name in ('paimenos-maintenance.lock', 'paimenos-emulator-install.lock'):
                 lock = locks.enter_context(open('/run/' + name, 'a'))
                 os.fchmod(lock.fileno(), 0o600)
                 try:
                     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 except BlockingIOError:
-                    raise ValueError('LaurinOS-Wartung oder Paketinstallation läuft bereits.')
+                    raise ValueError('PaimenOS-Wartung oder Paketinstallation läuft bereits.')
             activate()
     elif args.grub:
         configure_grub(Path('/etc/default/grub'))

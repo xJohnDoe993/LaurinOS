@@ -1,4 +1,4 @@
-<div class="pagehead"><div class="eyebrow">LaurinOS aktuell halten</div><h1>Updates</h1><p class="muted">Neue stabile Versionen aus dem LaurinOS-Repo auf GitHub. Die Versionsprüfung läuft automatisch alle sechs Stunden.</p></div>
+<div class="pagehead"><div class="eyebrow">PaimenOS aktuell halten</div><h1>Updates</h1><p class="muted">Neue stabile Versionen aus dem PaimenOS-Repo auf GitHub. Die Versionsprüfung läuft automatisch alle sechs Stunden.</p></div>
 <div id="update-error" class="flash error" role="alert" hidden></div>
 <section class="panel">
   <div class="row"><h2>Code-Version</h2><span id="update-label" class="badge on">Status wird geladen …</span></div>
@@ -9,7 +9,7 @@
 </section>
 <section id="update-progress" class="panel" aria-live="polite" hidden><h2>Update-Auftrag</h2><p id="job-message"></p><div class="bar" role="progressbar" aria-label="Update-Fortschritt" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="job-bar" style="width:0%"></i></div><p id="job-version" class="hint"></p></section>
 <section id="release-notes" class="panel" hidden><h2 id="release-title">Neues Release</h2><pre id="release-body"></pre></section>
-<section class="panel"><h2>Vor dem Update</h2><p>Apps und Spiele schließen und den Laptop am Strom lassen. Benötigte Debian-Pakete werden bei Bedarf automatisch nachinstalliert; dafür ist eine Internetverbindung nötig. Die LaurinOS-Dienste und eine aktive Kindersitzung starten während des Updates neu; das Backend kann kurz nicht erreichbar sein.</p><p class="muted">Eltern-Einstellungen, Apps, eigene Bilder, ROMs und Spielstände bleiben erhalten. Schlägt die Paket-Nachinstallation fehl, bleibt die bisherige LaurinOS-Version aktiv. Bereits installierte Debian-Pakete bleiben beim Zurücksetzen der LaurinOS-Version erhalten. Weitere Änderungen an der Systemkonfiguration können eigene Einrichtungsschritte erfordern.</p></section>
+<section class="panel"><h2>Vor dem Update</h2><p>Apps und Spiele schließen und den Laptop am Strom lassen. Benötigte Debian-Pakete werden bei Bedarf automatisch nachinstalliert; dafür ist eine Internetverbindung nötig. Die PaimenOS-Dienste und eine aktive Kindersitzung starten während des Updates neu; das Backend kann kurz nicht erreichbar sein.</p><p class="muted">Eltern-Einstellungen, Apps, eigene Bilder, ROMs und Spielstände bleiben erhalten. Schlägt die Paket-Nachinstallation fehl, bleibt die bisherige PaimenOS-Version aktiv. Bereits installierte Debian-Pakete bleiben beim Zurücksetzen der PaimenOS-Version erhalten. Weitere Änderungen an der Systemkonfiguration können eigene Einrichtungsschritte erfordern.</p></section>
 <noscript><div class="flash error">Bitte JavaScript aktivieren, um Updates zu prüfen und zu installieren.</div></noscript>
 <script>
 (() => {
@@ -72,7 +72,7 @@
   }
   check.addEventListener('click', () => action({{ url_for('updates_check')|tojson }}));
   install.addEventListener('click', () => {
-    if (state && state.update_available && confirm('Version ' + state.release.version + ' installieren? Benötigte Debian-Pakete werden bei Bedarf nachinstalliert. Apps und Spiele vorher schließen. Die LaurinOS-Dienste und die Kindersitzung starten neu.')) action({{ url_for('updates_install')|tojson }}, state.release.tag);
+    if (state && state.update_available && confirm('Version ' + state.release.version + ' installieren? Benötigte Debian-Pakete werden bei Bedarf nachinstalliert. Apps und Spiele vorher schließen. Die PaimenOS-Dienste und die Kindersitzung starten neu.')) action({{ url_for('updates_install')|tojson }}, state.release.tag);
   });
   poll();
 })();

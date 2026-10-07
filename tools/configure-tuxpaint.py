@@ -4,8 +4,8 @@ lines = []
 if os.path.exists(path):
     with open(path, encoding="utf-8") as handle:
         lines = handle.readlines()
-    if not os.path.exists(path + ".before-laurinos"):
-        shutil.copy2(path, path + ".before-laurinos")
+    if not os.path.exists(path + ".before-paimenos"):
+        shutil.copy2(path, path + ".before-paimenos")
 lines = [line for line in lines if line.split("=", 1)[0].strip() not in {"fullscreen", "native"}]
 with open(path, "w", encoding="utf-8") as handle:
     handle.writelines(lines)

@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
-from laurinos import state, emulator_catalog, webapp, wifi, controller_profiles, parent
+from paimenos import state, emulator_catalog, webapp, wifi, controller_profiles, parent
 
 class RuntimeTests(unittest.TestCase):
     def test_old_camera_title_is_refreshed_without_rewriting_preferences(self):
@@ -61,7 +61,7 @@ class RuntimeTests(unittest.TestCase):
             (profile / 'user.js').write_text('user_pref("example", true);\n')
             webapp.prepare_profile(str(profile), str(profile / "missing-template.js"))
             self.assertIn('user_pref("example", true)', (profile / 'user.js').read_text())
-            self.assertEqual((profile / 'chrome/laurinos-webapp.css').read_text(), (ROOT / 'assets/webapp.css').read_text())
+            self.assertEqual((profile / 'chrome/paimenos-webapp.css').read_text(), (ROOT / 'assets/webapp.css').read_text())
             webapp.prepare_profile(str(profile), str(profile / "missing-template.js"))
             self.assertEqual((profile / 'chrome/userChrome.css').read_text().count(webapp.CHROME_IMPORT), 1)
     def test_defaults_generate_valid_app_json_for_empty_native_selection(self):
@@ -80,7 +80,7 @@ class RuntimeTests(unittest.TestCase):
             words = [0] * (code // width + 1)
             words[code // width] = 1 << (code % width)
             return ' '.join(format(v, 'x') for v in reversed(words))
-        with patch('laurinos.input_devices.Path.read_text', return_value=bits(304)):
+        with patch('paimenos.input_devices.Path.read_text', return_value=bits(304)):
             self.assertTrue(controller_profiles.possible_gamepad('/dev/input/event7'))
-        with patch('laurinos.input_devices.Path.read_text', return_value=bits(30)):
+        with patch('paimenos.input_devices.Path.read_text', return_value=bits(30)):
             self.assertFalse(controller_profiles.possible_gamepad('/dev/input/event7'))

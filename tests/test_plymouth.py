@@ -95,7 +95,7 @@ class PlymouthTests(unittest.TestCase):
         self.assertEqual(changed.split('"')[1].split().count('splash'), 1)
         theme.configure_grub(grub)
         self.assertEqual(grub.read_text(), changed)
-        self.assertEqual(grub.with_name('grub.before-laurinos-paimenos').read_text(), original)
+        self.assertEqual(grub.with_name('grub.before-paimenos').read_text(), original)
 
     def fake_commands(self, fail_initramfs=False):
         state = {'selected': 'pixels', 'calls': [], 'failed': False}

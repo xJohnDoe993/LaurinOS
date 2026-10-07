@@ -1,65 +1,66 @@
 {
   "schema": 1,
-  "runtime_api": 1,
-  "version": "0.63.6",
+  "runtime_api": 2,
+  "version": "0.64.0",
   "components": {
     "shared": {
       "files": [
-        "src/laurinos/__init__.py",
-        "src/laurinos/paths.py",
-        "src/laurinos/state.py",
-        "src/laurinos/diagnostics.py",
-        "src/laurinos/images.py",
-        "src/laurinos/media_files.py",
-        "src/laurinos/categories.py",
-        "src/laurinos/fullscreen.py",
-        "src/laurinos/webapp.py",
-        "src/laurinos/osd_state.py",
+        "src/paimenos/__init__.py",
+        "src/paimenos/paths.py",
+        "src/paimenos/state.py",
+        "src/paimenos/diagnostics.py",
+        "src/paimenos/images.py",
+        "src/paimenos/media_files.py",
+        "src/paimenos/categories.py",
+        "src/paimenos/fullscreen.py",
+        "src/paimenos/webapp.py",
+        "src/paimenos/osd_state.py",
         "run.py",
-        "assets/webapp.css"
+        "assets/webapp.css",
+        "assets/branding/paimenos-logo.png"
       ]
     },
     "desktop": {
       "files": [
-        "src/laurinos/menu.py",
-        "src/laurinos/video.py",
-        "src/laurinos/parent_ui.py",
-        "src/laurinos/status_overlay.py",
-        "src/laurinos/close_overlay.py",
-        "src/laurinos/lockscreen.py",
-        "src/laurinos/timer.py",
-        "src/laurinos/media.py"
+        "src/paimenos/menu.py",
+        "src/paimenos/video.py",
+        "src/paimenos/parent_ui.py",
+        "src/paimenos/status_overlay.py",
+        "src/paimenos/close_overlay.py",
+        "src/paimenos/lockscreen.py",
+        "src/paimenos/timer.py",
+        "src/paimenos/media.py"
       ]
     },
     "controller": {
       "files": [
-        "src/laurinos/controller.py",
-        "src/laurinos/controller_profiles.py",
-        "src/laurinos/input_devices.py"
+        "src/paimenos/controller.py",
+        "src/paimenos/controller_profiles.py",
+        "src/paimenos/input_devices.py"
       ]
     },
     "network": {
       "files": [
-        "src/laurinos/wifi.py",
-        "src/laurinos/bluetooth.py",
-        "src/laurinos/wifi_ui.py",
-        "src/laurinos/bluetooth_ui.py",
-        "src/laurinos/network_status.py"
+        "src/paimenos/wifi.py",
+        "src/paimenos/bluetooth.py",
+        "src/paimenos/wifi_ui.py",
+        "src/paimenos/bluetooth_ui.py",
+        "src/paimenos/network_status.py"
       ]
     },
     "emulators": {
       "files": [
-        "src/laurinos/emulators.py",
-        "src/laurinos/emulator_install.py",
-        "src/laurinos/emulator_catalog.py",
-        "src/laurinos/emulator_service.py",
+        "src/paimenos/emulators.py",
+        "src/paimenos/emulator_install.py",
+        "src/paimenos/emulator_catalog.py",
+        "src/paimenos/emulator_service.py",
         "data/emulator-catalog.json"
       ]
     },
     "backend": {
       "files": [
-        "src/laurinos/parent.py",
-        "src/laurinos/parent_web.py",
+        "src/paimenos/parent.py",
+        "src/paimenos/parent_web.py",
         "assets/parent-web/app-delete.html",
         "assets/parent-web/app-form.html",
         "assets/parent-web/apps.html",
@@ -83,29 +84,29 @@
     },
     "updates": {
       "files": [
-        "src/laurinos/updates.py",
-        "src/laurinos/release_source.py",
-        "src/laurinos/update_service.py"
+        "src/paimenos/updates.py",
+        "src/paimenos/release_source.py",
+        "src/paimenos/update_service.py"
       ]
     },
     "cli": {
       "files": [
-        "src/laurinos/cli_osd_notify.py",
-        "src/laurinos/cli_update_apps.py",
-        "src/laurinos/cli_flatpak.py",
-        "src/laurinos/cli_emulator.py",
-        "src/laurinos/cli_emulator_check.py",
-        "bin/laurinos-brightness-down",
-        "bin/laurinos-brightness-up",
-        "bin/laurinos-controller-check",
-        "bin/laurinos-emulator",
-        "bin/laurinos-emulator-check",
-        "bin/laurinos-osd-notify",
-        "bin/laurinos-update-apps",
-        "bin/laurinos-volume-down",
-        "bin/laurinos-volume-mute",
-        "bin/laurinos-volume-up",
-        "sbin/laurinos-wlan-handoff"
+        "src/paimenos/cli_osd_notify.py",
+        "src/paimenos/cli_update_apps.py",
+        "src/paimenos/cli_flatpak.py",
+        "src/paimenos/cli_emulator.py",
+        "src/paimenos/cli_emulator_check.py",
+        "bin/paimenos-brightness-down",
+        "bin/paimenos-brightness-up",
+        "bin/paimenos-controller-check",
+        "bin/paimenos-emulator",
+        "bin/paimenos-emulator-check",
+        "bin/paimenos-osd-notify",
+        "bin/paimenos-update-apps",
+        "bin/paimenos-volume-down",
+        "bin/paimenos-volume-mute",
+        "bin/paimenos-volume-up",
+        "sbin/paimenos-wlan-handoff"
       ]
     },
     "tools": {
@@ -182,20 +183,20 @@
     },
     "services": {
       "files": [
-        "systemd/system/laurinos-app-update.service",
-        "systemd/system/laurinos-app-update.timer",
-        "systemd/system/laurinos-bluetooth.service",
-        "systemd/system/laurinos-emulators.service",
-        "systemd/system/laurinos-packages.service",
-        "systemd/system/laurinos-parent-web.service",
-        "systemd/system/laurinos-updates.service",
-        "systemd/system/laurinos-wifi.service",
-        "systemd/user/laurinos-cursor.service",
-        "systemd/user/laurinos-media.service",
-        "systemd/user/laurinos-menu.service",
-        "systemd/user/laurinos-osd.service",
-        "systemd/user/laurinos-session.target",
-        "systemd/user/laurinos-timer.service"
+        "systemd/system/paimenos-app-update.service",
+        "systemd/system/paimenos-app-update.timer",
+        "systemd/system/paimenos-bluetooth.service",
+        "systemd/system/paimenos-emulators.service",
+        "systemd/system/paimenos-packages.service",
+        "systemd/system/paimenos-parent-web.service",
+        "systemd/system/paimenos-updates.service",
+        "systemd/system/paimenos-wifi.service",
+        "systemd/user/paimenos-cursor.service",
+        "systemd/user/paimenos-media.service",
+        "systemd/user/paimenos-menu.service",
+        "systemd/user/paimenos-osd.service",
+        "systemd/user/paimenos-session.target",
+        "systemd/user/paimenos-timer.service"
       ]
     }
   }

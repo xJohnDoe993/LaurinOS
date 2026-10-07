@@ -7,7 +7,7 @@ echo "Kinder-Webapps & Einstellungen konfigurieren ..."
 WEBAPP_ENTRIES=$( /usr/bin/python3 "${REPO_DIR}/tools/default-webapps.py" )
 
 if [[ ! -f "${SETTINGS_JSON}" ]]; then
-    /usr/bin/python3 "${REPO_DIR}/tools/initialize-settings.py" "${SETTINGS_JSON}" "$LAURINOS_PARENT_PIN"
+    /usr/bin/python3 "${REPO_DIR}/tools/initialize-settings.py" "${SETTINGS_JSON}" "$PAIMENOS_PARENT_PIN"
 fi
 
 # App-Liste für das Dashboard erstellen.

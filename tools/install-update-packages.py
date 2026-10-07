@@ -81,7 +81,7 @@ def candidates(packages, run, environment):
 
 
 def ensure_release(release, progress=print, run=subprocess.run,
-                   lock_path=Path('/run/laurinos-package-install.lock')):
+                   lock_path=Path('/run/paimenos-package-install.lock')):
     requirements = release_requirements(release)
     packages = sorted({package for values in requirements.values() for package in values})
     if not packages:
@@ -93,7 +93,7 @@ def ensure_release(release, progress=print, run=subprocess.run,
         if not missing:
             progress('Benötigte Debian-Pakete sind bereits installiert.')
             return []
-        # Leave LaurinOS restarts to the activation step; avoid a dependency/lock cycle
+        # Leave PaimenOS restarts to the activation step; avoid a dependency/lock cycle
         # if a locally installed needrestart hook would restart our services inside APT.
         environment = dict(os.environ, DEBIAN_FRONTEND='noninteractive', LC_ALL='C', NEEDRESTART_MODE='l')
         options = ['-o', 'DPkg::Lock::Timeout=120', '-o', 'Acquire::Retries=2',
@@ -120,8 +120,8 @@ def ensure_release(release, progress=print, run=subprocess.run,
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Fehlende LaurinOS-Update-Abhängigkeiten installieren.')
-    parser.add_argument('--release', type=Path, default=Path('/usr/local/lib/laurinos/current'))
+    parser = argparse.ArgumentParser(description='Fehlende PaimenOS-Update-Abhängigkeiten installieren.')
+    parser.add_argument('--release', type=Path, default=Path('/usr/local/lib/paimenos/current'))
     args = parser.parse_args()
     if os.geteuid() != 0:
         parser.error('Bitte mit sudo ausführen.')

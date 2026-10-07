@@ -14,12 +14,12 @@ if [[ "${ID:-}" != debian || ! "${VERSION_CODENAME:-}" =~ ^(bookworm|trixie)$ ]]
 fi
 apt-get install -y --no-install-recommends python3 debian-archive-keyring ca-certificates
 install_runtime
-mkdir -p /usr/local/share/laurinos /var/lib/laurinos
+mkdir -p /usr/local/share/paimenos /var/lib/paimenos
 # Auswahl über /dev/tty funktioniert auch beim Start über eine Pipe.
-EMULATOR_SELECTION=$(/usr/bin/python3 -I /usr/local/lib/laurinos/current/run.py emulator_service --select)
+EMULATOR_SELECTION=$(/usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py emulator_service --select)
 echo "Emulator-Auswahl: $EMULATOR_SELECTION (vorhandene Emulatoren bleiben erhalten)."
 
-/usr/bin/python3 /usr/local/lib/laurinos/current/tools/configure-debian-components.py "$VERSION_CODENAME"
+/usr/bin/python3 /usr/local/lib/paimenos/current/tools/configure-debian-components.py "$VERSION_CODENAME"
 apt-get update
 
 echo "System, Plymouth, X11, Python & Tools installieren ..."
@@ -76,7 +76,7 @@ if apt-get install -y \
     procps \
     util-linux; then
     /usr/bin/python3 "${REPO_DIR}/tools/configure-dns.py" recover
-    /usr/bin/python3 /usr/local/lib/laurinos/current/tools/install-update-packages.py
+    /usr/bin/python3 /usr/local/lib/paimenos/current/tools/install-update-packages.py
 else
     /usr/bin/python3 "${REPO_DIR}/tools/configure-dns.py" recover || true
     echo "FEHLER: Basispakete konnten nicht vollständig installiert werden." >&2

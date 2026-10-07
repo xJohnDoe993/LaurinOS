@@ -1,0 +1,8 @@
+#!/bin/sh
+trap '/usr/local/bin/paimenos-osd-notify volume >/dev/null 2>&1 &' EXIT
+if /usr/bin/wpctl set-volume --limit 1.0 @DEFAULT_AUDIO_SINK@ 5%+ 2>/dev/null; then
+    /usr/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 2>/dev/null || true
+    exit 0
+fi
+if /usr/bin/amixer -q set Master 5%+ unmute 2>/dev/null; then exit 0; fi
+/usr/bin/amixer -q set Speaker 5%+ unmute 2>/dev/null || true

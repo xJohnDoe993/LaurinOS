@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
-from laurinos.media_files import scan_media, is_video, IMAGE_EXTS
+from paimenos.media_files import scan_media, is_video, IMAGE_EXTS
 
 
 class MediaDiscoveryTests(unittest.TestCase):
@@ -41,7 +41,7 @@ try:
     os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
     from PyQt5.QtCore import QObject, QUrl, pyqtSignal
     from PyQt5.QtWidgets import QApplication, QDialog, QWidget
-    from laurinos import video
+    from paimenos import video
     HAS_QT = True
 except ImportError:
     HAS_QT = False
@@ -112,7 +112,7 @@ class VideoWidgetTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
         try:
-            from laurinos import menu
+            from paimenos import menu
         except ImportError as exc:
             raise unittest.SkipTest('Camera widget tests need menu dependencies: ' + str(exc))
         cls.menu = menu

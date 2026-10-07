@@ -1,3 +1,0 @@
-[Unit]
-Description=LaurinOS grafische Sitzung
-Wants=laurinos-menu.service laurinos-timer.service laurinos-media.service laurinos-cursor.service laurinos-osd.service

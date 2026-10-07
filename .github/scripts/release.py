@@ -17,13 +17,13 @@ def checked_version(root, tag):
     version = (root / 'VERSION').read_text().strip()
     if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', tag) or tag != 'v' + version:
         raise ValueError('Release-Tag und VERSION müssen übereinstimmen: v' + version)
-    tree = ast.parse((root / 'src/laurinos/__init__.py').read_text())
+    tree = ast.parse((root / 'src/paimenos/__init__.py').read_text())
     python_version = next((ast.literal_eval(node.value) for node in tree.body
                            if isinstance(node, ast.Assign)
                            and any(isinstance(target, ast.Name) and target.id == '__version__'
                                    for target in node.targets)), None)
     versions = [python_version, json.loads((root / 'manifest.json').read_text())['version'],
-                tomllib.loads((root / 'pyproject.toml').read_text())['tool']['laurinos']['version']]
+                tomllib.loads((root / 'pyproject.toml').read_text())['tool']['paimenos']['version']]
     if any(value != version for value in versions):
         raise ValueError('VERSION, Python-Paket, pyproject.toml und Manifest müssen dieselbe Version haben.')
     return version
@@ -56,13 +56,13 @@ def prepare(root, tag, repository, run=subprocess.run):
     version = checked_version(root, tag)
     if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository):
         raise ValueError('GH_REPO muss owner/repo enthalten.')
-    archive = root / 'dist' / ('LaurinOS-' + version + '.zip')
+    archive = root / 'dist' / ('PaimenOS-' + version + '.zip')
     checksum = archive.with_suffix('.zip.sha256')
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
     if checksum.read_text() != digest + '  ' + archive.name + '\n':
         raise ValueError('ZIP und SHA-256-Datei stimmen nicht überein.')
     with zipfile.ZipFile(archive) as package:
-        if package.testzip() or package.read('LaurinOS/VERSION').decode().strip() != version:
+        if package.testzip() or package.read('PaimenOS/VERSION').decode().strip() != version:
             raise ValueError('Release-Archiv beschädigt oder falsche Version.')
     assets = [archive, checksum]
     endpoint = 'repos/' + repository
@@ -89,7 +89,7 @@ def prepare(root, tag, repository, run=subprocess.run):
         run(['gh', 'release', 'upload', tag, *map(str, assets), '--repo', repository], check=True)
     else:
         run(['gh', 'release', 'create', tag, *map(str, assets), '--repo', repository,
-             '--target', head, '--draft', '--title', 'LaurinOS ' + version, '--generate-notes'], check=True)
+             '--target', head, '--draft', '--title', 'PaimenOS ' + version, '--generate-notes'], check=True)
     release = find_release(endpoint, tag, run)
     if release is None:
         raise ValueError('Release-Entwurf nach dem Upload nicht gefunden.')
@@ -103,7 +103,7 @@ def prepare(root, tag, repository, run=subprocess.run):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='LaurinOS-Release als Entwurf vorbereiten.')
+    parser = argparse.ArgumentParser(description='PaimenOS-Release als Entwurf vorbereiten.')
     parser.add_argument('tag')
     parser.add_argument('--check-version', action='store_true')
     args = parser.parse_args()

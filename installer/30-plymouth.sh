@@ -4,7 +4,7 @@
 # ---------------------------------------------------------------------------
 echo "Plymouth Boot & Shutdown Screen konfigurieren ..."
 
-/usr/bin/python3 /usr/local/lib/laurinos/current/tools/install-paimenos-plymouth.py
+/usr/bin/python3 /usr/local/lib/paimenos/current/tools/install-paimenos-plymouth.py
 plymouth-set-default-theme paimenos
 if [[ "$(plymouth-set-default-theme)" != "paimenos" ]]; then
     echo "FEHLER: PaimenOS konnte nicht als Plymouth-Theme aktiviert werden." >&2
@@ -12,7 +12,7 @@ if [[ "$(plymouth-set-default-theme)" != "paimenos" ]]; then
 fi
 
 if [[ -f /etc/default/grub ]]; then
-    /usr/bin/python3 /usr/local/lib/laurinos/current/tools/install-paimenos-plymouth.py --grub
+    /usr/bin/python3 /usr/local/lib/paimenos/current/tools/install-paimenos-plymouth.py --grub
     update-grub
 fi
 # Auch bereits vorhandene ältere Kernel erhalten das neue Theme.

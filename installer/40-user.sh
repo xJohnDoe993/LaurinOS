@@ -22,14 +22,14 @@ done
 
 # Controller-Zugriff für kids, auch bei nachträglichem Bluetooth-Verbinden.
 mkdir -p /etc/udev/rules.d
-install_repo_file config/udev/99-laurinos-controller.rules /etc/udev/rules.d/99-laurinos-controller.rules
+install_repo_file config/udev/99-paimenos-controller.rules /etc/udev/rules.d/99-paimenos-controller.rules
 udevadm control --reload-rules
 udevadm trigger --action=change --subsystem-match=input
 
 mkdir -p "${OPENBOX_DIR}" "${CONFIG_DIR}" "${STATE_DIR}"
 chmod 0700 "${CONFIG_DIR}" "${STATE_DIR}"
 mkdir -p "${ICONS_DIR}"
-mkdir -p "${KIDS_HOME}/.mozilla/laurinos-webapps"
+mkdir -p "${KIDS_HOME}/.mozilla/paimenos-webapps"
 mkdir -p "${KIDS_HOME}/.config/gtk-3.0"
 
 if [[ ! -d "/usr/share/icons/Bibata-Original-Ice" ]]; then

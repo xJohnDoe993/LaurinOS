@@ -23,8 +23,8 @@ Die automatischen Prüfungen decken Syntax, Paketimporte, Ressourcen, Emulator-A
 Dienstzustände und Protokolle:
 
 ```bash
-systemctl status laurinos-parent-web laurinos-wifi laurinos-bluetooth laurinos-emulators laurinos-updates
-journalctl -b -u laurinos-parent-web -u laurinos-wifi -u laurinos-bluetooth -u laurinos-emulators -u laurinos-updates
+systemctl status paimenos-parent-web paimenos-wifi paimenos-bluetooth paimenos-emulators paimenos-updates
+journalctl -b -u paimenos-parent-web -u paimenos-wifi -u paimenos-bluetooth -u paimenos-emulators -u paimenos-updates
 ```
 
 ## PaimenOS-Plymouth
@@ -49,7 +49,7 @@ Vorher eine App-Liste, eigene PIN, Controller-Profil und einen Spielstand anlege
 
 ## GitHub-Updates im Backend
 
-- Die einmalige Aktualisierung von 0.60.0 auf 0.61.0 aktiviert `laurinos-updates.service`; der Dienst startet auch nach einem Neustart.
+- Die einmalige Aktualisierung von 0.60.0 auf 0.61.0 aktiviert `paimenos-updates.service`; der Dienst startet auch nach einem Neustart.
 - Ohne Eltern-Anmeldung sind Status und Update-Aktionen gesperrt. Mit Anmeldung erscheint die Seite **Updates**.
 - Ein höheres stabiles Release mit passenden ZIP-/SHA-Assets wird nach der Prüfung angeboten; Entwürfe, Pre-Releases, identische und ältere Versionen werden nicht angeboten.
 - Internet trennen: Fehler und letzte erfolgreiche Prüfung bleiben sichtbar, das restliche Backend funktioniert. Verbindung wiederherstellen und nach mindestens einer Minute erneut prüfen.
@@ -71,8 +71,8 @@ Auf einem separaten Testgerät mit fehlenden deklarierten Paketen prüfen:
 - Ein Code-Rollback erhält hinzugekommene Debian-Pakete sowie Eltern-Daten. Ein Teilupdate erhält die Paketanforderungen der nicht gewählten Komponenten.
 
 ```bash
-sudo journalctl -b -u laurinos-packages.service -u laurinos-update-job.service --no-pager
-cat /usr/local/lib/laurinos/current/installed.json
+sudo journalctl -b -u paimenos-packages.service -u paimenos-update-job.service --no-pager
+cat /usr/local/lib/paimenos/current/installed.json
 dpkg-query -W python3-pyqt5.qtmultimedia libqt5multimedia5-plugins gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-libav
 ```
 

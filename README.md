@@ -1,8 +1,12 @@
-# LaurinOS
+# PaimenOS
 
-LaurinOS macht einen Debian-Laptop zum Kinder-PC mit Kachelmenü, lokalen und webbasierten Eltern-Einstellungen, Bildschirmzeit, Kamera-/USB-Medien, Controller-Steuerung und auswählbaren Emulatoren.
+<img src="assets/branding/paimenos-logo.png" alt="PaimenOS" width="240">
 
-**Version 0.63.6: Eigenes PaimenOS-Plymouth-Theme mit sanftem Logo und grünem Ladekreis ersetzt Pixels.** Die Video-Eingabekorrektur aus 0.63.5 ist weiterhin enthalten. Updates aus GitHub-Releases stehen im Elternbackend bereit. Neuinstallationen benötigen Debian 12 oder 13. Eine modulare 0.60.0-Installation kann einmalig mit `sudo bash update.sh` aus diesem Projektordner aktualisiert werden. Bestehende v59-Installationen werden nicht migriert.
+PaimenOS macht einen Debian-Laptop zum Kinder-PC mit Kachelmenü, lokalen und webbasierten Eltern-Einstellungen, Bildschirmzeit, Kamera-/USB-Medien, Controller-Steuerung und auswählbaren Emulatoren.
+
+**Version 0.64.0: LaurinOS heißt jetzt PaimenOS.** Paimen ist Finnisch für Schäfer. Oberfläche, Python-Paket, Dienste, Befehle, Datenverzeichnisse und Release-Dateien verwenden den neuen Namen. Diese Version benötigt eine Neuinstallation auf frischem Debian 12 oder 13; bestehende LaurinOS-Installationen werden nicht automatisch übernommen. Eigene Bilder, ROMs und Spielstände vor der Neuinstallation sichern.
+
+Das mitgelieferte PaimenOS-Plymouth-Theme mit Logo und grünem Ladekreis ersetzt Pixels.
 
 ## Installieren
 
@@ -28,30 +32,22 @@ sudo bash install.sh --resume
 
 Details und Installationsschalter stehen in [docs/installation.md](docs/installation.md).
 
-Das Setup aktiviert das mitgelieferte PaimenOS-Boot- und Shutdown-Theme ohne externen Theme-Download. Nach einem vollständigen Code-Update auf einem bereits eingerichteten Gerät das Theme einmalig aktivieren:
+Das Setup aktiviert das mitgelieferte PaimenOS-Boot- und Shutdown-Theme ohne externen Theme-Download. Nach einem vollständigen Code-Update auf einem bereits eingerichteten PaimenOS-Gerät das Theme einmalig aktivieren:
 
 ```bash
-sudo python3 /usr/local/lib/laurinos/current/tools/install-paimenos-plymouth.py --activate
+sudo python3 /usr/local/lib/paimenos/current/tools/install-paimenos-plymouth.py --activate
 ```
 
 Anschließend selbst neu starten. Weitere Hinweise und Rückkehr zu einem bisherigen Theme stehen unter [Plymouth](docs/installation.md#paimenos-plymouth-theme).
 
-Auf bereits installierten Geräten wird die Family-DNS-Systemkonfiguration durch ein Code-Update nicht geändert. Die Änderung aus 0.62.0 daher einmalig aus dem entpackten neuen Projektordner anwenden:
-
-```bash
-sudo python3 tools/configure-dns.py family config/resolved/laurinos-family-dns.conf
-resolvectl status
-```
-
-Bei Erfolg erscheint unter `Global` die Routing-Domain `~.`. Bei fehlgeschlagener Namensauflösung stellt der Helfer die vorherige Konfiguration wieder her und meldet dies ausdrücklich.
 
 ## Code aktualisieren
 
-Im Eltern-Webbackend unter **Updates** neue stabile Versionen prüfen und installieren. Ein Hinweis erscheint auf allen angemeldeten Backend-Seiten, sobald ein neueres Release verfügbar ist. Quelle ist [xJohnDoe993/LaurinOS](https://github.com/xJohnDoe993/LaurinOS/releases).
+Im Eltern-Webbackend unter **Updates** neue stabile Versionen prüfen und installieren. Ein Hinweis erscheint auf allen angemeldeten Backend-Seiten, sobald ein neueres Release verfügbar ist. Quelle ist das [bestehende GitHub-Repo](https://github.com/xJohnDoe993/LaurinOS/releases). Sein Repository-Name wird separat geändert; [Hinweise zur Umbenennung](docs/updating.md#repository-auf-github-umbenennen).
 
-ZIP und SHA-256 lassen sich automatisch auf GitHub erzeugen: **Actions → LaurinOS Release vorbereiten → Run workflow**. Der Workflow erstellt einen Release-Entwurf mit beiden Dateien. Anleitung: [Automatischer Release-Build](docs/updating.md#automatischer-release-build-auf-github).
+ZIP und SHA-256 lassen sich automatisch auf GitHub erzeugen: **Actions → PaimenOS Release vorbereiten → Run workflow**. Der Workflow erstellt einen Release-Entwurf mit beiden Dateien. Anleitung: [Automatischer Release-Build](docs/updating.md#automatischer-release-build-auf-github).
 
-Für die einmalige Einrichtung auf 0.60.0 oder ein manuelles Update das neue Release auf das Gerät kopieren, in dessen Ordner wechseln und zunächst prüfen:
+Für ein manuelles Update einer vorhandenen PaimenOS-Installation das neue Release auf das Gerät kopieren, in dessen Ordner wechseln und zunächst prüfen:
 
 ```bash
 bash update.sh --check
@@ -70,7 +66,7 @@ Zur vorherigen Code-Version zurückkehren:
 sudo bash update.sh --rollback
 ```
 
-Updates starten die LaurinOS-Dienste und eine aktive Kindersitzung neu. Vorher laufende Apps und Spiele beenden. Eltern-Einstellungen, App-Listen, eigene Bilder, ROMs und Spielstände werden nicht aus dem Repo überschrieben. Fehlende Debian-Pakete aus `data/update-packages.json` werden beim Backend-Update und mit `update.sh` automatisch nachinstalliert. Dafür ist Internet erforderlich. Übrige Systemkonfiguration und Flatpak-Einrichtung benötigen weiterhin eigene Einrichtungsschritte; Systemd-Units lassen sich über die Komponente `services` aktualisieren.
+Updates starten die PaimenOS-Dienste und eine aktive Kindersitzung neu. Vorher laufende Apps und Spiele beenden. Eltern-Einstellungen, App-Listen, eigene Bilder, ROMs und Spielstände werden nicht aus dem Repo überschrieben. Fehlende Debian-Pakete aus `data/update-packages.json` werden beim Backend-Update und mit `update.sh` automatisch nachinstalliert. Dafür ist Internet erforderlich. Übrige Systemkonfiguration und Flatpak-Einrichtung benötigen weiterhin eigene Einrichtungsschritte; Systemd-Units lassen sich über die Komponente `services` aktualisieren.
 
 [docs/updating.md](docs/updating.md) enthält die Schritt-für-Schritt-Anleitung für GitHub-Releases, die einmalige Einrichtung, Grenzen, Teilupdates und Rollback.
 
@@ -95,7 +91,7 @@ Für die Entwicklung wird der Quellcode direkt bearbeitet. Auf dem Kindergerät 
 
 | Verzeichnis | Inhalt |
 |---|---|
-| `src/laurinos/` | Python-Paket: Menü, Elternbereich, Controller, WLAN/Bluetooth, Emulatoren, Bildschirmzeit |
+| `src/paimenos/` | Python-Paket: Menü, Elternbereich, Controller, WLAN/Bluetooth, Emulatoren, Bildschirmzeit |
 | `installer/` | Installation in thematischen Bash-Modulen; gemeinsame Helfer und Variablen |
 | `config/` | Openbox, Firefox, LightDM, Polkit, NetworkManager, TLP und weitere Systemkonfiguration |
 | `systemd/` | System- und Benutzerdienste |

@@ -1,0 +1,28 @@
+[Unit]
+Description=PaimenOS GitHub-Release-Prüfung
+After=network-online.target paimenos-packages.service
+Requires=paimenos-packages.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=kids
+WorkingDirectory=/usr/local/lib/paimenos/current
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py update_service --serve
+RuntimeDirectory=paimenos-updates
+RuntimeDirectoryMode=0750
+StateDirectory=paimenos/updates
+StateDirectoryMode=0700
+Restart=on-failure
+RestartSec=3
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
