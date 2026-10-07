@@ -20,7 +20,9 @@ echo
 echo "============================================================"
 echo " INSTALLATION ERFOLGREICH ABGESCHLOSSEN (0.60.0)"
 echo "============================================================"
-if [[ "$PAIMENOS_WIFI_READY" != true ]]; then
+if [[ "${PAIMENOS_WIFI_PENDING:-false}" == true ]]; then
+    echo " WLAN-PROFIL VORBEREITET: NetworkManager übernimmt beim regulären Neustart."
+elif [[ "$PAIMENOS_WIFI_READY" != true ]]; then
     echo " WLAN-VERWALTUNG OFFEN: Bestehende Netzwerkverbindung wurde beibehalten."
     echo " WLAN-Menü und automatische Wiederverbindung nach dem Neustart prüfen."
 fi

@@ -178,7 +178,8 @@
         "assets/plymouth/paimenos/spin-6.png",
         "assets/plymouth/paimenos/spin-7.png",
         "assets/plymouth/paimenos/spin-8.png",
-        "assets/plymouth/paimenos/spin-9.png"
+        "assets/plymouth/paimenos/spin-9.png",
+        "tools/stage-wifi.py"
       ]
     },
     "services": {
@@ -196,7 +197,8 @@
         "systemd/user/paimenos-menu.service",
         "systemd/user/paimenos-osd.service",
         "systemd/user/paimenos-session.target",
-        "systemd/user/paimenos-timer.service"
+        "systemd/user/paimenos-timer.service",
+        "systemd/system/paimenos-wifi-migration.service"
       ]
     }
   }
