@@ -2,7 +2,7 @@
 
 LaurinOS macht einen Debian-Laptop zum Kinder-PC mit Kachelmenü, lokalen und webbasierten Eltern-Einstellungen, Bildschirmzeit, Kamera-/USB-Medien, Controller-Steuerung und auswählbaren Emulatoren.
 
-**Version 0.63.5: Videoausgabe über eine Qt-Zeichenfläche, damit Doppelklick, F11 und Esc auch bei GStreamer mit OpenGL funktionieren.** Updates aus GitHub-Releases stehen im Elternbackend bereit. Neuinstallationen benötigen Debian 12 oder 13. Eine modulare 0.60.0-Installation kann einmalig mit `sudo bash update.sh` aus diesem Projektordner aktualisiert werden. Bestehende v59-Installationen werden nicht migriert.
+**Version 0.63.6: Eigenes PaimenOS-Plymouth-Theme mit sanftem Logo und grünem Ladekreis ersetzt Pixels.** Die Video-Eingabekorrektur aus 0.63.5 ist weiterhin enthalten. Updates aus GitHub-Releases stehen im Elternbackend bereit. Neuinstallationen benötigen Debian 12 oder 13. Eine modulare 0.60.0-Installation kann einmalig mit `sudo bash update.sh` aus diesem Projektordner aktualisiert werden. Bestehende v59-Installationen werden nicht migriert.
 
 ## Installieren
 
@@ -27,6 +27,14 @@ sudo bash install.sh --resume
 ```
 
 Details und Installationsschalter stehen in [docs/installation.md](docs/installation.md).
+
+Das Setup aktiviert das mitgelieferte PaimenOS-Boot- und Shutdown-Theme ohne externen Theme-Download. Nach einem vollständigen Code-Update auf einem bereits eingerichteten Gerät das Theme einmalig aktivieren:
+
+```bash
+sudo python3 /usr/local/lib/laurinos/current/tools/install-paimenos-plymouth.py --activate
+```
+
+Anschließend selbst neu starten. Weitere Hinweise und Rückkehr zu einem bisherigen Theme stehen unter [Plymouth](docs/installation.md#paimenos-plymouth-theme).
 
 Auf bereits installierten Geräten wird die Family-DNS-Systemkonfiguration durch ein Code-Update nicht geändert. Die Änderung aus 0.62.0 daher einmalig aus dem entpackten neuen Projektordner anwenden:
 

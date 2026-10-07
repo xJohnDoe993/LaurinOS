@@ -22,6 +22,54 @@ Eine unvollständige modulare Installation lässt sich mit `sudo bash install.sh
 
 Das Setup installiert auch die in `data/update-packages.json` deklarierten Debian-Pakete. Spätere Releases können dort weitere Abhängigkeiten aufnehmen: Backend-Updates und manuelle Updates installieren fehlende Pakete automatisch. Auch der erste vollständige Übergang von 0.61.0/0.62.0 auf ein Release mit dieser Funktion benötigt keinen zusätzlichen Paketbefehl. Weitere Einzelheiten stehen unter [Updates](updating.md#debian-pakete-bei-updates).
 
+## PaimenOS-Plymouth-Theme
+
+Ab Version `0.63.6` installiert das Setup das eigene PaimenOS-Theme anstelle von
+Pixels. Logo, native Plymouth-Skriptdatei und 48 kleine Ladekreis-Bilder sind im
+Projekt enthalten; ein externer Theme-Download entfällt. Der Hintergrund ist hell,
+das Logo blendet sanft ein und pulsiert dezent. Die Wortmarke dreht sich nicht.
+Der Ladekreis zeigt Aktivität, keinen künstlichen Prozentwert. Die Animation
+verzögert den Systemstart nicht absichtlich und unterstützt Passwort-/Frageabfragen.
+
+Normale Code-Updates transportieren die Theme-Dateien als Teil der Komponente
+`tools`, aktivieren sie jedoch nicht automatisch. Auf einem bereits eingerichteten
+Gerät nach einem vollständigen Update einmalig ausführen:
+
+```bash
+sudo python3 /usr/local/lib/laurinos/current/tools/install-paimenos-plymouth.py --activate
+```
+
+Alternativ nach dem Entpacken dieses Release-Projekts aus dessen Ordner:
+
+```bash
+sudo python3 tools/install-paimenos-plymouth.py --activate
+```
+
+Der Befehl prüft die Quelldateien, installiert das Theme, wählt `paimenos`, erhält
+bestehende GRUB-Kerneloptionen und baut die initramfs für alle vorhandenen Kernel
+neu. Laufende LaurinOS-Wartung oder Paketinstallation verhindert einen parallelen
+Aufruf. Anschließend selbst neu starten; der Helfer startet nicht automatisch neu.
+Fehler werden gemeldet; bei fehlgeschlagener Aktivierung wird versucht, die bisherige
+Theme-Auswahl und GRUB-Konfiguration samt Startabbildern wiederherzustellen.
+
+Nur die Dateien prüfen, ohne Systemänderung:
+
+```bash
+python3 tools/install-paimenos-plymouth.py --check
+```
+
+Das bisher installierte Pixels-Theme wird nicht entfernt. Zur Rückkehr, falls es
+auf dem Gerät vorhanden ist:
+
+```bash
+sudo plymouth-set-default-theme -R pixels
+```
+
+Andere installierte Themes zeigt `plymouth-set-default-theme --list`. Ein normaler
+Code-Rollback ändert das separat eingerichtete Plymouth-Theme nicht. Bei Änderungen
+an den 52 Theme-Dateien muss auch `assets/plymouth/paimenos/SHA256SUMS` aktualisiert
+werden; `tools/check.py` prüft diese Hashes und die PNG-Struktur.
+
 ## DNS während des Setups
 
 Vor der Basis-Paketinstallation prüft das Setup die Auflösung von `deb.debian.org`, sichert `resolv.conf` und übernimmt bekannte Upstream-DNS-Server als Bootstrap-Konfiguration. Das ist nötig, weil die Installation von `systemd-resolved` selbst `resolv.conf` ersetzen kann. Nach der Paketinstallation wird DNS erneut geprüft; bei einem Fehler wird der vorherige Resolver-Zustand wiederhergestellt und geprüft.
