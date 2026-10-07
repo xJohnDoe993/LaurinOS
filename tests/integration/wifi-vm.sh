@@ -9,8 +9,8 @@ qemu_pid=''
 trap '[[ -z "$qemu_pid" ]] || kill "$qemu_pid" 2>/dev/null || true; rm -rf "$work"' EXIT
 image="debian-$version-generic-amd64.qcow2"
 url="https://cloud.debian.org/images/cloud/$release/latest"
-curl --fail --retry 3 "$url/$image" -o "$work/disk.qcow2"
-curl --fail --retry 3 "$url/SHA512SUMS" -o "$work/SHA512SUMS"
+curl --location --fail --retry 3 "$url/$image" -o "$work/disk.qcow2"
+curl --location --fail --retry 3 "$url/SHA512SUMS" -o "$work/SHA512SUMS"
 checksum=$(awk -v file="$image" '$2 == file || $2 == "*"file {print $1}' "$work/SHA512SUMS")
 [[ "$checksum" =~ ^[a-fA-F0-9]{128}$ ]]
 printf '%s  %s\n' "$checksum" "$work/disk.qcow2" | sha512sum --check
