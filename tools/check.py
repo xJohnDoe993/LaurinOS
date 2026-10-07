@@ -15,6 +15,10 @@ spec = importlib.util.spec_from_file_location('deploy', ROOT / 'tools/deploy.py'
 deploy = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(deploy)
 manifest = deploy.validate_source(ROOT)
+theme_spec = importlib.util.spec_from_file_location('plymouth_theme', ROOT / 'tools/install-paimenos-plymouth.py')
+theme = importlib.util.module_from_spec(theme_spec)
+theme_spec.loader.exec_module(theme)
+theme.validate_assets()
 python_files = sorted([ROOT / 'run.py', *(ROOT / 'src').rglob('*.py'), *(ROOT / 'tools').glob('*.py'), *(ROOT / 'tests').glob('*.py'), *(ROOT / '.github/scripts').glob('*.py')])
 for path in python_files:
     compile(path.read_bytes(), str(path), 'exec')

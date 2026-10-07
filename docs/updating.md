@@ -1,5 +1,14 @@
 # Updates und Releases
 
+## PaimenOS-Boot-Theme ab 0.63.6
+
+Das Release ersetzt im Setup das externe Pixels-Theme durch das mitgelieferte
+PaimenOS-Theme. Ein vollständiges Code-Update bzw. ein Teilupdate von `tools`
+übernimmt den Helfer und alle Theme-Ressourcen. Wie bei der übrigen
+Systemkonfiguration aktiviert das Code-Update das Boot-Theme nicht selbst.
+Die einmalige Aktivierung auf bestehenden Geräten und die Rückkehr zu einem
+bisherigen Theme stehen unter [Plymouth](installation.md#paimenos-plymouth-theme).
+
 ## GitHub als Update-Quelle
 
 Das Eltern-Webbackend verwendet fest [xJohnDoe993/LaurinOS](https://github.com/xJohnDoe993/LaurinOS/releases). Der root-Dienst `laurinos-updates.service` prüft beim Start und danach alle sechs Stunden das neueste veröffentlichte stabile Release. Entwürfe und Pre-Releases werden nicht angeboten. Die Version muss `vMAJOR.MINOR.PATCH` heißen, beispielsweise `v0.61.0`; intern steht `0.61.0` in `VERSION` und Manifest. Versionsnummern werden numerisch verglichen. Ein installiertes neueres Modul wird nicht durch ein älteres Release ersetzt.
