@@ -812,14 +812,6 @@ class PaimenOSMenu(QWidget):
         self.main_layout.setContentsMargins(40, 20, 40, 30)
 
         top_layout = QHBoxLayout()
-        logo = QLabel()
-        logo.setFixedSize(90, 90)
-        logo.setAlignment(Qt.AlignCenter)
-        logo.setStyleSheet('background:#fffdf6;border-radius:14px;')
-        logo.setPixmap(QPixmap(str(ASSETS_DIR / 'branding/paimenos-logo.png')).scaled(
-            80, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        logo.setAccessibleName('PaimenOS Logo')
-        top_layout.addWidget(logo)
         time_box = QVBoxLayout()
         self.time_label = QLabel()
         self.time_label.setFont(QFont("DejaVu Sans", 38, QFont.Bold))
