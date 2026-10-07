@@ -1,162 +1,158 @@
 #!/bin/bash
-# PaimenOS: WLAN aus ifupdown an NetworkManager übergeben; WPA-Socket-Konflikt beheben.
-# Aufruf: sudo bash PaimenOS-WLAN-Ifupdown-Fix-v48.sh [WLAN-Adapter]
-# Bestehende WLAN-Profile und WPA-Konfigurationsdateien bleiben erhalten.
+# Preserve Debian's WLAN profile while handing this adapter to NetworkManager.
 set -euo pipefail
 export LC_ALL=C
-if [[ "$EUID" -ne 0 ]]; then
-    echo "Bitte mit sudo bash PaimenOS-WLAN-Ifupdown-Fix-v48.sh ausführen." >&2
-    exit 1
+if [[ "$EUID" -ne 0 ]]; then echo "Bitte mit sudo ausführen." >&2; exit 1; fi
+if (( $# != 1 )) || [[ ! "$1" =~ ^[a-zA-Z0-9_-]{1,15}$ ]]; then
+    echo "Bitte genau einen gültigen WLAN-Adapter angeben." >&2; exit 1
 fi
-if (( $# > 1 )); then echo "Bitte genau einen WLAN-Adapter angeben." >&2; exit 1; fi
-WIFI_DEVICE=${1:-wlp3s0}
-if [[ ! "$WIFI_DEVICE" =~ ^[a-zA-Z0-9_-]{1,15}$ ]]; then
-    echo "Ungültiger Adaptername." >&2; exit 1
-fi
-for command in nmcli systemctl ss awk ps python3; do
-    if ! command -v "$command" >/dev/null 2>&1; then
-        echo "Benötigtes Programm fehlt: $command" >&2; exit 1
-    fi
+WIFI_DEVICE=$1
+for command in nmcli systemctl ss awk python3 ifquery ifdown ifup timeout getent ip; do
+    command -v "$command" >/dev/null 2>&1 || { echo "Benötigtes Programm fehlt: $command" >&2; exit 1; }
 done
-if [[ "$(nmcli -g GENERAL.TYPE device show "$WIFI_DEVICE")" != wifi ]]; then
-    echo "Kein WLAN-Adapter: $WIFI_DEVICE" >&2; exit 1
-fi
-for service in NetworkManager.service wpa_supplicant.service; do
-    if [[ "$(systemctl show -p LoadState --value "$service")" != loaded ]]; then
-        echo "Dienst fehlt oder ist gesperrt: $service" >&2; exit 1
-    fi
-done
+[[ "$(nmcli -g GENERAL.TYPE device show "$WIFI_DEVICE")" == wifi ]] || {
+    echo "Kein WLAN-Adapter: $WIFI_DEVICE" >&2; exit 1;
+}
 SOCKET_DIR=/run/wpa_supplicant
 SOCKET_PATH="$SOCKET_DIR/$WIFI_DEVICE"
 if [[ -L "$SOCKET_DIR" || -L "$SOCKET_PATH" ]]; then
-    echo "Unerwarteter Symlink am WPA-Socket. Reparatur abgebrochen." >&2; exit 1
+    echo "Unerwarteter Symlink am WPA-Socket. Übergabe abgebrochen." >&2; exit 1
 fi
 IFUP_UNIT="ifup@$WIFI_DEVICE.service"
 BACKUP=$(mktemp -d /var/backups/paimenos-wlan-ifupdown.XXXXXX)
 chmod 0700 "$BACKUP"
 install -m 0600 /usr/local/lib/paimenos/current/tools/wifi-handoff.py "$BACKUP/handoff.py"
-chmod 0600 "$BACKUP/handoff.py"
+# Refuse unsupported configurations before touching the running connection.
 python3 -I "$BACKUP/handoff.py" prepare "$WIFI_DEVICE" "$BACKUP"
+python3 -I "$BACKUP/handoff.py" profile "$WIFI_DEVICE" "$BACKUP"
+PROFILE_UUID=$(cat "$BACKUP/profile.uuid")
+PROFILE="/etc/NetworkManager/system-connections/paimenos-debian-$PROFILE_UUID.nmconnection"
+POLICY="/etc/NetworkManager/conf.d/99-paimenos-handoff-$WIFI_DEVICE.conf"
+[[ ! -e "$PROFILE" && ! -L "$PROFILE" ]] || exit 1
+if [[ -L "$POLICY" || ( -e "$POLICY" && ! -f "$POLICY" ) ]]; then
+    echo "Unerwartetes Ziel für die WLAN-Verwaltungsregel." >&2; exit 1
+fi
+if [[ -f "$POLICY" ]]; then cp -a -- "$POLICY" "$BACKUP/policy.conf"; fi
+cp -a -- /etc/resolv.conf "$BACKUP/resolv.conf"
+timeout 15 getent ahostsv4 deb.debian.org >/dev/null || {
+    echo "DNS ist vor der WLAN-Übergabe bereits gestört; bestehende Verbindung beibehalten." >&2; exit 1;
+}
+IFUP_WAS_ACTIVE=false
+IFUP_SERVICE_WAS_ACTIVE=false
+if ifquery --state "$WIFI_DEVICE" >/dev/null 2>&1; then IFUP_WAS_ACTIVE=true; fi
+if systemctl is-active --quiet "$IFUP_UNIT"; then IFUP_SERVICE_WAS_ACTIVE=true; fi
 APPLIED=false
 IFUP_MASK_ADDED=false
-declare -a STOPPED_UNITS=() ENABLED_UNITS=() DISABLED_UNITS=() DISABLED_MODES=()
+PROFILE_INSTALLED=false
+POLICY_APPLIED=false
+HANDOFF_STARTED=false
 SUCCESS=false
-RESTORE=false
+declare -a STOPPED_UNITS=() DISABLED_UNITS=() DISABLED_MODES=()
 finish() {
-    local code=$? unit index
+    local code=$? unit index rollback_failed=false
     trap - EXIT
-    if [[ "$RESTORE" == true ]]; then
-        # Bei einem Fehlschlag zuvor laufende Einzelinstanzen wiederherstellen.
-        if [[ "$SUCCESS" != true ]]; then
-            if [[ "$IFUP_MASK_ADDED" == true ]]; then systemctl unmask "$IFUP_UNIT" || code=1; fi
+    if [[ "$SUCCESS" != true && "$PROFILE_INSTALLED" == true ]]; then
+        # Release only this adapter, never stop NetworkManager/other connections.
+        nmcli --wait 10 connection down uuid "$PROFILE_UUID" >/dev/null 2>&1 || true
+        nmcli --wait 10 connection delete uuid "$PROFILE_UUID" >/dev/null 2>&1 || true
+        rm -f -- "$PROFILE"
+        if [[ "$HANDOFF_STARTED" == true ]]; then
+            nmcli --wait 10 device set "$WIFI_DEVICE" managed no || rollback_failed=true
+            if [[ "$IFUP_MASK_ADDED" == true ]]; then systemctl unmask "$IFUP_UNIT" || rollback_failed=true; fi
             if [[ "$APPLIED" == true ]]; then
-                python3 -I "$BACKUP/handoff.py" restore "$WIFI_DEVICE" "$BACKUP" || code=1
+                python3 -I "$BACKUP/handoff.py" restore "$WIFI_DEVICE" "$BACKUP" || rollback_failed=true
+            fi
+            if [[ "$POLICY_APPLIED" == true ]]; then
+                if [[ -f "$BACKUP/policy.conf" ]]; then cp -a -- "$BACKUP/policy.conf" "$POLICY" || rollback_failed=true
+                else rm -f -- "$POLICY"; fi
+                nmcli --wait 10 general reload conf || rollback_failed=true
+                nmcli --wait 10 device set "$WIFI_DEVICE" managed no || rollback_failed=true
             fi
             for ((index=0; index<${#DISABLED_UNITS[@]}; index++)); do
                 if [[ "${DISABLED_MODES[index]}" == enabled-runtime ]]; then
-                    systemctl --runtime enable "${DISABLED_UNITS[index]}" || true
-                else
-                    systemctl enable "${DISABLED_UNITS[index]}" || true
-                fi
+                    systemctl --runtime enable "${DISABLED_UNITS[index]}" || rollback_failed=true
+                else systemctl enable "${DISABLED_UNITS[index]}" || rollback_failed=true; fi
             done
-            for unit in "${STOPPED_UNITS[@]}"; do systemctl start "$unit" || true; done
+            for unit in "${STOPPED_UNITS[@]}"; do systemctl start "$unit" || rollback_failed=true; done
+            if [[ "$IFUP_SERVICE_WAS_ACTIVE" == true ]]; then systemctl start "$IFUP_UNIT" || rollback_failed=true; fi
+            if [[ "$IFUP_WAS_ACTIVE" == true ]]; then
+                ifup "$WIFI_DEVICE" || rollback_failed=true
+                ifquery --state "$WIFI_DEVICE" >/dev/null 2>&1 || rollback_failed=true
+            fi
+            cp -a --remove-destination -- "$BACKUP/resolv.conf" /etc/resolv.conf || rollback_failed=true
+            if timeout 15 getent ahostsv4 deb.debian.org >/dev/null && [[ "$rollback_failed" != true ]]; then
+                echo "Übergabe fehlgeschlagen; bisherige Debian-WLAN-Verwaltung und DNS wiederhergestellt." >&2
+            else
+                echo "FEHLER: Rückkehr zur Debian-Konfiguration nicht vollständig bestätigt; Verbindung/DNS prüfen. Sicherung: $BACKUP" >&2
+                code=1
+            fi
         fi
-        systemctl start wpa_supplicant.service || code=1
-        systemctl start NetworkManager.service || code=1
     fi
     exit "$code"
 }
 trap finish EXIT
-echo "WLAN-Reparatur für $WIFI_DEVICE. Netzwerkverbindungen werden kurz unterbrochen."
-RESTORE=true
-systemctl stop NetworkManager.service
-# ifup muss noch mit der bisherigen Konfiguration herunterfahren können.
-if [[ "$(systemctl show -p LoadState --value "$IFUP_UNIT")" == loaded ]]; then
-    if systemctl is-active --quiet "$IFUP_UNIT"; then STOPPED_UNITS+=("$IFUP_UNIT"); fi
-    systemctl stop "$IFUP_UNIT"
-fi
+trap 'exit 130' INT
+trap 'exit 143' TERM
+install -d -o root -g root -m 0700 /etc/NetworkManager/system-connections
+PROFILE_INSTALLED=true
+install -o root -g root -m 0600 "$BACKUP/profile.nmconnection" "$PROFILE"
+# Loading validates credentials/profile syntax while Debian WLAN is still up.
+nmcli --wait 10 connection load "$PROFILE"
+nmcli -g connection.uuid connection show uuid "$PROFILE_UUID" >/dev/null
+echo "WLAN $WIFI_DEVICE wird mit dem bisherigen Profil übernommen; kurze Wiederverbindung."
+HANDOFF_STARTED=true
+nmcli --wait 10 device set "$WIFI_DEVICE" managed no
+if [[ "$IFUP_SERVICE_WAS_ACTIVE" == true ]]; then systemctl stop "$IFUP_UNIT"; fi
+if [[ "$IFUP_WAS_ACTIVE" == true ]]; then ifdown "$WIFI_DEVICE"; fi
 APPLIED=true
 python3 -I "$BACKUP/handoff.py" apply "$WIFI_DEVICE" "$BACKUP"
-# Nur nachweislich laufende Einzelinstanzen genau dieses Adapters stoppen.
 for unit in "wpa_supplicant@$WIFI_DEVICE.service" "wpa_supplicant-nl80211@$WIFI_DEVICE.service"; do
     if systemctl is-active --quiet "$unit"; then
         STOPPED_UNITS+=("$unit")
-        enabled=$(systemctl is-enabled "$unit" 2>/dev/null || true)
-        if [[ "$enabled" == enabled || "$enabled" == enabled-runtime ]]; then
-            ENABLED_UNITS+=("$unit")
-        fi
-        echo "Zusätzliche WPA-Instanz gestoppt: $unit"
         systemctl stop "$unit"
     fi
 done
-systemctl stop wpa_supplicant.service
-# Auch gebundene Datagramm-Sockets prüfen, nicht nur Listener.
-if ! SOCKETS=$(ss -xapnH); then
-    echo "Socket-Besitzer konnte nicht geprüft werden. Keine Bereinigung durchgeführt." >&2
-    exit 1
-fi
-OWNERS=$(awk -v target="$SOCKET_PATH" '{for(i=1;i<=NF;i++) if($i==target){print;break}}' <<< "$SOCKETS")
+# Do not remove a live socket or stop the global supplicant used by other Wi-Fi.
+for attempt in {1..16}; do
+    SOCKETS=$(ss -xapnH)
+    OWNERS=$(awk -v target="$SOCKET_PATH" '{for(i=1;i<=NF;i++) if($i==target){print;break}}' <<< "$SOCKETS")
+    [[ -n "$OWNERS" ]] || break
+    sleep 0.25
+done
 if [[ -n "$OWNERS" ]]; then
-    echo "Eine weitere laufende Instanz besitzt den WLAN-Socket. Bitte diese Ausgabe senden:" >&2
-    echo "$OWNERS" >&2
-    ps -C wpa_supplicant -o pid=,comm=,unit= >&2 || true
-    echo "Der laufende Socket wurde nicht entfernt. Die bisherigen Dienste werden wieder gestartet." >&2
-    exit 1
+    echo "WLAN-Socket weiterhin belegt; sichere Übergabe nicht möglich." >&2; exit 1
 fi
 if [[ -e "$SOCKET_PATH" && ! -S "$SOCKET_PATH" ]]; then
-    echo "Der WPA-Pfad ist kein Socket. Reparatur abgebrochen." >&2; exit 1
+    echo "WPA-Pfad ist kein Socket; Übergabe abgebrochen." >&2; exit 1
 fi
-if [[ -S "$SOCKET_PATH" ]]; then
-    rm -- "$SOCKET_PATH"
-    echo "Unbenutzten WLAN-Steuersocket entfernt."
-fi
-systemctl start wpa_supplicant.service
-systemctl start NetworkManager.service
+if [[ -S "$SOCKET_PATH" ]]; then rm -- "$SOCKET_PATH"; fi
+install -d -o root -g root -m 0755 /etc/NetworkManager/conf.d
+POLICY_APPLIED=true
+printf '[device-paimenos-handoff-%s]\nmatch-device=interface-name:%s\nmanaged=1\n' "$WIFI_DEVICE" "$WIFI_DEVICE" > "$BACKUP/new-policy.conf"
+install -o root -g root -m 0644 "$BACKUP/new-policy.conf" "$POLICY"
+nmcli --wait 10 general reload conf
 nmcli --wait 10 device set "$WIFI_DEVICE" managed yes
-READY=false
-for (( attempt=0; attempt<30; attempt++ )); do
-    state=$(nmcli -g GENERAL.STATE device show "$WIFI_DEVICE" 2>/dev/null || true)
-    case "$state" in
-        '30 '*|'100 '*) READY=true; break ;;
-    esac
-    sleep 1
-done
-if [[ "$READY" != true ]]; then
-    echo "Adapter weiterhin nicht betriebsbereit. Bitte die folgende Ausgabe senden:" >&2
-    nmcli -f GENERAL device show "$WIFI_DEVICE" >&2 || true
-    journalctl -b -u NetworkManager.service -u wpa_supplicant.service --no-pager -n 60 >&2 || true
-    exit 1
+nmcli --wait 10 connection modify uuid "$PROFILE_UUID" connection.autoconnect yes
+nmcli --wait 45 connection up uuid "$PROFILE_UUID" ifname "$WIFI_DEVICE"
+state=$(nmcli -g GENERAL.STATE device show "$WIFI_DEVICE")
+if [[ "${state%% *}" != 100 ]] || [[ -z "$(nmcli -g IP4.ADDRESS device show "$WIFI_DEVICE")" ]] ||
+    [[ -z "$(ip -4 route show default dev "$WIFI_DEVICE")" ]] ||
+    ! timeout 15 getent ahostsv4 deb.debian.org >/dev/null; then
+    echo "Wiederverbindung/IP/DNS nicht erfolgreich; Debian-Konfiguration wird wiederhergestellt." >&2; exit 1
 fi
-# Hotplug darf diesen WLAN-Adapter künftig nicht erneut über ifup übernehmen.
+# Disable competing autostarts only after actual reconnection and DNS success.
 previous=$(systemctl is-enabled "$IFUP_UNIT" 2>/dev/null || true)
 if [[ "$previous" != masked && "$previous" != masked-runtime ]]; then
     IFUP_MASK_ADDED=true
     systemctl mask "$IFUP_UNIT"
 fi
-echo "ifupdown-Übergabe abgeschlossen. Sicherung: $BACKUP"
-# Erst nach erfolgreicher Übergabe den zusätzlichen Autostart abschalten.
-for unit in "${ENABLED_UNITS[@]}"; do
+for unit in "wpa_supplicant@$WIFI_DEVICE.service" "wpa_supplicant-nl80211@$WIFI_DEVICE.service"; do
     enabled=$(systemctl is-enabled "$unit" 2>/dev/null || true)
-    DISABLED_UNITS+=("$unit"); DISABLED_MODES+=("$enabled")
-    if [[ "$enabled" == enabled-runtime ]]; then
-        systemctl --runtime disable "$unit"
-    else
-        systemctl disable "$unit"
+    if [[ "$enabled" == enabled || "$enabled" == enabled-runtime ]]; then
+        DISABLED_UNITS+=("$unit"); DISABLED_MODES+=("$enabled")
+        if [[ "$enabled" == enabled-runtime ]]; then systemctl --runtime disable "$unit"
+        else systemctl disable "$unit"; fi
     fi
-    echo "Zusätzlicher WPA-Autostart deaktiviert: $unit"
-    echo "Bei Bedarf rückgängig: sudo systemctl enable --now $unit"
 done
 SUCCESS=true
-# Alte Meldungen aus dem kurzen NetworkManager-Ausfall im WLAN-Dienst verwerfen.
-if systemctl is-active --quiet paimenos-wifi.service; then
-    systemctl restart paimenos-wifi.service
-fi
-echo "Adapter ist betriebsbereit. NetworkManager kann WLAN jetzt verwenden."
-if ! nmcli device wifi rescan ifname "$WIFI_DEVICE"; then
-    echo "Neue Suche noch nicht erlaubt; vorhandene Netzwerkliste wird angezeigt."
-fi
-nmcli device wifi list ifname "$WIFI_DEVICE"
-echo "Jetzt im Elternbereich WLAN öffnen und verbinden."
-echo "Die Übergabe bleibt nach einem Neustart erhalten."
-echo "Manuelle Wiederherstellung: sudo python3 -I $BACKUP/handoff.py restore $WIFI_DEVICE $BACKUP"
-echo "Danach bei Bedarf: sudo systemctl unmask $IFUP_UNIT"
+echo "WLAN verbunden, IP-Adresse und DNS geprüft. Profil bleibt nach Neustart erhalten. Sicherung: $BACKUP"
