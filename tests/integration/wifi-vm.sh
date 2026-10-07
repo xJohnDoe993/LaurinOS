@@ -6,7 +6,7 @@ case "$release" in bookworm) version=12 ;; trixie) version=13 ;; *) exit 2 ;; es
 root=$(cd "$(dirname "$0")/../.." && pwd)
 work=$(mktemp -d)
 qemu_pid=''
-trap '[[ -z "$qemu_pid" ]] || kill "$qemu_pid" 2>/dev/null || true; rm -rf "$work"' EXIT
+trap 'status=$?; if (( status != 0 )); then tail -n 180 "$root/vm-$release.log" 2>/dev/null || true; fi; [[ -z "$qemu_pid" ]] || kill "$qemu_pid" 2>/dev/null || true; rm -rf "$work"' EXIT
 image="debian-$version-generic-amd64.qcow2"
 url="https://cloud.debian.org/images/cloud/$release/latest"
 curl --location --fail --retry 3 "$url/$image" -o "$work/disk.qcow2"
@@ -50,7 +50,11 @@ wait_ssh() {
     return 1
 }
 wait_ssh
-ssh_vm cloud-init status --wait
+for attempt in {1..10}; do
+    if ssh_vm cloud-init status --wait; then break; fi
+    sleep 2
+done
+ssh_vm test -f /source/tests/integration/wifi-guest.sh
 ssh_vm bash /source/tests/integration/wifi-guest.sh install
 boot_before=$(ssh_vm cat /proc/sys/kernel/random/boot_id)
 ssh_vm systemctl reboot || true

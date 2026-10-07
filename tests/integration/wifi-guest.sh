@@ -8,13 +8,13 @@ if [[ "$phase" == install ]]; then
     apt-get update
     apt-get install -y network-manager wpasupplicant ifupdown hostapd dnsmasq iw iptables isc-dhcp-client rfkill
     # Cloud images name these QEMU interfaces consistently after a reboot.
-    [[ -d /sys/class/net/enp0s4 ]] || { ip -br link; exit 1; }
+    [[ -d /sys/class/net/ens4 ]] || { ip -br link; exit 1; }
     install -m 0755 /source/tests/integration/wifi-ap.sh /usr/local/sbin/paimenos-test-ap
     cat > /etc/systemd/system/paimenos-test-ap.service <<'UNIT'
 [Unit]
 DefaultDependencies=no
-After=local-fs.target sys-subsystem-net-devices-enp0s4.device
-Requires=sys-subsystem-net-devices-enp0s4.device
+After=local-fs.target sys-subsystem-net-devices-ens4.device
+Requires=sys-subsystem-net-devices-ens4.device
 Before=networking.service NetworkManager.service paimenos-wifi-migration.service
 [Service]
 Type=oneshot
@@ -36,7 +36,7 @@ CONF
     systemctl restart NetworkManager.service
     ifup wlan0
     # Keep the SSH management link, but force internet traffic through Wi-Fi.
-    ip route del default dev enp0s3 || true
+    ip route del default dev ens3 || true
     printf 'nameserver 192.168.42.1\n' > /etc/resolv.conf
     ip route get 1.1.1.1 | grep -q 'dev wlan0'
     getent ahostsv4 deb.debian.org
@@ -76,7 +76,7 @@ elif [[ "$phase" == reboot ]]; then
     [[ "${state%% *}" == 100 ]]
     ! ifquery wlan0 >/dev/null 2>&1
     nmcli -g GENERAL.CONNECTION device show wlan0 | grep -q 'PaimenOS Debian WLAN'
-    ip route del default dev enp0s3 || true
+    ip route del default dev ens3 || true
     ip route get 1.1.1.1 | grep -q 'dev wlan0'
     getent ahostsv4 deb.debian.org
     apt-get update
