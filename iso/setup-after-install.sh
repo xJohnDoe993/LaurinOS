@@ -19,6 +19,10 @@ if [[ ! -f $SUCCESS ]]; then
             ''|2) ;;
             *) continue ;;
         esac
+        if ! /usr/bin/python3 "$SOURCE/iso/prepare-apt.py"; then
+            printf 'Paketquellen konnten nicht vorbereitet werden. Bitte prüfen und erneut versuchen.\n'
+            continue
+        fi
         args=()
         if [[ -e /usr/local/lib/paimenos/current ]]; then args+=(--resume); fi
         # App, emulator and PIN prompts are handled by install.sh unchanged.
