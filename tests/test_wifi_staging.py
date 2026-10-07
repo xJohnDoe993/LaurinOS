@@ -59,6 +59,22 @@ class StagingTests(unittest.TestCase):
     def test_resume_replaces_pending_plan_without_duplicate_profiles(self):
         self.prepare(); self.prepare(); self.migration.apply()
         self.assertEqual(len(list(self.migration.connections.glob('*.nmconnection'))), 1)
+    def test_restored_nm_connection_cancels_obsolete_pending_plan(self):
+        self.prepare()
+        previous = self.simulate
+        def run(args, **kwargs):
+            if args[0] == 'ifquery': return subprocess.CompletedProcess(args, 1, stdout='', stderr='')
+            return previous(args, **kwargs)
+        self.migration.run = run
+        self.assertFalse(self.migration.prepare())
+        self.assertFalse(self.migration.pending.exists())
+        self.assertEqual(self.config.read_text(), self.original)
+    def test_setup_does_not_replace_an_interrupted_boot_transaction(self):
+        self.prepare()
+        old = self.migration.pending.read_bytes()
+        self.migration.journal.write_text('{}')
+        with self.assertRaises(ValueError): self.migration.prepare()
+        self.assertEqual(self.migration.pending.read_bytes(), old)
     def test_invalid_profile_leaves_files_and_previous_plan_unchanged(self):
         self.prepare(); old = self.migration.pending.read_bytes()
         self.fail = '--offline'
@@ -78,6 +94,8 @@ class StagingTests(unittest.TestCase):
         with self.assertRaises(ValueError): self.migration.apply()
         self.assertEqual(self.config.read_text(), self.original+'# later edit\n')
         self.assertFalse(self.migration.connections.exists())
+        self.assertFalse(self.migration.pending.exists())
+        self.assertTrue((self.migration.state/'failed.json').exists())
     def test_multiple_adapters_sharing_one_file_are_preserved(self):
         self.original += 'allow-hotplug wlan1\niface wlan1 inet dhcp\n wpa-ssid Second\n wpa-psk password123\n'
         self.config.write_text(self.original)

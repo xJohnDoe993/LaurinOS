@@ -14,6 +14,8 @@ echo "Eltern-Webbackend auf Port 80 einrichten ..."
 install_repo_file systemd/system/paimenos-emulators.service /etc/systemd/system/paimenos-emulators.service
 install_repo_file systemd/system/paimenos-updates.service /etc/systemd/system/paimenos-updates.service
 
+install_repo_file systemd/system/paimenos-packages.service /etc/systemd/system/paimenos-packages.service
+
 install_repo_file systemd/system/paimenos-parent-web.service /etc/systemd/system/paimenos-parent-web.service
 
 install_repo_file systemd/system/paimenos-bluetooth.service /etc/systemd/system/paimenos-bluetooth.service
