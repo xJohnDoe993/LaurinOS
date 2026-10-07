@@ -68,5 +68,16 @@ for node in ast.walk(module_trees['parent_web']):
 for path in (ROOT / 'installer').glob('*.sh'):
     for name in re.findall(r'(?:install_repo_file|render_repo_file) ([\w./-]+)', path.read_text()):
         assert (ROOT / name).is_file(), (path.name, name)
+# All required project services must be installed before their dependents start.
+installed_units = set()
+for path in (ROOT / 'installer').glob('*.sh'):
+    installed_units.update(re.findall(r'install_repo_file systemd/system/([\w.-]+)', path.read_text()))
+for name in installed_units:
+    text = (ROOT / 'systemd/system' / name).read_text()
+    for line in text.splitlines():
+        if line.startswith(('Requires=', 'Requisite=', 'BindsTo=')):
+            for dependency in line.split('=', 1)[1].split():
+                if dependency.startswith('paimenos-'):
+                    assert dependency in installed_units, f'Installer: {name} benötigt fehlenden Dienst {dependency}'
 print(f'OK: {len(python_files)} Python-Dateien, {len(shell_files)} Shell-Dateien, Daten, Ressourcen, Importe und Dienstpfade.')
 subprocess.run([sys.executable, '-B', '-m', 'unittest', 'discover', '-s', str(ROOT / 'tests'), '-v'], cwd=ROOT, check=True)
