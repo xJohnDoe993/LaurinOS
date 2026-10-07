@@ -60,15 +60,17 @@ CONF
     [[ ! -f /etc/paimenos-laptop.installed ]]
     cmp /root/interfaces.before /etc/network/interfaces
     ip route get 1.1.1.1 | grep -q 'dev wlan0'
+    cp /home/kids/.config/paimenos/settings.json /root/settings.before
     cp /source/installer/99-finish.sh installer/99-finish.sh
     PAIMENOS_APPS=13 PAIMENOS_APP_SOURCE=debian PAIMENOS_EMULATORS=none PAIMENOS_ENABLE_TLP=0 PAIMENOS_ENABLE_ZRAM=0 PAIMENOS_ENABLE_AUTO_UPDATES=0 PAIMENOS_ENABLE_APP_UPDATES=0 bash install.sh --resume
     [[ -f /etc/paimenos-laptop.installed ]]
+    cmp /root/settings.before /home/kids/.config/paimenos/settings.json
     cmp /root/interfaces.before /etc/network/interfaces
     [[ -f /var/lib/paimenos/wifi-migration/pending.json ]]
     ip route get 1.1.1.1 | grep -q 'dev wlan0'
     getent ahostsv4 deb.debian.org
     apt-get update
-    curl --fail http://127.0.0.1/login >/dev/null
+    curl --fail --retry 60 --retry-delay 2 --retry-connrefused --max-time 10 http://127.0.0.1/login >/dev/null
 elif [[ "$phase" == reboot ]]; then
     # Test the actual boot ordering, not a manual invoke of the migration.
     [[ -f /var/lib/paimenos/wifi-migration/completed.json ]]
@@ -88,7 +90,7 @@ elif [[ "$phase" == reboot ]]; then
     ip route get 1.1.1.1 | grep -q 'dev wlan0'
     getent ahostsv4 deb.debian.org
     apt-get update
-    curl --fail http://127.0.0.1/login >/dev/null
+    curl --fail --retry 60 --retry-delay 2 --retry-connrefused --max-time 10 http://127.0.0.1/login >/dev/null
     systemctl is-active --quiet paimenos-wifi.service
     echo 'PASS: fresh installation, interrupted/resumed setup and reboot Wi-Fi autoconnect'
 else exit 2; fi
