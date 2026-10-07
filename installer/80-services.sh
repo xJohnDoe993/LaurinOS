@@ -30,6 +30,12 @@ systemctl enable paimenos-parent-web.service >/dev/null 2>&1 || true
 # Datei wurde ersetzt: ein laufender Dienst muss den neuen Code laden.
 # Rechte vor Dienststart setzen, nicht erst am Ende des Setups.
 chown -R "${KIDS_USER}:${KIDS_USER}" "${CONFIG_DIR}" "${STATE_DIR}"
+if [[ "${PAIMENOS_IMAGE_BUILD:-0}" == 1 ]]; then
+    install_repo_file config/networkmanager/99-paimenos-wifi-managed.conf /etc/NetworkManager/conf.d/99-paimenos-wifi-managed.conf
+    systemctl enable bluetooth.service
+    PAIMENOS_WIFI_READY=true
+    return 0
+fi
 source "${REPO_DIR}/installer/network.sh"
 systemctl enable --now bluetooth.service
 rfkill unblock bluetooth || echo "Hinweis: Bluetooth ggf. am Hardware-Schalter freigeben." >&2

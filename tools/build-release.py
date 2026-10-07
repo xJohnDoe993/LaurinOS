@@ -12,7 +12,7 @@ version = (ROOT / 'VERSION').read_text().strip()
 output = ROOT / 'dist'
 output.mkdir(exist_ok=True)
 archive = output / ('PaimenOS-' + version + '.zip')
-folders = ['src', 'installer', 'config', 'systemd', 'assets', 'data', 'bin', 'sbin', 'tools', 'tests', 'docs', '.github']
+folders = ['src', 'installer', 'config', 'systemd', 'assets', 'data', 'bin', 'sbin', 'tools', 'tests', 'docs', '.github', 'iso']
 files = [p for p in ROOT.iterdir() if p.is_file() and p.name not in {'.DS_Store'}]
 for folder in folders:
     files.extend(p for p in (ROOT / folder).rglob('*') if p.is_file() and '__pycache__' not in p.parts and p.suffix not in {'.pyc', '.pyo'})

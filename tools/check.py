@@ -19,11 +19,11 @@ theme_spec = importlib.util.spec_from_file_location('plymouth_theme', ROOT / 'to
 theme = importlib.util.module_from_spec(theme_spec)
 theme_spec.loader.exec_module(theme)
 theme.validate_assets()
-python_files = sorted([ROOT / 'run.py', *(ROOT / 'src').rglob('*.py'), *(ROOT / 'tools').glob('*.py'), *(ROOT / 'tests').glob('*.py'), *(ROOT / '.github/scripts').glob('*.py')])
+python_files = sorted([ROOT / 'run.py', *(ROOT / 'src').rglob('*.py'), *(ROOT / 'tools').glob('*.py'), *(ROOT / 'tests').glob('*.py'), *(ROOT / 'iso').glob('*.py'), *(ROOT / '.github/scripts').glob('*.py')])
 for path in python_files:
     compile(path.read_bytes(), str(path), 'exec')
     ast.parse(path.read_text())
-shell_files = [*ROOT.glob('*.sh'), *ROOT.joinpath('installer').glob('*.sh'), *ROOT.joinpath('bin').glob('*'), *ROOT.joinpath('sbin').glob('*'), ROOT / 'config/openbox/autostart']
+shell_files = [*ROOT.glob('*.sh'), *ROOT.joinpath('installer').glob('*.sh'), *ROOT.joinpath('iso').glob('*.sh'), *ROOT.joinpath('bin').glob('*'), *ROOT.joinpath('sbin').glob('*'), ROOT / 'config/openbox/autostart']
 for path in shell_files:
     subprocess.run(['bash', '-n', str(path)], check=True)
 for path in [*ROOT.joinpath('data').glob('*.json'), ROOT / 'config/firefox/policies.json']:

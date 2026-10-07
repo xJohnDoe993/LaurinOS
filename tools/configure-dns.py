@@ -133,6 +133,16 @@ def main():
     args = parser.parse_args()
     if os.geteuid() != 0: parser.error('Bitte mit sudo ausführen.')
     setup = DNSSetup()
+    # live-build has no running resolver; preserve its build-time resolv.conf.
+    if os.environ.get('PAIMENOS_IMAGE_BUILD') == '1':
+        if args.action == 'prepare':
+            setup.write(setup.state, json.dumps({'resolv': setup.snapshot(setup.resolv)}), 0o600)
+        elif args.action == 'recover':
+            setup.restore(setup.resolv, json.loads(setup.state.read_text())['resolv'])
+        else:
+            if args.source is None: parser.error('DNS-Konfigurationsdatei fehlt.')
+            setup.write(setup.family, args.source.read_text())
+        return
     if args.action == 'prepare': setup.prepare()
     elif args.action == 'recover': setup.recover()
     else:
