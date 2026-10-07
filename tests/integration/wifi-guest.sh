@@ -52,10 +52,11 @@ CONF
     cp -a /source /root/PaimenOS
     sed -i '1a exit 77' /root/PaimenOS/installer/99-finish.sh
     cd /root/PaimenOS
-    set +e
-    PAIMENOS_PARENT_PIN=4815 PAIMENOS_APPS=13 PAIMENOS_APP_SOURCE=debian PAIMENOS_EMULATORS=none PAIMENOS_ENABLE_TLP=0 PAIMENOS_ENABLE_ZRAM=0 PAIMENOS_ENABLE_AUTO_UPDATES=0 PAIMENOS_ENABLE_APP_UPDATES=0 bash install.sh
-    code=$?
-    set -e
+    if PAIMENOS_PARENT_PIN=4815 PAIMENOS_APPS=13 PAIMENOS_APP_SOURCE=debian PAIMENOS_EMULATORS=none PAIMENOS_ENABLE_TLP=0 PAIMENOS_ENABLE_ZRAM=0 PAIMENOS_ENABLE_AUTO_UPDATES=0 PAIMENOS_ENABLE_APP_UPDATES=0 bash install.sh; then
+        code=0
+    else
+        code=$?
+    fi
     [[ "$code" == 77 ]]
     [[ ! -f /etc/paimenos-laptop.installed ]]
     cmp /root/interfaces.before /etc/network/interfaces
