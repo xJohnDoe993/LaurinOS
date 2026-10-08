@@ -2,6 +2,7 @@
 from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import os
+import re
 from pathlib import Path
 import signal
 import subprocess
@@ -103,6 +104,14 @@ class FirefoxIntegrationTests(unittest.TestCase):
                             print('CACHE DIAGNOSTICS', flush=True)
                             for path in Path(folder).rglob(f'cache-{attempt}.log*'):
                                 lines = path.read_text(errors='replace').splitlines()
+                                addresses = set()
+                                for index, line in enumerate(lines):
+                                    if 'uri=http://127.0.0.1:' in line and '/asset.js' in line:
+                                        for candidate in lines[max(0,index-5):index+5]:
+                                            addresses.update(re.findall(r'(?:this|channel)=(?:0x)?([0-9a-f]{8,16})', candidate))
+                                for index, line in enumerate(lines):
+                                    if any(address in line for address in addresses):
+                                        print('\n'.join(lines[max(0,index-1):index+3]), flush=True)
                                 print('\n'.join(line for line in lines if any(word in line for word in
                                       ('Validating', 'validating', 'expiration time', 'CheckCache', 'no-cache', 'load flags',
                                        'CacheIndex::ChangeState', 'CacheIndex::Shutdown', 'rcwn', 'Racing')))[-20000:], flush=True)
