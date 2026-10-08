@@ -25,7 +25,11 @@ Profile bleiben unangetastet. Sperrdateien werden nicht gelöscht. Bei einer
 nicht eindeutig zuordenbaren Sperre startet kein zweiter Firefox.
 
 Alte Tabs werden weder nach einem Absturz noch nach einem Betriebssystem-
-Neustart wiederhergestellt. Diese Vorgaben werden auch auf bestehenden
+Neustart wiederhergestellt. Zusätzlich ist der separate Hinweis „Open previous
+tabs? You can restore your previous session…“ über
+`browser.startup.couldRestoreSession.count = -1` deaktiviert. Firefox zeigt
+diesen Hinweis sonst beim zweiten geeigneten Start unabhängig von der
+automatischen Wiederherstellung an. Diese Vorgaben werden auch auf bestehenden
 Webapp-Profilen beim nächsten Start angewendet. Der normale Firefox außerhalb
 des Kinder-Menüs ist davon nicht betroffen.
 

@@ -12,6 +12,7 @@ PREFERENCES = '''user_pref("toolkit.legacyUserProfileCustomizations.stylesheets"
 user_pref("browser.fullscreen.autohide", false);
 user_pref("browser.tabs.drawInTitlebar", true);
 user_pref("browser.startup.page", 0);
+user_pref("browser.startup.couldRestoreSession.count", -1);
 user_pref("browser.sessionstore.resume_from_crash", false);
 user_pref("browser.sessionstore.resume_session_once", false);
 user_pref("browser.sessionstore.resuming_after_os_restart", false);

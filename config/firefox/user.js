@@ -7,6 +7,7 @@ user_pref("network.proxy.no_proxies_on", "localhost, 127.0.0.1");
 user_pref("browser.cache.disk.enable", true);
 user_pref("browser.cache.memory.enable", true);
 user_pref("browser.cache.memory.capacity", -1);
+user_pref("browser.startup.couldRestoreSession.count", -1);
 user_pref("network.dns.disableIPv6", true);
 user_pref("network.dnsCacheEntries", 1000);
 user_pref("network.dnsCacheExpiration", 3600);
