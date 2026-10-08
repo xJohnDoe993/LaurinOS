@@ -10,14 +10,15 @@ from paimenos.fullscreen import FullscreenTracker
 
 
 class CloseButtonOverlay(QWidget):
-    def __init__(self, target_pid):
+    def __init__(self, target_pid, close_pid=None):
         super().__init__()
         self.target_pid = target_pid
+        self.close_pid = close_pid or target_pid
         self.fullscreen = FullscreenTracker(target_pid)
         self.pidfd = None
         try:
             if hasattr(os, 'pidfd_open') and hasattr(signal, 'pidfd_send_signal'):
-                self.pidfd = os.pidfd_open(target_pid)
+                self.pidfd = os.pidfd_open(self.close_pid)
         except OSError:
             pass
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool |
@@ -55,7 +56,7 @@ class CloseButtonOverlay(QWidget):
             if self.pidfd is not None:
                 signal.pidfd_send_signal(self.pidfd, signal.SIGTERM)
             else:
-                os.kill(self.target_pid, signal.SIGTERM)
+                os.kill(self.close_pid, signal.SIGTERM)
         except ProcessLookupError:
             pass
         except OSError as exc:
@@ -101,11 +102,22 @@ class CloseButtonOverlay(QWidget):
 
 
 if __name__ == '__main__':
+    # Reuse the established launcher target so desktop-only updates work with
+    # the previous shared run.py too.
+    if len(sys.argv) > 1 and sys.argv[1] == '--browser':
+        from paimenos.browser import run_browser
+        if len(sys.argv) != 5:
+            raise SystemExit('Aufruf: close_overlay --browser PROFIL VORLAGE URL')
+        try:
+            raise SystemExit(run_browser(*sys.argv[2:]))
+        except OSError as exc:
+            print('Webapp konnte nicht gestartet werden: ' + str(exc), file=sys.stderr, flush=True)
+            raise SystemExit(1)
     app = QApplication(sys.argv)
     if len(sys.argv) > 1:
         pid = int(sys.argv[1])
         if pid <= 1:
             raise ValueError('Ungültiger Webapp-Prozess.')
-        overlay = CloseButtonOverlay(pid)
+        overlay = CloseButtonOverlay(pid, int(sys.argv[2]) if len(sys.argv) > 2 else None)
         overlay.update_overlay()
         sys.exit(app.exec_())

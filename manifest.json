@@ -27,6 +27,7 @@
         "src/paimenos/parent_ui.py",
         "src/paimenos/status_overlay.py",
         "src/paimenos/close_overlay.py",
+        "src/paimenos/browser.py",
         "src/paimenos/lockscreen.py",
         "src/paimenos/timer.py",
         "src/paimenos/media.py"
@@ -124,6 +125,7 @@
         "tools/migrate-flatpak-data.py",
         "tools/native-app-entry.py",
         "tools/render-config.py",
+        "tools/stage-wifi.py",
         "tools/wifi-handoff.py",
         "data/update-packages.json",
         "assets/plymouth/paimenos/SHA256SUMS",
@@ -178,8 +180,7 @@
         "assets/plymouth/paimenos/spin-6.png",
         "assets/plymouth/paimenos/spin-7.png",
         "assets/plymouth/paimenos/spin-8.png",
-        "assets/plymouth/paimenos/spin-9.png",
-        "tools/stage-wifi.py"
+        "assets/plymouth/paimenos/spin-9.png"
       ]
     },
     "services": {
@@ -191,14 +192,14 @@
         "systemd/system/paimenos-packages.service",
         "systemd/system/paimenos-parent-web.service",
         "systemd/system/paimenos-updates.service",
+        "systemd/system/paimenos-wifi-migration.service",
         "systemd/system/paimenos-wifi.service",
         "systemd/user/paimenos-cursor.service",
         "systemd/user/paimenos-media.service",
         "systemd/user/paimenos-menu.service",
         "systemd/user/paimenos-osd.service",
         "systemd/user/paimenos-session.target",
-        "systemd/user/paimenos-timer.service",
-        "systemd/system/paimenos-wifi-migration.service"
+        "systemd/user/paimenos-timer.service"
       ]
     }
   }
