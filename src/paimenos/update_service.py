@@ -1,4 +1,5 @@
 """Fixed-source release checks and a separate, restart-safe installation worker."""
+from paimenos.i18n import t
 import argparse
 from contextlib import contextmanager
 import fcntl
@@ -62,7 +63,7 @@ class StateStore:
 def installed_record(base=BASE):
     current = base / 'current'
     if not current.is_symlink():
-        raise UpdateError('Die modulare PaimenOS-Installation fehlt.')
+        raise UpdateError(t('Die modulare PaimenOS-Installation fehlt.'))
     return json.loads((current / 'installed.json').read_text())
 
 
@@ -124,17 +125,17 @@ class UpdateManager:
         job_id = secrets.token_hex(12)
         with self.store.transaction() as state:
             if state.get('job', {}).get('status') in BUSY:
-                raise UpdateError('Ein PaimenOS-Update läuft bereits.')
+                raise UpdateError(t('Ein PaimenOS-Update läuft bereits.'))
             release = state.get('release')
             if not release or release['tag'] != tag or not update_available(installed_record(self.base), release['version']):
-                raise UpdateError('Dieses Release wird nicht mehr angeboten. Bitte erneut prüfen.')
+                raise UpdateError(t('Dieses Release wird nicht mehr angeboten. Bitte erneut prüfen.'))
             if release.get('source_override') and not force_source:
-                raise UpdateError('Abweichende Release-Quelle vor der Installation ausdrücklich bestätigen.')
+                raise UpdateError(t('Abweichende Release-Quelle vor der Installation ausdrücklich bestätigen.'))
             if job_active():
-                raise UpdateError('Ein Update-Auftrag läuft bereits.')
+                raise UpdateError(t('Ein Update-Auftrag läuft bereits.'))
             state['job'] = {'id': job_id, 'status': 'queued', 'tag': tag, 'release': release,
                             'force_source': bool(release.get('source_override') and force_source),
-                            'message': 'Update wird vorbereitet.', 'progress': 0, 'updated_at': time.time()}
+                            'message': t('Update wird vorbereitet.'), 'progress': 0, 'updated_at': time.time()}
         # The worker has its own cgroup, so restarting this daemon cannot kill it.
         subprocess.run(['systemctl', 'reset-failed', JOB_UNIT], check=False, capture_output=True)
         try:
@@ -143,22 +144,22 @@ class UpdateManager:
                             '/usr/bin/python3', '-I', str(BASE / 'current/run.py'),
                             'update_service', '--apply', job_id], check=True, capture_output=True, text=True)
         except (OSError, subprocess.CalledProcessError) as exc:
-            update_job(self.store, job_id, status='failed', message='Update-Auftrag konnte nicht gestartet werden.')
-            raise UpdateError('Update-Auftrag konnte nicht gestartet werden.') from exc
+            update_job(self.store, job_id, status='failed', message=t('Update-Auftrag konnte nicht gestartet werden.'))
+            raise UpdateError(t('Update-Auftrag konnte nicht gestartet werden.')) from exc
 
     def recover(self):
         state = self.store.read()
         job = state.get('job', {})
         if job.get('status') in BUSY and time.time() - job.get('updated_at', 0) > 30 and not job_active():
             update_job(self.store, job['id'], status='failed',
-                       message='Update wurde unterbrochen. Aktuelle Version prüfen und Update erneut starten. Bei einem Stromausfall kann eine manuelle Wiederherstellung nötig sein.')
+                       message=t('Update wurde unterbrochen. Aktuelle Version prüfen und Update erneut starten. Bei einem Stromausfall kann eine manuelle Wiederherstellung nötig sein.'))
 
 
 def update_job(store, job_id, **fields):
     with store.transaction() as state:
         job = state.get('job', {})
         if job.get('id') != job_id:
-            raise UpdateError('Update-Auftrag ist nicht mehr aktuell.')
+            raise UpdateError(t('Update-Auftrag ist nicht mehr aktuell.'))
         job.update(fields, updated_at=time.time())
 
 
@@ -169,7 +170,7 @@ def maintenance_locks():
             try:
                 fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError as exc:
-                raise UpdateError('Eine andere Wartung oder Emulator-Installation läuft. Bitte deren Abschluss abwarten.') from exc
+                raise UpdateError(t('Eine andere Wartung oder Emulator-Installation läuft. Bitte deren Abschluss abwarten.')) from exc
         yield
 
 
@@ -184,25 +185,25 @@ def load_deployer(base):
 def apply_job(store, job_id, base=BASE, cache=CACHE_DIR):
     job = store.read().get('job', {})
     if job.get('id') != job_id or job.get('status') != 'queued':
-        raise UpdateError('Kein passender Update-Auftrag vorhanden.')
+        raise UpdateError(t('Kein passender Update-Auftrag vorhanden.'))
     expected = job['release']
     try:
         with maintenance_locks():
             deploy = load_deployer(base)
-            update_job(store, job_id, status='running', message='Release wird auf GitHub geprüft.', progress=5)
+            update_job(store, job_id, status='running', message=t('Release wird auf GitHub geprüft.'), progress=5)
             release = (release_source.release_metadata(expected['tag'], force_source=True)
                        if job.get('force_source') is True else release_source.release_metadata(expected['tag']))
             if release['archive'] != expected['archive'] or release['checksum'] != expected['checksum']:
-                raise UpdateError('Die Release-Dateien wurden verändert. Bitte erneut nach Updates suchen.')
+                raise UpdateError(t('Die Release-Dateien wurden verändert. Bitte erneut nach Updates suchen.'))
             if not update_available(installed_record(base), release['version']):
-                raise UpdateError('Die installierte Version ist bereits aktuell oder neuer.')
+                raise UpdateError(t('Die installierte Version ist bereits aktuell oder neuer.'))
             cache.mkdir(parents=True, exist_ok=True, mode=0o700)
             download_space = release_source.MAX_ARCHIVE + release_source.MAX_UNPACKED
             staging_space = 2 * release_source.MAX_UNPACKED
             shared_disk = cache.stat().st_dev == base.stat().st_dev
             required_cache = download_space + staging_space if shared_disk else download_space
             if shutil.disk_usage(cache).free < required_cache or shutil.disk_usage(base).free < staging_space:
-                raise UpdateError('Nicht genügend freier Speicher für Download und sichere Vorbereitung.')
+                raise UpdateError(t('Nicht genügend freier Speicher für Download und sichere Vorbereitung.'))
             with tempfile.TemporaryDirectory(prefix='release-', dir=cache) as folder:
                 root = Path(folder)
                 archive = root / release['archive']['name']
@@ -210,28 +211,28 @@ def apply_job(store, job_id, base=BASE, cache=CACHE_DIR):
                 def progress(count, total):
                     value = min(65, 10 + int(55 * count / release['archive']['size']))
                     if value != last_progress[0] and time.monotonic() - last_progress[1] >= 0.5:
-                        update_job(store, job_id, message='Update wird heruntergeladen.', progress=value)
+                        update_job(store, job_id, message=t('Update wird heruntergeladen.'), progress=value)
                         last_progress[:] = [value, time.monotonic()]
                 release_source.download(release['archive']['url'], archive, progress=progress)
                 if archive.stat().st_size != release['archive']['size']:
-                    raise UpdateError('Die Download-Größe stimmt nicht mit dem Release überein.')
+                    raise UpdateError(t('Die Download-Größe stimmt nicht mit dem Release überein.'))
                 checksum = release_source.download(release['checksum']['url'], limit=4096).decode('ascii')
-                update_job(store, job_id, message='Prüfsumme und Archiv werden geprüft.', progress=70)
+                update_job(store, job_id, message=t('Prüfsumme und Archiv werden geprüft.'), progress=70)
                 release_source.verify_archive(archive, checksum, release['archive'])
                 source = release_source.extract_archive(archive, root / 'source')
                 if (source / 'VERSION').read_text().strip() != release['version']:
-                    raise UpdateError('Archiv-Version und Release-Tag stimmen nicht überein.')
-                update_job(store, job_id, message='Neue Code-Version wird vorbereitet.', progress=80)
+                    raise UpdateError(t('Archiv-Version und Release-Tag stimmen nicht überein.'))
+                update_job(store, job_id, message=t('Neue Code-Version wird vorbereitet.'), progress=80)
                 staged, names = deploy.stage_release(source, base)
                 def package_progress(message):
                     update_job(store, job_id, message=message, progress=85)
-                update_job(store, job_id, message='Benötigte Debian-Pakete werden geprüft.', progress=82)
+                update_job(store, job_id, message=t('Benötigte Debian-Pakete werden geprüft.'), progress=82)
                 deploy.ensure_packages(staged, package_progress)
-                update_job(store, job_id, message='Code wird aktiviert. Dienste und Kindersitzung starten neu.', progress=90)
+                update_job(store, job_id, message=t('Code wird aktiviert. Dienste und Kindersitzung starten neu.'), progress=90)
                 deploy.activate(base, staged, units='services' in names, packages_prepared=True)
-                update_job(store, job_id, status='succeeded', message='Update erfolgreich installiert.', progress=100)
+                update_job(store, job_id, status='succeeded', message=t('Update erfolgreich installiert.'), progress=100)
     except Exception as exc:
-        update_job(store, job_id, status='failed', message='Update fehlgeschlagen: ' + str(exc)[:1500])
+        update_job(store, job_id, status='failed', message=t('Update fehlgeschlagen: ') + str(exc)[:1500])
         raise
 
 
@@ -245,15 +246,15 @@ class UpdateHandler(socketserver.StreamRequestHandler):
         self.connection.settimeout(3)
         try:
             if not authorized_peer(self.connection):
-                raise UpdateError('Update-Anfrage nicht erlaubt.')
+                raise UpdateError(t('Update-Anfrage nicht erlaubt.'))
             line = self.rfile.readline(4097)
             if len(line) > 4096 or not line.endswith(b'\n'):
-                raise UpdateError('Ungültige Update-Anfrage.')
+                raise UpdateError(t('Ungültige Update-Anfrage.'))
             message = json.loads(line)
             if not isinstance(message, dict) or set(message) - {'action', 'tag', 'force_source'}:
-                raise UpdateError('Ungültige Update-Anfrage.')
+                raise UpdateError(t('Ungültige Update-Anfrage.'))
             if 'force_source' in message and type(message['force_source']) is not bool:
-                raise UpdateError('Ungültige Quellenbestätigung.')
+                raise UpdateError(t('Ungültige Quellenbestätigung.'))
             force_source = message.get('force_source', False)
             action = message.get('action')
             manager = self.server.manager
@@ -262,7 +263,7 @@ class UpdateHandler(socketserver.StreamRequestHandler):
             elif action == 'install':
                 manager.install(message.get('tag'), force_source=True) if force_source else manager.install(message.get('tag'))
             elif action != 'status':
-                raise UpdateError('Unbekannte Update-Aktion.')
+                raise UpdateError(t('Unbekannte Update-Aktion.'))
             result = manager.status()
         except Exception as exc:
             result = {'ok': False, 'error': str(exc)[:1500]}
@@ -299,7 +300,7 @@ def main():
     parser.add_argument('--apply', metavar='JOB_ID')
     args = parser.parse_args()
     if os.geteuid() != 0:
-        parser.error('Der Update-Dienst benötigt root.')
+        parser.error(t('Der Update-Dienst benötigt root.'))
     store = StateStore()
     if args.apply:
         apply_job(store, args.apply)

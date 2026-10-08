@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from paimenos.i18n import t
 import json, os, subprocess, time, fcntl
 from paimenos.state import atomic_json
 from paimenos.diagnostics import log_event
@@ -73,13 +74,13 @@ def try_mount_locked():
                                     capture_output=True, text=True, timeout=20)
             if result.returncode:
                 LAST_FAILURE[dev] = now
-                log_event("Medien", f"{dev}: " + (result.stderr.strip() or "Einbinden fehlgeschlagen."))
+                log_event(t('Medien'), f"{dev}: " + (result.stderr.strip() or t('Einbinden fehlgeschlagen.')))
             else:
                 LAST_FAILURE.pop(dev, None)
-                log_event("Medien", f"{dev} eingebunden.")
+                log_event(t('Medien'), f"{dev} eingebunden.")
         except (OSError, subprocess.TimeoutExpired) as exc:
             LAST_FAILURE[dev] = time.monotonic()
-            log_event("Medien", f"{dev}: {exc}")
+            log_event(t('Medien'), f"{dev}: {exc}")
 
 def main():
     instance = open(os.path.expanduser("~/.local/state/paimenos/paimenos-media.lock"), "a")

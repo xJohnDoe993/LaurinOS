@@ -1,4 +1,5 @@
 """Bildarbeit außerhalb des GUI-Threads; QPixmap bleibt im GUI-Thread."""
+from paimenos.i18n import t
 import hashlib
 import os
 import tempfile
@@ -55,13 +56,13 @@ def decode_image(path, maximum=2560):
     size = reader.size()
     if size.isValid():
         if size.width() * size.height() > 120_000_000:
-            raise ValueError("Das Bild ist zu groß (mehr als 120 Millionen Pixel).")
+            raise ValueError(t('Das Bild ist zu groß (mehr als 120 Millionen Pixel).'))
         if max(size.width(), size.height()) > maximum:
             size.scale(maximum, maximum, Qt.KeepAspectRatio)
             reader.setScaledSize(size)
     image = reader.read()
     if image.isNull():
-        raise ValueError("Bild nicht lesbar oder Medium entfernt: " + reader.errorString())
+        raise ValueError(t('Bild nicht lesbar oder Medium entfernt: ') + reader.errorString())
     if max(image.width(), image.height()) > maximum:
         return image.scaled(maximum, maximum, Qt.KeepAspectRatio, Qt.SmoothTransformation)
     return image
@@ -74,7 +75,7 @@ def save_png(image, destination):
     os.close(fd)
     try:
         if not image.save(temporary, "PNG"):
-            raise OSError("Bild konnte nicht als PNG gespeichert werden.")
+            raise OSError(t('Bild konnte nicht als PNG gespeichert werden.'))
         os.replace(temporary, destination)
     finally:
         if os.path.exists(temporary):

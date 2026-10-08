@@ -1,4 +1,5 @@
 """Gemeinsame, feste Emulator-Auswahl für Setup, Installationsdienst und Uploads."""
+from paimenos.i18n import t
 import glob
 import json
 from paimenos.paths import DATA_DIR
@@ -15,7 +16,7 @@ RECOMMENDED = _catalog["recommended"]
 
 def selection(value):
     if not isinstance(value, str) or len(value) > 256:
-        raise ValueError('Ungültige Emulator-Auswahl.')
+        raise ValueError(t('Ungültige Emulator-Auswahl.'))
     value = value.strip().lower()
     if value in ('none', 'keine', '0'):
         return []
@@ -25,7 +26,7 @@ def selection(value):
         return list(RECOMMENDED)
     keys = value.replace(',', ' ').split()
     if not keys or any(key not in CATALOG for key in keys):
-        raise ValueError('Bitte gültige Konsolen auswählen: ' + ', '.join(CATALOG))
+        raise ValueError(t('Bitte gültige Konsolen auswählen: ') + ', '.join(CATALOG))
     return list(dict.fromkeys(keys))
 
 
@@ -53,8 +54,8 @@ def status():
         core = bool(core_path(key))
         assets = key != 'psp' or psp_assets_ready()
         ready = frontend and core and assets
-        reason = 'Installiert' if ready else ('PSP-Zusatzdateien fehlen' if frontend and core and not assets else 'Noch nicht installiert')
-        hint = 'Niedrige Auflösung voreingestellt; Leistung hängt vom Spiel ab.' if key in ('n64', 'psp') else 'Für ältere Notebooks geeignet.'
+        reason = t('Installiert') if ready else (t('PSP-Zusatzdateien fehlen') if frontend and core and not assets else t('Noch nicht installiert'))
+        hint = t('Niedrige Auflösung voreingestellt; Leistung hängt vom Spiel ab.') if key in ('n64', 'psp') else t('Für ältere Notebooks geeignet.')
         result.append(dict(id=key, name=item['name'], ready=ready, reason=reason, hint=hint,
                            formats=' / '.join(ext[1:].upper() for ext in item['extensions'])))
     return result

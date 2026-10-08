@@ -1,4 +1,5 @@
 """Fast local update client and version comparison, shared with the parent UI."""
+from paimenos.i18n import t
 import json
 import re
 import socket
@@ -14,7 +15,7 @@ class UpdateError(ValueError):
 
 def version_key(value):
     if not isinstance(value, str) or not re.fullmatch(r'v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)', value):
-        raise UpdateError('Release-Version muss dem Format v0.61.0 entsprechen.')
+        raise UpdateError(t('Release-Version muss dem Format v0.61.0 entsprechen.'))
     return tuple(map(int, value.removeprefix('v').split('.')))
 
 def update_available(installed, offered):
@@ -42,15 +43,15 @@ def update_request(action='status', tag=None, force_source=False):
             while not data.endswith(b'\n'):
                 chunk = connection.recv(4096)
                 if not chunk:
-                    raise UpdateError('Der Update-Dienst hat die Verbindung beendet.')
+                    raise UpdateError(t('Der Update-Dienst hat die Verbindung beendet.'))
                 data.extend(chunk)
                 if len(data) > 256 * 1024:
-                    raise UpdateError('Ungültige Antwort des Update-Dienstes.')
+                    raise UpdateError(t('Ungültige Antwort des Update-Dienstes.'))
         result = json.loads(data)
         if not isinstance(result, dict) or result.get('ok') is not True:
-            raise UpdateError(result.get('error', 'Update-Anfrage fehlgeschlagen.') if isinstance(result, dict) else 'Ungültige Antwort.')
+            raise UpdateError(result.get('error', t('Update-Anfrage fehlgeschlagen.')) if isinstance(result, dict) else t('Ungültige Antwort.'))
         return result
     except (OSError, ValueError) as exc:
         if isinstance(exc, UpdateError):
             raise
-        raise UpdateError('Update-Dienst nicht erreichbar. Die GitHub-Update-Funktion muss einmalig auf dem Gerät eingerichtet sein.') from exc
+        raise UpdateError(t('Update-Dienst nicht erreichbar. Die GitHub-Update-Funktion muss einmalig auf dem Gerät eingerichtet sein.')) from exc

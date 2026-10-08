@@ -61,7 +61,7 @@ class RuntimeTests(unittest.TestCase):
             (profile / 'user.js').write_text('user_pref("example", true);\n')
             webapp.prepare_profile(str(profile), str(profile / "missing-template.js"))
             self.assertIn('user_pref("example", true)', (profile / 'user.js').read_text())
-            self.assertEqual((profile / 'chrome/paimenos-webapp.css').read_text(), (ROOT / 'assets/webapp.css').read_text())
+            self.assertTrue((profile / 'chrome/paimenos-webapp.css').read_text().endswith((ROOT / 'assets/webapp.css').read_text()))
             webapp.prepare_profile(str(profile), str(profile / "missing-template.js"))
             self.assertEqual((profile / 'chrome/userChrome.css').read_text().count(webapp.CHROME_IMPORT), 1)
     def test_defaults_generate_valid_app_json_for_empty_native_selection(self):

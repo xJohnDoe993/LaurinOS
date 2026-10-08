@@ -2,7 +2,7 @@
 # Wird von install.sh in einer gemeinsamen Shell geladen.
 # 7. Webapps Definition & Standard-Einstellungen
 # ---------------------------------------------------------------------------
-echo "Kinder-Webapps & Einstellungen konfigurieren ..."
+echo "$(paimenos_text 'Kinder-Webapps & Einstellungen konfigurieren ...')"
 
 WEBAPP_ENTRIES=$( /usr/bin/python3 "${REPO_DIR}/tools/default-webapps.py" )
 

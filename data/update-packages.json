@@ -6,7 +6,8 @@
       "libqt5multimedia5-plugins",
       "gstreamer1.0-plugins-base",
       "gstreamer1.0-plugins-good",
-      "gstreamer1.0-libav"
+      "gstreamer1.0-libav",
+      "qttranslations5-l10n"
     ]
   }
 }

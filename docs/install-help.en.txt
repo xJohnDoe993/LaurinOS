@@ -1,0 +1,23 @@
+PaimenOS – modular installation for fresh Debian 12/13
+
+Install: sudo bash install.sh
+Resume an interrupted modular setup: sudo bash install.sh --resume
+Restart afterwards: sudo reboot
+Check/update an existing PaimenOS installation: bash update.sh --check; sudo bash update.sh
+Configure family DNS on a PaimenOS device if needed:
+sudo python3 tools/configure-dns.py family config/resolved/paimenos-family-dns.conf
+Afterwards, resolvectl status must show the DNS domain ~. under Global.
+
+Apps: PAIMENOS_APPS="2 6 9" (empty: interactive, 13: none)
+Package source: PAIMENOS_APP_SOURCE=flathub|debian
+Emulators: PAIMENOS_EMULATORS=recommended|all|none|nes,snes,gb,gba,...
+TLP/ZRAM/system/app updates: PAIMENOS_ENABLE_TLP, PAIMENOS_ENABLE_ZRAM,
+PAIMENOS_ENABLE_AUTO_UPDATES, PAIMENOS_ENABLE_APP_UPDATES each 0|1.
+Automatic restart: PAIMENOS_REBOOT=1 (default: 0).
+The new parent PIN is entered without displaying the digits.
+
+Language: detected from Debian's configured message locale. en_* selects English;
+other locales use German. PAIMENOS_LANGUAGE=en|de overrides PaimenOS's UI language.
+Details: README.en.md and docs/localization.md.
+
+LaurinOS installations are not migrated. Back up your data before reinstalling.

@@ -2,7 +2,7 @@
 # Wird von install.sh in einer gemeinsamen Shell geladen.
 # 4. Benutzer, Bibata-Cursor & Hardware-Skripte
 # ---------------------------------------------------------------------------
-echo "Benutzer '${KIDS_USER}', Ordnerstruktur & Bibata-Cursor ..."
+echo "$(paimenos_text 'Benutzer '"'"'{value0}'"'"', Ordnerstruktur & Bibata-Cursor ...' "${KIDS_USER}")"
 
 if ! id "${KIDS_USER}" >/dev/null 2>&1; then
     adduser --disabled-password --gecos "Kids" "${KIDS_USER}"
@@ -33,8 +33,8 @@ mkdir -p "${KIDS_HOME}/.mozilla/paimenos-webapps"
 mkdir -p "${KIDS_HOME}/.config/gtk-3.0"
 
 if [[ ! -d "/usr/share/icons/Bibata-Original-Ice" ]]; then
-    echo "Lade Bibata-Original-Ice Cursor herunter ..."
-    wget -q https://github.com/ful1e5/Bibata_Cursor/releases/download/v2.0.7/Bibata-Original-Ice.tar.xz -O /tmp/Bibata-Original-Ice.tar.xz  || echo "Download fehlgeschlagen, fahre fort..."
+    echo "$(paimenos_text 'Lade Bibata-Original-Ice Cursor herunter ...')"
+    wget -q https://github.com/ful1e5/Bibata_Cursor/releases/download/v2.0.7/Bibata-Original-Ice.tar.xz -O /tmp/Bibata-Original-Ice.tar.xz  || echo "$(paimenos_text 'Download fehlgeschlagen, fahre fort...')"
     if [[ -f /tmp/Bibata-Original-Ice.tar.xz ]]; then
         tar -xf /tmp/Bibata-Original-Ice.tar.xz -C /usr/share/icons/ || true
         rm -f /tmp/Bibata-Original-Ice.tar.xz

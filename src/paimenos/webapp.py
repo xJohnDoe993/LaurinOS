@@ -1,4 +1,6 @@
 """Firefox-Webapp-Profile mit vereinfachter, nativer Navigation."""
+from paimenos.i18n import t, browser_locale
+import json
 import os
 from paimenos.paths import ASSETS_DIR
 import tempfile
@@ -68,14 +70,21 @@ def prepare_profile(profile_dir, template):
     if BEGIN in current and END in current:
         before, rest = current.split(BEGIN, 1)
         current = before + rest.split(END, 1)[1]
-    write_text(user_path, current.rstrip() + '\n' + BEGIN + '\n' + PREFERENCES + END + '\n')
+    languages = 'en-US,en' if browser_locale() == 'en' else 'de-DE,de,en-US,en'
+    locale_preferences = (
+        'user_pref("intl.locale.requested", ' + json.dumps(browser_locale()) + ');\n'
+        'user_pref("intl.accept_languages", ' + json.dumps(languages) + ');\n')
+    write_text(user_path, current.rstrip() + '\n' + BEGIN + '\n'
+               + PREFERENCES + locale_preferences + END + '\n')
     chrome_path = os.path.join(profile_dir, 'chrome', 'userChrome.css')
     current = read_text(chrome_path)
     if CHROME_IMPORT not in current:
         write_text(chrome_path, CHROME_IMPORT + '\n' + current)
     style = read_text(str(ASSETS_DIR / 'webapp.css'))
     if not style:
-        raise OSError('Die Webapp-Navigationsleiste fehlt. Bitte die gemeinsame Code-Komponente aktualisieren.')
+        raise OSError(t('Die Webapp-Navigationsleiste fehlt. Bitte die gemeinsame Code-Komponente aktualisieren.'))
+    style = (':root { --paimenos-back-label: ' + json.dumps(t('Zurück'), ensure_ascii=False)
+             + '; --paimenos-forward-label: ' + json.dumps(t('Weiter'), ensure_ascii=False) + '; }\n' + style)
     write_text(os.path.join(profile_dir, 'chrome', 'paimenos-webapp.css'), style)
 
 

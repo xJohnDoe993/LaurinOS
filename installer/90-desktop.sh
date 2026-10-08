@@ -2,7 +2,7 @@
 # Wird von install.sh in einer gemeinsamen Shell geladen.
 # 12. Openbox Autostart & Keybindings
 # ---------------------------------------------------------------------------
-echo "Autostart & Openbox Konfiguration aktualisieren ..."
+echo "$(paimenos_text 'Autostart & Openbox Konfiguration aktualisieren ...')"
 
 install_repo_file config/lightdm/lightdm.conf /etc/lightdm/lightdm.conf
 

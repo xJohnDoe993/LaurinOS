@@ -1,22 +1,22 @@
-<div class="pagehead"><div class="eyebrow">Tasten selbst zuordnen</div><h1>Controller einrichten</h1>
-<p class="muted">Controller per Bluetooth verbinden oder per USB anschließen. Zum Einrichten laufende Spiele schließen.</p>
-<p class="hint">Die Eingaben werden am Notebook gelesen. Du kannst diese Seite auch auf dem Handy öffnen. Eigene Belegungen gelten für das Kinder-Menü und die Emulatoren. Bei einem Wechsel des Controller-Modus gegebenenfalls ein weiteres Profil einrichten.</p></div>
-<section class="panel"><div class="row"><h2>Verbundene Controller</h2><button id="pad-refresh" class="secondary">Liste aktualisieren</button></div>
-<label for="pad-device">Controller auswählen</label><select id="pad-device"></select>
-<p id="pad-empty" class="hint" hidden>Kein lesbares Gamepad gefunden. Verbindung und Controller-Modus prüfen.</p>
-<div class="actions"><button id="pad-open" disabled>Konfiguration öffnen</button><a class="btn secondary" href="{{ url_for('bluetooth_page') }}">Bluetooth verwalten</a></div></section>
+<div class="pagehead"><div class="eyebrow">{{ t('Tasten selbst zuordnen') }}</div><h1>{{ t('Controller einrichten') }}</h1>
+<p class="muted">{{ t('Controller per Bluetooth verbinden oder per USB anschließen. Zum Einrichten laufende Spiele schließen.') }}</p>
+<p class="hint">{{ t('Die Eingaben werden am Notebook gelesen. Du kannst diese Seite auch auf dem Handy öffnen. Eigene Belegungen gelten für das Kinder-Menü und die Emulatoren. Bei einem Wechsel des Controller-Modus gegebenenfalls ein weiteres Profil einrichten.') }}</p></div>
+<section class="panel"><div class="row"><h2>{{ t('Verbundene Controller') }}</h2><button id="pad-refresh" class="secondary">{{ t('Liste aktualisieren') }}</button></div>
+<label for="pad-device">{{ t('Controller auswählen') }}</label><select id="pad-device"></select>
+<p id="pad-empty" class="hint" hidden>{{ t('Kein lesbares Gamepad gefunden. Verbindung und Controller-Modus prüfen.') }}</p>
+<div class="actions"><button id="pad-open" disabled>{{ t('Konfiguration öffnen') }}</button><a class="btn secondary" href="{{ url_for('bluetooth_page') }}">{{ t('Bluetooth verwalten') }}</a></div></section>
 <div id="pad-notice" class="flash" role="status" aria-live="polite" hidden></div>
 <section id="pad-editor" class="panel" hidden aria-labelledby="pad-title"><h2 id="pad-title"></h2>
-<p>Mit „Alle Tasten zuordnen“ wirst du Schritt für Schritt durch die Belegung geführt. Du kannst auch einzelne Zeilen ändern. Alle Tasten und Sticks vor jedem Schritt loslassen; danach die gewünschte Taste drücken oder die Richtung bewegen.</p>
-<p class="hint">Die Aktionstasten werden nach ihrer Position zugeordnet. Die Beschriftung kann je nach Hersteller abweichen. Weitere Tasten sind optional. Während dieser Seite eine Konfiguration geöffnet hat, pausiert die Controller-Steuerung im Kinder-Menü.</p>
-<div class="actions"><button id="pad-guide">Alle Tasten zuordnen</button><button id="pad-pause" class="secondary" hidden>Assistent pausieren</button></div>
-<div id="pad-listening" class="flash" hidden><strong id="pad-instruction"></strong><p>Bitte jetzt am Controller drücken. Erkennung läuft bis zu 10 Sekunden.</p>
-<div class="actions"><button id="pad-stop" class="secondary">Erkennung abbrechen</button><button id="pad-skip" class="secondary" hidden>Überspringen</button></div></div>
-<div class="pad-table"><table><thead><tr><th scope="col">Funktion</th><th scope="col">Belegung</th><th scope="col">Ändern</th></tr></thead><tbody id="pad-bindings"></tbody></table></div>
-<div class="actions"><button id="pad-save">Profil speichern</button><button id="pad-close" class="secondary">Verwerfen und schließen</button></div>
-<p class="hint">Gespeicherte Belegungen wirken im Menü sofort und beim nächsten Spielstart. Die Analogstick-Belegung wird bei Spielen mit analogem Controller-Modus verwendet.</p></section>
-<section class="panel"><h2>Eigene Profile</h2><div id="pad-profiles" class="grid"></div><p class="hint">„Zurücksetzen“ entfernt nur deine eigene Belegung. Danach gilt wieder die automatische Erkennung.</p></section>
-<noscript><p class="flash error">Für die Controller-Konfiguration bitte JavaScript aktivieren.</p></noscript>
+<p>{{ t('Mit „Alle Tasten zuordnen“ wirst du Schritt für Schritt durch die Belegung geführt. Du kannst auch einzelne Zeilen ändern. Alle Tasten und Sticks vor jedem Schritt loslassen; danach die gewünschte Taste drücken oder die Richtung bewegen.') }}</p>
+<p class="hint">{{ t('Die Aktionstasten werden nach ihrer Position zugeordnet. Die Beschriftung kann je nach Hersteller abweichen. Weitere Tasten sind optional. Während dieser Seite eine Konfiguration geöffnet hat, pausiert die Controller-Steuerung im Kinder-Menü.') }}</p>
+<div class="actions"><button id="pad-guide">{{ t('Alle Tasten zuordnen') }}</button><button id="pad-pause" class="secondary" hidden>{{ t('Assistent pausieren') }}</button></div>
+<div id="pad-listening" class="flash" hidden><strong id="pad-instruction"></strong><p>{{ t('Bitte jetzt am Controller drücken. Erkennung läuft bis zu 10 Sekunden.') }}</p>
+<div class="actions"><button id="pad-stop" class="secondary">{{ t('Erkennung abbrechen') }}</button><button id="pad-skip" class="secondary" hidden>{{ t('Überspringen') }}</button></div></div>
+<div class="pad-table"><table><thead><tr><th scope="col">{{ t('Funktion') }}</th><th scope="col">{{ t('Belegung') }}</th><th scope="col">{{ t('Ändern') }}</th></tr></thead><tbody id="pad-bindings"></tbody></table></div>
+<div class="actions"><button id="pad-save">{{ t('Profil speichern') }}</button><button id="pad-close" class="secondary">{{ t('Verwerfen und schließen') }}</button></div>
+<p class="hint">{{ t('Gespeicherte Belegungen wirken im Menü sofort und beim nächsten Spielstart. Die Analogstick-Belegung wird bei Spielen mit analogem Controller-Modus verwendet.') }}</p></section>
+<section class="panel"><h2>{{ t('Eigene Profile') }}</h2><div id="pad-profiles" class="grid"></div><p class="hint">{{ t('„Zurücksetzen“ entfernt nur deine eigene Belegung. Danach gilt wieder die automatische Erkennung.') }}</p></section>
+<noscript><p class="flash error">{{ t('Für die Controller-Konfiguration bitte JavaScript aktivieren.') }}</p></noscript>
 <style>.pad-table{overflow-x:auto;margin:20px 0}.pad-table table{border-collapse:collapse;width:100%;min-width:560px}.pad-table th,.pad-table td{text-align:left;padding:12px 8px;border-bottom:1px solid var(--line)}.pad-table tr.current{background:var(--soft)}.pad-table td:last-child{white-space:nowrap}.pad-table button{padding:7px 12px;margin-right:6px;font-size:14px}#pad-title,#pad-profiles h3{overflow-wrap:anywhere}#pad-listening{margin-top:20px}</style>
 <script>
 (() => {
@@ -27,9 +27,9 @@
   function notice(text, error=false) { $('pad-notice').hidden=!text;$('pad-notice').textContent=text;$('pad-notice').className=error ? 'flash error':'flash'; }
   async function fetchData(url, options={}) {
     const response = await fetch(url,{credentials:'same-origin',cache:'no-store',...options});
-    if(response.status===401 || response.redirected) {stopped=true;throw new Error('Eltern-Sitzung abgelaufen. Bitte neu anmelden.');}
-    let data;try {data=await response.json();}catch {throw new Error('Verbindung zum Notebook prüfen.');}
-    if(!response.ok) throw new Error(data.error || 'Controller-Anfrage fehlgeschlagen.');return data;
+    if(response.status===401 || response.redirected) {stopped=true;throw new Error(PaimenTranslate('Eltern-Sitzung abgelaufen. Bitte neu anmelden.'));}
+    let data;try {data=await response.json();}catch {throw new Error(PaimenTranslate('Verbindung zum Notebook prüfen.'));}
+    if(!response.ok) throw new Error(data.error || PaimenTranslate('Controller-Anfrage fehlgeschlagen.'));return data;
   }
   function act(action, values={}) {return fetchData(actionUrl,{method:'POST',body:new URLSearchParams({csrf_token:csrf,action,token:draft?.token || '',...values})});}
   function endDraft() {draft=null;guide=false;listening='';$('pad-editor').hidden=true;render();}
@@ -45,27 +45,27 @@
       $('pad-title').textContent=draft.device.name;
       for(const c of inventory.controls) {
         const tr=el('tr','',listening===c.id ? 'current':''), label=el('td',c.label+(c.required ? ' *':''));
-        const value=el('td',draft.labels[c.id] || 'Noch nicht zugeordnet','small'), actions=el('td');
-        const set=el('button',draft.bindings[c.id] ? 'Ändern':'Zuordnen','secondary');set.disabled=busy;
+        const value=el('td',draft.labels[c.id] || PaimenTranslate('Noch nicht zugeordnet'),'small'), actions=el('td');
+        const set=el('button',draft.bindings[c.id] ? PaimenTranslate('Ändern'):PaimenTranslate('Zuordnen'),'secondary');set.disabled=busy;
         set.addEventListener('click',()=>{guide=false;capture(c.id);});actions.append(set);
-        if(draft.bindings[c.id]) {const clear=el('button','Leeren','secondary');clear.disabled=busy;clear.addEventListener('click',()=>clearBinding(c.id));actions.append(clear);}
+        if(draft.bindings[c.id]) {const clear=el('button',PaimenTranslate('Leeren'),'secondary');clear.disabled=busy;clear.addEventListener('click',()=>clearBinding(c.id));actions.append(clear);}
         tr.append(label,value,actions);$('pad-bindings').append(tr);
       }
     }
     $('pad-profiles').replaceChildren();
     for(const p of inventory?.profiles || []) {
-      const card=el('article','','card');card.append(el('h3',p.name),el('p',p.count+' Funktionen zugeordnet','muted small'));
-      const reset=el('button','Zurücksetzen','danger');reset.disabled=busy || editing;
+      const card=el('article','','card');card.append(el('h3',p.name),el('p',p.count+PaimenTranslate(' Funktionen zugeordnet'),'muted small'));
+      const reset=el('button',PaimenTranslate('Zurücksetzen'),'danger');reset.disabled=busy || editing;
       reset.addEventListener('click',async()=>{
-        if(!confirm('Eigene Belegung für „'+p.name+'“ entfernen?'))return;
-        busy=true;render();try {await act('reset',{profile:p.id});await refresh();notice('Eigene Belegung entfernt. Automatische Erkennung ist wieder aktiv.');}catch(e){notice(e.message,true);}finally{busy=false;render();}
+        if(!confirm(PaimenTranslate('Eigene Belegung für „')+p.name+PaimenTranslate('“ entfernen?')))return;
+        busy=true;render();try {await act('reset',{profile:p.id});await refresh();notice(PaimenTranslate('Eigene Belegung entfernt. Automatische Erkennung ist wieder aktiv.'));}catch(e){notice(e.message,true);}finally{busy=false;render();}
       });card.append(reset);$('pad-profiles').append(card);
     }
-    if(!inventory?.profiles.length)$('pad-profiles').append(el('p','Noch keine eigenen Profile gespeichert.','muted'));
+    if(!inventory?.profiles.length)$('pad-profiles').append(el('p',PaimenTranslate('Noch keine eigenen Profile gespeichert.'),'muted'));
   }
   async function refresh() {
     inventory=await fetchData(statusUrl);const chosen=$('pad-device').value;$('pad-device').replaceChildren();
-    for(const d of inventory.devices) {const o=el('option',d.name+(d.configured ? ' · eigenes Profil':'')+' · '+d.device);o.value=d.device;$('pad-device').append(o);}
+    for(const d of inventory.devices) {const o=el('option',d.name+(d.configured ? PaimenTranslate(' · eigenes Profil'):'')+' · '+d.device);o.value=d.device;$('pad-device').append(o);}
     if(inventory.devices.some(d=>d.device===chosen))$('pad-device').value=chosen;
     $('pad-empty').hidden=inventory.devices.length>0;render();
   }
@@ -79,26 +79,26 @@
     try {
       const result=await act('capture',{control});
       if(skip) {draft=await act('skip',{control});advance=true;}
-      else if(result.cancelled) {notice('Erkennung abgebrochen. Die bisherige Belegung bleibt erhalten.');guide=false;}
-      else if(result.timeout) {notice('Keine neue Eingabe erkannt. Alle Tasten loslassen und erneut versuchen.',true);guide=false;}
-      else {draft=result;notice(label+' zugeordnet.');advance=true;}
+      else if(result.cancelled) {notice(PaimenTranslate('Erkennung abgebrochen. Die bisherige Belegung bleibt erhalten.'));guide=false;}
+      else if(result.timeout) {notice(PaimenTranslate('Keine neue Eingabe erkannt. Alle Tasten loslassen und erneut versuchen.'),true);guide=false;}
+      else {draft=result;notice(label+PaimenTranslate(' zugeordnet.'));advance=true;}
     } catch(e) {notice(e.message,true);guide=false;}
     finally {busy=false;listening='';render();}
     if(guide && advance && !stop) {
       const next=inventory.controls.findIndex(c=>c.id===control)+1;
       if(next<inventory.controls.length) capture(inventory.controls[next].id);
-      else {guide=false;render();notice('Belegung vollständig durchlaufen. Bitte prüfen und Profil speichern.');}
+      else {guide=false;render();notice(PaimenTranslate('Belegung vollständig durchlaufen. Bitte prüfen und Profil speichern.'));}
     }
   }
   $('pad-refresh').addEventListener('click',()=>refresh().catch(e=>notice(e.message,true)));
-  $('pad-open').addEventListener('click',async()=>{busy=true;render();try{draft=await act('start',{device:$('pad-device').value});$('pad-editor').hidden=false;notice('Konfiguration geöffnet. Du kannst einzelne Tasten oder alle Funktionen zuordnen.');}catch(e){notice(e.message,true);}finally{busy=false;render();}});
+  $('pad-open').addEventListener('click',async()=>{busy=true;render();try{draft=await act('start',{device:$('pad-device').value});$('pad-editor').hidden=false;notice(PaimenTranslate('Konfiguration geöffnet. Du kannst einzelne Tasten oder alle Funktionen zuordnen.'));}catch(e){notice(e.message,true);}finally{busy=false;render();}});
   $('pad-guide').addEventListener('click',()=>{guide=true;capture(inventory.controls[0].id);});
   $('pad-pause').addEventListener('click',()=>{guide=false;stop=true;render();});
   $('pad-stop').addEventListener('click',()=>{guide=false;stop=true;act('cancel_capture').catch(e=>notice(e.message,true));});
   $('pad-skip').addEventListener('click',()=>{skip=true;act('cancel_capture').catch(e=>{skip=false;notice(e.message,true);});});
-  $('pad-save').addEventListener('click',async()=>{busy=true;render();try{await act('save');endDraft();await refresh();notice('Profil gespeichert. Menü und nächster Spielstart verwenden deine Belegung.');}catch(e){notice(e.message,true);}finally{busy=false;render();}});
-  $('pad-close').addEventListener('click',async()=>{busy=true;render();try{await act('cancel');endDraft();notice('Nicht gespeicherte Änderungen verworfen.');}catch(e){notice(e.message,true);}finally{busy=false;render();}});
-  const heartbeat=setInterval(()=>{if(draft && !stopped && !document.hidden)act('heartbeat').catch(e=>{notice(e.message,true);guide=false;if(e.message.includes('abgelaufen'))endDraft();});},10000);
+  $('pad-save').addEventListener('click',async()=>{busy=true;render();try{await act('save');endDraft();await refresh();notice(PaimenTranslate('Profil gespeichert. Menü und nächster Spielstart verwenden deine Belegung.'));}catch(e){notice(e.message,true);}finally{busy=false;render();}});
+  $('pad-close').addEventListener('click',async()=>{busy=true;render();try{await act('cancel');endDraft();notice(PaimenTranslate('Nicht gespeicherte Änderungen verworfen.'));}catch(e){notice(e.message,true);}finally{busy=false;render();}});
+  const heartbeat=setInterval(()=>{if(draft && !stopped && !document.hidden)act('heartbeat').catch(e=>{notice(e.message,true);guide=false;if((e.message.includes('abgelaufen') || e.message.includes('expired')))endDraft();});},10000);
   window.addEventListener('pagehide',()=>{stopped=true;clearInterval(heartbeat);if(draft)navigator.sendBeacon(actionUrl,new URLSearchParams({csrf_token:csrf,action:'cancel',token:draft.token}));});
   window.addEventListener('pageshow',event=>{if(event.persisted)location.reload();});
   refresh().catch(e=>notice(e.message,true));

@@ -1,4 +1,5 @@
 """Video playback within the existing camera browser; optional on older installs."""
+from paimenos.i18n import t
 import os
 from PyQt5.QtCore import Qt, QUrl, QEvent, QSizeF, QRectF
 from PyQt5.QtGui import QColor
@@ -87,7 +88,7 @@ class CameraVideoViewer(QWidget):
             self.player.mediaStatusChanged.connect(self.status_changed)
             self.player.error.connect(self.playback_error)
         except (ImportError, OSError) as exc:
-            log_event("Videos", "Videowiedergabe nicht eingerichtet: " + str(exc))
+            log_event(t('Videos'), t('Videowiedergabe nicht eingerichtet: ') + str(exc))
             layout.addStretch(1)
         seek = QHBoxLayout()
         self.position_slider = QSlider(Qt.Horizontal, self)
@@ -100,22 +101,22 @@ class CameraVideoViewer(QWidget):
         seek.addWidget(self.time_label)
         layout.addLayout(seek)
         controls = QHBoxLayout()
-        self.previous_button = self.button("← Vorheriges", lambda: self.step(-1), controls)
-        self.play_button = self.button("▶ Wiedergabe", self.toggle_play, controls)
-        self.next_button = self.button("Nächstes →", lambda: self.step(1), controls)
-        self.fullscreen_button = self.button("⛶ Vollbild", self.toggle_fullscreen, controls)
+        self.previous_button = self.button(t('← Vorheriges'), lambda: self.step(-1), controls)
+        self.play_button = self.button(t('▶ Wiedergabe'), self.toggle_play, controls)
+        self.next_button = self.button(t('Nächstes →'), lambda: self.step(1), controls)
+        self.fullscreen_button = self.button(t('⛶ Vollbild'), self.toggle_fullscreen, controls)
         self.fullscreen_button.setEnabled(False)
-        self.button("Zur Übersicht", browser.show_overview, controls)
+        self.button(t('Zur Übersicht'), browser.show_overview, controls)
         layout.addLayout(controls)
         volume = QHBoxLayout()
-        volume.addWidget(QLabel("Lautstärke", self))
+        volume.addWidget(QLabel(t('Lautstärke'), self))
         self.volume_slider = QSlider(Qt.Horizontal, self)
         self.volume_slider.setRange(0, 100)
         self.volume_slider.setValue(70)
         self.volume_slider.valueChanged.connect(self.set_volume)
         volume.addWidget(self.volume_slider, 1)
         layout.addLayout(volume)
-        help_label = QLabel("Doppelklick / F11: Vollbild · Leertaste: Pause · Esc: Zurück", self)
+        help_label = QLabel(t('Doppelklick / F11: Vollbild · Leertaste: Pause · Esc: Zurück'), self)
         help_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(help_label)
         self.setFocusPolicy(Qt.StrongFocus)
@@ -238,12 +239,12 @@ class CameraVideoViewer(QWidget):
         self.fullscreen_button.setEnabled(self.player is not None)
         self.volume_slider.setEnabled(self.player is not None)
         if self.player is None:
-            self.status_label.setText("Videowiedergabe ist noch nicht eingerichtet. Bitte deine Eltern um Hilfe bitten.")
+            self.status_label.setText(t('Videowiedergabe ist noch nicht eingerichtet. Bitte deine Eltern um Hilfe bitten.'))
             return
         if not os.path.isfile(self.path):
             self.playback_error(self.player_type.ResourceError)
             return
-        self.status_label.setText("Video wird geladen …")
+        self.status_label.setText(t('Video wird geladen …'))
         self.player.setMedia(self.content_type(QUrl.fromLocalFile(os.path.abspath(self.path))))
         if not self.failed:
             self.player.play()
@@ -309,13 +310,13 @@ class CameraVideoViewer(QWidget):
 
     def state_changed(self, state):
         if self.active:
-            self.play_button.setText("⏸ Pause" if state == self.player_type.PlayingState else "▶ Wiedergabe")
+            self.play_button.setText(t('⏸ Pause') if state == self.player_type.PlayingState else t('▶ Wiedergabe'))
 
     def status_changed(self, status):
         if not self.active or self.failed:
             return
         if status == self.player_type.EndOfMedia:
-            self.status_label.setText("Video zu Ende. Du kannst es noch einmal abspielen.")
+            self.status_label.setText(t('Video zu Ende. Du kannst es noch einmal abspielen.'))
         elif status == self.player_type.InvalidMedia:
             self.playback_error(self.player_type.FormatError)
         elif status in (self.player_type.LoadedMedia, self.player_type.BufferedMedia):
@@ -330,6 +331,5 @@ class CameraVideoViewer(QWidget):
         self.play_button.setEnabled(False)
         self.fullscreen_button.setEnabled(False)
         self.position_slider.setEnabled(False)
-        self.status_label.setText("Dieses Video kann nicht abgespielt werden. Die Datei ist möglicherweise "
-                                  "beschädigt, das Format wird nicht unterstützt oder das Medium wurde entfernt.")
-        log_event("Videos", os.path.basename(self.path) + ": " + self.player.errorString())
+        self.status_label.setText(t('Dieses Video kann nicht abgespielt werden. Die Datei ist möglicherweise beschädigt, das Format wird nicht unterstützt oder das Medium wurde entfernt.'))
+        log_event(t('Videos'), os.path.basename(self.path) + ": " + self.player.errorString())

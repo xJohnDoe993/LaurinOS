@@ -1,5 +1,10 @@
 #!/usr/bin/python3
 """Prepare ifupdown Wi-Fi offline; commit before network services at next boot."""
+from pathlib import Path as _Path
+import sys as _sys
+_release = _Path(__file__).resolve().parents[1]
+_sys.path.insert(0, str(_release / ('app' if (_release / 'app').is_dir() else 'src')))
+from paimenos.i18n import t
 import argparse
 import base64
 import hashlib
@@ -34,7 +39,7 @@ class Migration:
             result = subprocess.CompletedProcess(args, 127, stdout='', stderr='')
         if required and result.returncode:
             # nmcli may echo credential input on parse errors; never print output.
-            raise ValueError('WLAN-Vorbereitung fehlgeschlagen: ' + args[0] + ' ' + args[1])
+            raise ValueError(t('WLAN-Vorbereitung fehlgeschlagen: ') + args[0] + ' ' + args[1])
         return result
 
     @staticmethod
@@ -53,19 +58,19 @@ class Migration:
 
     def prepare(self):
         if self.journal.exists():
-            raise ValueError("Unvollständige WLAN-Boot-Übernahme; Wiederherstellung beim Neustart erforderlich.")
+            raise ValueError(t('Unvollständige WLAN-Boot-Übernahme; Wiederherstellung beim Neustart erforderlich.'))
         if self.command('getent', 'ahostsv4', 'deb.debian.org', required=False).returncode:
-            raise ValueError('Netzwerk/DNS funktioniert vor der WLAN-Vorbereitung nicht.')
+            raise ValueError(t('Netzwerk/DNS funktioniert vor der WLAN-Vorbereitung nicht.'))
         devices = self.command('nmcli', '--terse', '--escape', 'no', '--fields', 'DEVICE,TYPE', 'device', 'status').stdout
         legacy = []
         for line in devices.splitlines():
             device, _, kind = line.partition(':')
             if kind == 'wifi' and self.command('ifquery', device, required=False).returncode == 0:
-                if not re.fullmatch(r'[a-zA-Z0-9_-]{1,15}', device): raise ValueError('Ungültiger WLAN-Adaptername.')
+                if not re.fullmatch(r'[a-zA-Z0-9_-]{1,15}', device): raise ValueError(t('Ungültiger WLAN-Adaptername.'))
                 legacy.append(device)
         if not legacy:
             self.pending.unlink(missing_ok=True)
-            print('Bestehende NetworkManager-Verbindungen bleiben unverändert.')
+            print(t('Bestehende NetworkManager-Verbindungen bleiben unverändert.'))
             return False
         self.state.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.state.chmod(0o700)
@@ -80,7 +85,7 @@ class Migration:
                 handoff.profile(device, backup)
                 profile = backup/'profile.nmconnection'
                 normalized = self.command('nmcli', '--offline', 'connection', 'modify', 'connection.autoconnect', 'yes', input=profile.read_text()).stdout
-                if not normalized.strip(): raise ValueError('NetworkManager hat kein gültiges WLAN-Profil erzeugt.')
+                if not normalized.strip(): raise ValueError(t('NetworkManager hat kein gültiges WLAN-Profil erzeugt.'))
                 self.write(profile, normalized.encode())
                 inputs = {}
                 for item in json.loads((backup/'manifest.json').read_text()):
@@ -88,14 +93,14 @@ class Migration:
                     for raw, tokens in handoff.logical_lines((backup/f'{item["index"]}.old').read_text()):
                         if tokens and tokens[0] == 'wpa-conf':
                             path = Path(handoff.unquote(raw.strip().split(None, 1)[1]))
-                            if path.is_symlink() or not path.is_file(): raise ValueError('WPA-Quelle hat sich geändert.')
+                            if path.is_symlink() or not path.is_file(): raise ValueError(t('WPA-Quelle hat sich geändert.'))
                             inputs[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
                 devices_plan.append({'device': device, 'backup': str(backup), 'uuid': (backup/'profile.uuid').read_text(),
                                      'profile_sha': hashlib.sha256(profile.read_bytes()).hexdigest(), 'inputs': inputs})
             # Publish only a complete, validated plan. Interrupted/resumed staging
             # leaves the old pending plan intact, and never modifies live devices.
             self.write(self.pending, json.dumps(devices_plan).encode())
-            print('WLAN-Profile offline geprüft. Bestehende Verbindung bleibt aktiv; Übernahme beim Neustart.')
+            print(t('WLAN-Profile offline geprüft. Bestehende Verbindung bleibt aktiv; Übernahme beim Neustart.'))
             return True
         except BaseException:
             shutil.rmtree(prepared)
@@ -117,7 +122,7 @@ class Migration:
         for directory in reversed(transaction['applied']):
             try: handoff.write_files(Path(directory), restore=True)
             except (OSError, ValueError): failed = True
-        if failed: raise ValueError('WLAN-Übernahme und Wiederherstellung fehlgeschlagen; Boot-Protokoll prüfen.')
+        if failed: raise ValueError(t('WLAN-Übernahme und Wiederherstellung fehlgeschlagen; Boot-Protokoll prüfen.'))
 
     def commit(self):
         if self.pending.exists(): os.replace(self.pending, self.state/'completed.json')
@@ -149,11 +154,11 @@ class Migration:
         for plan in plans:
             profile = Path(plan['backup'])/'profile.nmconnection'
             if profile.is_symlink() or hashlib.sha256(profile.read_bytes()).hexdigest() != plan['profile_sha']:
-                raise ValueError('Vorbereitetes WLAN-Profil wurde geändert.')
+                raise ValueError(t('Vorbereitetes WLAN-Profil wurde geändert.'))
             for filename, expected in plan['inputs'].items():
                 path = Path(filename)
                 if path.is_symlink() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
-                    raise ValueError('WLAN-Konfiguration seit Vorbereitung geändert; Debian-Konfiguration bleibt erhalten.')
+                    raise ValueError(t('WLAN-Konfiguration seit Vorbereitung geändert; Debian-Konfiguration bleibt erhalten.'))
         rollback = Path(tempfile.mkdtemp(prefix='boot-', dir=self.state))
         transaction = dict(applied=[], written=[], masked=[], disabled=[], committed=False)
         def save(): self.write(self.journal, json.dumps(transaction).encode())
@@ -171,7 +176,7 @@ class Migration:
                     (self.connections/f'paimenos-debian-{plan["uuid"]}.nmconnection', (Path(plan['backup'])/'profile.nmconnection').read_bytes(), 0o600),
                     (self.policies/f'99-paimenos-handoff-{device}.conf', f'[device-paimenos-handoff-{device}]\nmatch-device=interface-name:{device}\nmanaged=1\n'.encode(), 0o644),
                 ):
-                    if path.is_symlink() or (path.exists() and not path.is_file()): raise ValueError('Ungültiges WLAN-Konfigurationsziel.')
+                    if path.is_symlink() or (path.exists() and not path.is_file()): raise ValueError(t('Ungültiges WLAN-Konfigurationsziel.'))
                     original = (path.read_bytes(), path.stat().st_mode & 0o777) if path.exists() else None
                     if original is not None: original = (base64.b64encode(original[0]).decode(), original[1])
                     transaction['written'].append((str(path), original)); save()
@@ -189,7 +194,7 @@ class Migration:
             # No nmcli activation, device ownership changes, sockets or service
             # restarts: the normal boot now starts exactly one WLAN owner.
             transaction['committed'] = True; save(); self.commit()
-            print('WLAN-Konfiguration übernommen. NetworkManager startet anschließend mit dem gespeicherten Profil.')
+            print(t('WLAN-Konfiguration übernommen. NetworkManager startet anschließend mit dem gespeicherten Profil.'))
         except BaseException:
             self.rollback(transaction)
             # Avoid retrying a rejected transaction on each service activation.
@@ -202,13 +207,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=['prepare','apply'])
     action = parser.parse_args().action
-    if os.geteuid() != 0: parser.error('Bitte als root ausführen.')
+    if os.geteuid() != 0: parser.error(t('Bitte als root ausführen.'))
     try:
         migration = Migration()
         if action == 'prepare': migration.prepare()
         else: migration.apply()
     except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
-        print('FEHLER: WLAN-Vorbereitung/Übernahme nicht abgeschlossen. Debian-Konfiguration wurde beibehalten bzw. zurückgesetzt. Grund: ' + str(exc), file=__import__('sys').stderr)
+        print(t('FEHLER: WLAN-Vorbereitung/Übernahme nicht abgeschlossen. Debian-Konfiguration wurde beibehalten bzw. zurückgesetzt. Grund: ') + str(exc), file=__import__('sys').stderr)
         return 1
     return 0
 

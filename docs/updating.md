@@ -2,9 +2,13 @@
 
 ## Umbenennung und Neuinstallation
 
-Version 0.64.0 ist das erste PaimenOS-Release. Paimen ist Finnisch für Schäfer. Die Umbenennung umfasst Oberfläche, Python-Paket (`paimenos`), Befehle, Systemd-Dienste, Verzeichnisse, Installationsvariablen (`PAIMENOS_*`) und Update-Archive. Die Paket-API ist jetzt `2`.
+Version 0.64.0 ist das erste PaimenOS-Release. Paimen ist Finnisch für Schäfer. Die Umbenennung umfasst Oberfläche, Python-Paket (`paimenos`), Befehle, Systemd-Dienste, Verzeichnisse, Installationsvariablen (`PAIMENOS_*`) und Update-Archive. Die Umbenennung führte Paket-API `2` ein.
 
 Eine vorhandene LaurinOS-Installation einschließlich 0.63.6 kann dieses Release nicht als Backend-Update installieren. Das alte Updateformat und die alten Datenverzeichnisse werden nicht migriert. Bilder, ROMs und Spielstände vorher sichern, frisches Debian installieren und anschließend PaimenOS mit `sudo bash install.sh` einrichten. Der Installer verweigert die parallele Einrichtung über eine erkannte LaurinOS-Installation. Ab dieser PaimenOS-Neuinstallation sind die folgenden Backend-Updates wieder möglich.
+
+## Englisch-Unterstützung und Paket-API 3
+
+Die gemeinsame Übersetzungsbibliothek erfordert Paket-API `3`. Eine vorhandene PaimenOS-Installation mit API `2` erhält diese Änderung einmalig durch ein **manuelles vollständiges Update aus dem neuen Projektordner**: `bash update.sh --check`, dann `sudo bash update.sh`. Der bisher installierte Backend-Updater kann API `3` nicht einspielen; Teilupdates mit `--component` sind für diesen Übergang ebenfalls gesperrt. Eine Debian-Neuinstallation ist dafür nicht nötig. Eltern-Einstellungen, Apps und gespeicherte Daten bleiben erhalten. Sprachwahl und englische Standard-Webapps sind unter [Lokalisierung](localization.md) beschrieben.
 
 ## PaimenOS-Boot-Theme
 

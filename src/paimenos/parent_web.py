@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Elternverwaltung im lokalen Netzwerk."""
+from paimenos.i18n import t, language, regional_locale, english_catalog
 from paimenos.paths import CONFIG_DIR as CONFIG_ROOT
 import hashlib
 import hmac
@@ -42,7 +43,7 @@ else:
 with open(secret_file, encoding='utf-8') as handle:
     app.secret_key = handle.read().strip()
 if len(app.secret_key) < 32:
-    raise ValueError('Web-Sitzungsschlüssel fehlt oder ist beschädigt.')
+    raise ValueError(t('Web-Sitzungsschlüssel fehlt oder ist beschädigt.'))
 app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Strict',
                   PERMANENT_SESSION_LIFETIME=timedelta(minutes=30), MAX_CONTENT_LENGTH=2049 * 1024 * 1024)
 attempts = {}
@@ -73,7 +74,7 @@ def csrf_token():
     return session['csrf_token']
 
 
-app.jinja_env.globals.update(csrf_token=csrf_token, duration=parents.duration, app_active=parents.app_active)
+app.jinja_env.globals.update(t=t, language=language, regional_locale=regional_locale, csrf_token=csrf_token, duration=parents.duration, app_active=parents.app_active)
 
 
 @app.before_request
@@ -81,7 +82,7 @@ def check_csrf():
     if request.method == 'POST':
         expected, supplied = session.get('csrf_token', ''), request.form.get('csrf_token', '')
         if not expected or not hmac.compare_digest(expected.encode(), supplied.encode()):
-            abort(400, 'Formular abgelaufen. Bitte Seite neu laden.')
+            abort(400, t('Formular abgelaufen. Bitte Seite neu laden.'))
 
 
 @app.after_request
@@ -93,6 +94,11 @@ def response_headers(response):
     return response
 
 
+@app.context_processor
+def translation_context():
+    return {'translation_catalog': english_catalog() if language() == 'en' else {}}
+
+
 BASE = _template('base.html')
 
 
@@ -102,11 +108,12 @@ def brand_logo():
     return send_file(ASSETS_DIR / 'branding/paimenos-logo.png', mimetype='image/png')
 
 
-def render(body, title='Übersicht', section='dashboard'):
+def render(body, title=None, section='dashboard'):
+    title = t('Übersicht') if title is None else title
     field = '<input type="hidden" name="csrf_token" value="' + csrf_token() + '">'
     body = re.sub(r'(<form\b[^>]*method="post"[^>]*>)', lambda m: m.group(1) + field, body)
-    nav = [('Übersicht', 'dashboard'), ('Apps', 'apps_page'), ('Emulatoren', 'emulators_page'), ('Bildschirmzeit', 'time_page'),
-           ('WLAN', 'wifi_page'), ('Bluetooth', 'bluetooth_page'), ('Controller', 'controllers_page'), ('Updates', 'updates_page'), ('Einstellungen', 'settings_page'), ('Diagnose', 'diagnostics_page')]
+    nav = [(t('Übersicht'), 'dashboard'), ('Apps', 'apps_page'), (t('Emulatoren'), 'emulators_page'), (t('Bildschirmzeit'), 'time_page'),
+           (t('WLAN'), 'wifi_page'), ('Bluetooth', 'bluetooth_page'), ('Controller', 'controllers_page'), ('Updates', 'updates_page'), (t('Einstellungen'), 'settings_page'), (t('Diagnose'), 'diagnostics_page')]
     return render_template_string(BASE, body=body, title=title, section=section,
                                   authenticated=logged_in(), navigation=nav)
 
@@ -114,20 +121,20 @@ def render(body, title='Übersicht', section='dashboard'):
 @app.errorhandler(400)
 @app.errorhandler(404)
 def http_error(error):
-    return render(render_template_string('''<section class="panel pagehead"><h1>{{ code }}</h1><p>{{ message }}</p><a class="btn" href="{{ url_for('dashboard') }}">Zur Übersicht</a></section>''', code=error.code, message=error.description), 'Hinweis'), error.code
+    return render(render_template_string(_template('http-error.html'), code=error.code, message=error.description), t('Hinweis')), error.code
 
 
 @app.errorhandler(413)
 def upload_too_large(error):
-    return render('<section class="panel"><h1>Upload zu groß</h1><p>Spiele: höchstens 1 GB insgesamt; PSP: höchstens 2 GB. Kachelbilder: höchstens 4 MB.</p><a class="btn" href="/apps">Zur App-Verwaltung</a></section>', 'Upload zu groß', 'apps_page'), 413
+    return render(render_template_string(_template('upload-error.html')), t('Upload zu groß'), 'apps_page'), 413
 
 
 @app.errorhandler(OSError)
 @app.errorhandler(ValueError)
 def data_error(error):
-    app.logger.error('Elternverwaltung: %s', error)
+    app.logger.error(t('Elternverwaltung: %s'), error)
     # Ohne settings() rendern, falls genau diese Datei beschädigt ist.
-    return render_template_string(BASE, body='<section class="panel"><h1>Daten konnten nicht geladen werden</h1><p>Bitte den lokalen Elternbereich und die Geräte-Diagnose öffnen.</p></section>', title='Datenfehler', authenticated=False), 503
+    return render_template_string(BASE, body=render_template_string(_template('data-error.html')), title=t('Datenfehler'), authenticated=False), 503
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -148,7 +155,7 @@ def login():
             if not blocked:
                 attempts[address] = (count + 1, started)
         if blocked:
-            flash('Zu viele Versuche. Bitte nach einer Minute erneut versuchen.', 'error')
+            flash(t('Zu viele Versuche. Bitte nach einer Minute erneut versuchen.'), 'error')
             status = 429
         elif hmac.compare_digest(request.form.get('pin', '').encode(), read_settings()['pin'].encode()):
             with attempts_lock:
@@ -158,9 +165,9 @@ def login():
             session.permanent = True
             return redirect(next_url)
         else:
-            flash('Die Eltern-PIN stimmt nicht.', 'error')
+            flash(t('Die Eltern-PIN stimmt nicht.'), 'error')
     body = render_template_string(_template('login.html'), next_url=next_url)
-    response = app.make_response((render(body, 'Anmeldung'), status))
+    response = app.make_response((render(body, t('Anmeldung')), status))
     if status == 429:
         response.headers['Retry-After'] = '60'
     return response
@@ -185,7 +192,7 @@ def updates_page():
 @app.route('/updates/status')
 def updates_status():
     if not logged_in():
-        return jsonify(ok=False, error='Bitte anmelden.'), 401
+        return jsonify(ok=False, error=t('Bitte anmelden.')), 401
     try:
         return jsonify(update_request())
     except UpdateError as exc:
@@ -196,12 +203,12 @@ def updates_status():
 @app.route('/updates/install', methods=['POST'], endpoint='updates_install')
 def updates_action():
     if not logged_in():
-        return jsonify(ok=False, error='Bitte anmelden.'), 401
+        return jsonify(ok=False, error=t('Bitte anmelden.')), 401
     action = 'install' if request.path.endswith('/install') else 'check'
     try:
         force_source = request.form.get('force_source', '')
         if force_source not in ('', '1'):
-            raise UpdateError('Ungültige Quellenbestätigung.')
+            raise UpdateError(t('Ungültige Quellenbestätigung.'))
         tag = request.form.get('tag') if action == 'install' else None
         return jsonify(update_request(action, tag, force_source=True) if force_source else update_request(action, tag))
     except UpdateError as exc:
@@ -214,7 +221,7 @@ def dashboard():
     st, items = read_settings(), parents.managed_apps()
     info = parents.usage(st)
     active = sum(parents.app_active(a, st) for a in items)
-    body = render_template_string('''<div class="pagehead"><div class="eyebrow">Alles im Blick</div><h1>Heute auf PaimenOS</h1><p class="muted">Bildschirmzeit und Apps für den Kinderbereich.</p></div>''' + STATS + _template('dashboard-summary.html') + BONUS_BUTTONS + _template('dashboard-footer.html'), info=info, active=active, count=len(items), third_label='Apps freigegeben', third_value=f'{active} / {len(items)}', return_to='dashboard')
+    body = render_template_string(_template('dashboard-head.html') + STATS + _template('dashboard-summary.html') + BONUS_BUTTONS + _template('dashboard-footer.html'), info=info, active=active, count=len(items), third_label=t('Apps freigegeben'), third_value=f'{active} / {len(items)}', return_to='dashboard')
     return render(body)
 
 
@@ -222,7 +229,7 @@ def dashboard():
 @login_required
 def emulator_diagnostics():
     body = render_template_string(_template('emulator-diagnostics.html'), report=emulators.emulator_log())
-    return render(body, 'Emulator-Diagnose', 'emulators_page')
+    return render(body, t('Emulator-Diagnose'), 'emulators_page')
 
 
 @app.route('/emulators/diagnostics/download')
@@ -234,7 +241,7 @@ def emulator_diagnostics_download():
 @app.route('/emulators/install/status')
 def emulator_install_status():
     if not logged_in():
-        return jsonify(ok=False, error='Bitte anmelden.'), 401
+        return jsonify(ok=False, error=t('Bitte anmelden.')), 401
     try:
         return jsonify(install_request())
     except InstallError as exc:
@@ -244,16 +251,16 @@ def emulator_install_status():
 @app.route('/emulators/install', methods=['POST'])
 def emulator_install_action():
     if not logged_in():
-        return jsonify(ok=False, error='Bitte anmelden.'), 401
+        return jsonify(ok=False, error=t('Bitte anmelden.')), 401
     wants_json = request.accept_mimetypes.best == 'application/json'
     try:
         keys = request.form.getlist('systems')
         if not keys or len(keys) > len(emulators.SYSTEMS) or any(key not in emulators.SYSTEMS for key in keys):
-            raise ValueError('Bitte gültige Konsolen auswählen.')
+            raise ValueError(t('Bitte gültige Konsolen auswählen.'))
         result = install_request('install', keys)
         if wants_json:
             return jsonify(result)
-        flash('Installation gestartet. Fortschritt wird auf der Emulator-Seite angezeigt.', 'success')
+        flash(t('Installation gestartet. Fortschritt wird auf der Emulator-Seite angezeigt.'), 'success')
     except (ValueError, InstallError) as exc:
         if wants_json:
             return jsonify(ok=False, error=str(exc)), 400
@@ -269,17 +276,17 @@ def emulators_page():
             if request.form.get('action') == 'bios':
                 upload = request.files.get('bios')
                 if not upload or not upload.filename:
-                    raise ValueError('Bitte eine BIOS-Datei auswählen.')
+                    raise ValueError(t('Bitte eine BIOS-Datei auswählen.'))
                 emulators.upload_bios(upload)
-                flash('BIOS gespeichert.', 'success')
+                flash(t('BIOS gespeichert.'), 'success')
             else:
                 emulators.upload_game(request.form.get('system', ''), request.form.get('title', ''), request.files.getlist('roms'))
-                flash('Spiel hochgeladen. Die Kachel erscheint automatisch im Kinder-Menü.', 'success')
+                flash(t('Spiel hochgeladen. Die Kachel erscheint automatisch im Kinder-Menü.'), 'success')
             return redirect(url_for('emulators_page'))
         except (ValueError, OSError, UnicodeError) as exc:
             flash(str(exc), 'error')
     body = render_template_string(_template('emulators.html'), any_ready=any(item['ready'] for item in emulators.status()), systems=emulators.status(), accepts=','.join(sorted(set(ext for value in emulators.SYSTEMS.values() for ext in value[2]) | {'.bin', '.sbi', '.zip'})), bios_report=emulators.bios_inventory(), bios=[name for name in emulators.BIOS if (emulators.ROOT / 'bios' / name).is_file()])
-    return render(body, 'Emulatoren', 'emulators_page')
+    return render(body, t('Emulatoren'), 'emulators_page')
 
 
 @app.route('/apps')
@@ -305,7 +312,7 @@ def icon(name):
 @login_required
 def app_toggle(app_id):
     parents.toggle_app(app_id)
-    flash('App-Freigabe gespeichert.')
+    flash(t('App-Freigabe gespeichert.'))
     return redirect(url_for('apps_page'))
 
 
@@ -314,9 +321,9 @@ def app_toggle(app_id):
 def apps_bulk():
     active = request.form.get('active')
     if active not in ('0', '1'):
-        abort(400, 'Ungültige Freigabe.')
+        abort(400, t('Ungültige Freigabe.'))
     parents.set_apps_active([a['id'] for a in parents.managed_apps()], active == '1')
-    flash('App-Freigaben gespeichert.')
+    flash(t('App-Freigaben gespeichert.'))
     return redirect(url_for('apps_page'))
 
 
@@ -359,9 +366,9 @@ def app_new():
         except (ValueError, OSError, TimeoutError) as exc:
             flash(str(exc), 'error')
         else:
-            flash('App hinzugefügt.')
+            flash(t('App hinzugefügt.'))
             return redirect(url_for('apps_page'))
-    return app_form(item, 'App hinzufügen')
+    return app_form(item, t('App hinzufügen'))
 
 
 @app.route('/webapps/<app_id>/edit', methods=['GET', 'POST'])
@@ -379,9 +386,9 @@ def app_edit(app_id):
             item = dict(item, **values)
             flash(str(exc), 'error')
         else:
-            flash('App gespeichert.')
+            flash(t('App gespeichert.'))
             return redirect(url_for('apps_page'))
-    return app_form(item, 'App bearbeiten')
+    return app_form(item, t('App bearbeiten'))
 
 
 @app.route('/webapps/<app_id>/delete', methods=['GET', 'POST'])
@@ -393,10 +400,10 @@ def app_delete(app_id):
         abort(404)
     if request.method == 'POST':
         parents.delete_app(app_id)
-        flash('App aus dem Kinder-Menü entfernt. Bei Emulator-Spielen werden auch die hochgeladenen ROM-Dateien entfernt; Spielstände bleiben erhalten. Installierte Programme und Browserprofile bleiben erhalten.')
+        flash(t('App aus dem Kinder-Menü entfernt. Bei Emulator-Spielen werden auch die hochgeladenen ROM-Dateien entfernt; Spielstände bleiben erhalten. Installierte Programme und Browserprofile bleiben erhalten.'))
         return redirect(url_for('apps_page'))
     body = render_template_string(_template('app-delete.html'), item=item)
-    return render(body, 'App löschen', 'apps_page')
+    return render(body, t('App löschen'), 'apps_page')
 
 
 @app.route('/time', methods=['GET', 'POST'])
@@ -408,11 +415,11 @@ def time_page():
         except ValueError as exc:
             flash(str(exc), 'error')
         else:
-            flash('Tageslimit gespeichert.')
+            flash(t('Tageslimit gespeichert.'))
         return redirect(url_for('time_page'))
     info = parents.usage()
-    body = render_template_string('''<div class="pagehead"><div class="eyebrow">Zeit für heute</div><h1>Bildschirmzeit</h1><p class="muted">Das Tageslimit gilt jeden Tag. Verbrauch und Bonus werden um Mitternacht zurückgesetzt.</p></div>''' + STATS + _template('time-limit-form.html') + BONUS_BUTTONS + _template('time-bonus-form.html'), info=info, third_label='Bonus heute', third_value=f'{info["bonus"]} Min.', return_to='time_page')
-    return render(body, 'Bildschirmzeit', 'time_page')
+    body = render_template_string(_template('time-head.html') + STATS + _template('time-limit-form.html') + BONUS_BUTTONS + _template('time-bonus-form.html'), info=info, third_label=t('Bonus heute'), third_value=t('{value0} Min.', value0=info['bonus']), return_to='time_page')
+    return render(body, t('Bildschirmzeit'), 'time_page')
 
 
 @app.route('/bonus', methods=['POST'])
@@ -423,7 +430,7 @@ def bonus():
     except ValueError as exc:
         flash(str(exc), 'error')
     else:
-        flash(f'{added} Minuten Bonus hinzugefügt.' if added else 'Die maximale Bonuszeit von 600 Minuten ist erreicht.')
+        flash(t('{value0} Minuten Bonus hinzugefügt.', value0=added) if added else t('Die maximale Bonuszeit von 600 Minuten ist erreicht.'))
     endpoint = 'time_page' if request.form.get('return_to') == 'time_page' else 'dashboard'
     return redirect(url_for(endpoint))
 
@@ -432,7 +439,7 @@ def bonus():
 @login_required
 def clear_bonus():
     parents.clear_bonus()
-    flash('Bonuszeit entfernt.')
+    flash(t('Bonuszeit entfernt.'))
     return redirect(url_for('time_page'))
 
 
@@ -440,7 +447,7 @@ def clear_bonus():
 @login_required
 def reset_usage():
     parents.reset_today()
-    flash('Heutiger Verbrauch und Bonus zurückgesetzt.')
+    flash(t('Heutiger Verbrauch und Bonus zurückgesetzt.'))
     return redirect(url_for('time_page'))
 
 
@@ -455,10 +462,10 @@ def settings_page():
             flash(str(exc), 'error')
         else:
             session['pin_fingerprint'] = pin_fingerprint()
-            flash('Einstellungen gespeichert. Andere Web-Sitzungen müssen sich nach einer PIN-Änderung neu anmelden.')
+            flash(t('Einstellungen gespeichert. Andere Web-Sitzungen müssen sich nach einer PIN-Änderung neu anmelden.'))
             return redirect(url_for('settings_page'))
     body = render_template_string(_template('settings.html'), st=st)
-    return render(body, 'Einstellungen', 'settings_page')
+    return render(body, t('Einstellungen'), 'settings_page')
 
 
 BLUETOOTH_PAGE = _template('bluetooth-page.html')
@@ -477,7 +484,7 @@ def controllers_page():
 @app.route('/controllers/status')
 def controllers_status():
     if not logged_in():
-        return jsonify(error='Bitte zuerst im Elternbereich anmelden.'), 401
+        return jsonify(error=t('Bitte zuerst im Elternbereich anmelden.')), 401
     try:
         return jsonify(controllers.status())
     except controllers.ProfileError as exc:
@@ -487,7 +494,7 @@ def controllers_status():
 @app.route('/controllers/action', methods=['POST'])
 def controllers_action():
     if not logged_in():
-        return jsonify(error='Bitte zuerst im Elternbereich anmelden.'), 401
+        return jsonify(error=t('Bitte zuerst im Elternbereich anmelden.')), 401
     if 'controller_owner' not in session:
         session['controller_owner'] = secrets.token_hex(24)
     owner = session['controller_owner']
@@ -498,7 +505,7 @@ def controllers_action():
             return jsonify(controllers.calibration.start(request.form.get('device', ''), owner))
         if action == 'reset':
             if controllers.calibration_active():
-                raise controllers.ProfileError('Bitte die geöffnete Konfiguration zuerst schließen.')
+                raise controllers.ProfileError(t('Bitte die geöffnete Konfiguration zuerst schließen.'))
             controllers.reset_profile(request.form.get('profile', ''))
             return jsonify(reset=True)
         if action == 'capture':
@@ -516,7 +523,7 @@ def bluetooth_page():
 @app.route('/bluetooth/status')
 def bluetooth_status():
     if not logged_in():
-        return jsonify(error='Bitte im Elternbereich anmelden.'), 401
+        return jsonify(error=t('Bitte im Elternbereich anmelden.')), 401
     try:
         return jsonify(bluetooth_request())
     except BluetoothError as exc:
@@ -526,11 +533,11 @@ def bluetooth_status():
 @app.route('/bluetooth/action', methods=['POST'])
 def bluetooth_action():
     if not logged_in():
-        return jsonify(error='Bitte im Elternbereich anmelden.'), 401
+        return jsonify(error=t('Bitte im Elternbereich anmelden.')), 401
     action = request.form.get('action', '')
     if action not in ('power_on', 'power_off', 'scan', 'stop_scan', 'pair', 'connect',
                       'disconnect', 'remove', 'cancel', 'answer'):
-        return jsonify(error='Unbekannte Bluetooth-Aktion.'), 400
+        return jsonify(error=t('Unbekannte Bluetooth-Aktion.')), 400
     values = {key: request.form[key] for key in ('adapter', 'device', 'prompt_id', 'accept', 'value') if key in request.form}
     try:
         return jsonify(bluetooth_request(action, **values))
@@ -544,13 +551,13 @@ WIFI_PAGE = _template('wifi-page.html')
 @app.route('/wifi')
 @login_required
 def wifi_page():
-    return render(render_template_string(WIFI_PAGE), 'WLAN', 'wifi_page')
+    return render(render_template_string(WIFI_PAGE), t('WLAN'), 'wifi_page')
 
 
 @app.route('/wifi/status')
 def wifi_status():
     if not logged_in():
-        return jsonify(error='Bitte im Elternbereich anmelden.'), 401
+        return jsonify(error=t('Bitte im Elternbereich anmelden.')), 401
     try:
         return jsonify(wifi_request())
     except WifiError as exc:
@@ -560,10 +567,10 @@ def wifi_status():
 @app.route('/wifi/action', methods=['POST'])
 def wifi_action():
     if not logged_in():
-        return jsonify(error='Bitte im Elternbereich anmelden.'), 401
+        return jsonify(error=t('Bitte im Elternbereich anmelden.')), 401
     action = request.form.get('action', '')
     if action not in ('power_on', 'power_off', 'scan', 'connect', 'hidden', 'disconnect', 'forget', 'autoconnect', 'cancel'):
-        return jsonify(error='Unbekannte WLAN-Aktion.'), 400
+        return jsonify(error=t('Unbekannte WLAN-Aktion.')), 400
     values = {key:request.form[key] for key in ('adapter', 'network', 'profile', 'ssid', 'security', 'password', 'enabled') if key in request.form}
     try:
         return jsonify(wifi_request(action, **values))
@@ -575,7 +582,7 @@ def wifi_action():
 @login_required
 def diagnostics_page():
     body = render_template_string(_template('diagnostics.html'), text=diagnostics_text(collect_diagnostics()))
-    return render(body, 'Diagnose', 'diagnostics_page')
+    return render(body, t('Diagnose'), 'diagnostics_page')
 
 
 @app.route('/diagnostics/download')

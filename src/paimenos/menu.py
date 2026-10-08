@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from paimenos.i18n import t, setup_qt, language, application_environment
 from paimenos.paths import CONFIG_DIR, USER_DATA_DIR, ASSETS_DIR
 from paimenos.paths import STATE_DIR
 import json, os, shlex, shutil, socket, subprocess, sys, fcntl, traceback, threading, signal
@@ -15,7 +16,7 @@ from paimenos.controller import ControllerReader
 from paimenos.network_status import NetworkStatus
 from datetime import date
 from PyQt5 import sip
-from PyQt5.QtCore import Qt, QTimer, QTime, QDate, QSize
+from PyQt5.QtCore import QLocale, Qt, QTimer, QTime, QDate, QSize
 from PyQt5.QtGui import QFont, QIcon, QPixmap, QColor, QPainter, QImageReader, QKeySequence
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QGridLayout, QVBoxLayout, QHBoxLayout,
@@ -31,14 +32,14 @@ WEBAPP_BASE = os.path.expanduser("~/.mozilla/paimenos-webapps")
 OVERLAY_SCRIPT = "/usr/local/lib/paimenos/current/run.py"
 
 COLOR_PALETTE = [
-    ("#FF9F00", "🍊 Orange"),
-    ("#34C759", "🍏 Grün"),
-    ("#007AFF", "🌊 Blau"),
-    ("#AF52DE", "🍇 Violett"),
-    ("#FF2D55", "🍓 Pink"),
-    ("#FFCC00", "🍌 Gelb"),
-    ("#5AC8FA", "🩵 Hellblau"),
-    ("#34495E", "🩶 Graphit")
+    ("#FF9F00", t('🍊 Orange')),
+    ("#34C759", t('🍏 Grün')),
+    ("#007AFF", t('🌊 Blau')),
+    ("#AF52DE", t('🍇 Violett')),
+    ("#FF2D55", t('🍓 Pink')),
+    ("#FFCC00", t('🍌 Gelb')),
+    ("#5AC8FA", t('🩵 Hellblau')),
+    ("#34495E", t('🩶 Graphit'))
 ]
 
 def find_program(name):
@@ -141,7 +142,7 @@ def save_json(path, data):
             atomic_json(path, data)
         return True
     except Exception as exc:
-        QMessageBox.critical(None, "Fehler", f"Speichern fehlgeschlagen: {exc}")
+        QMessageBox.critical(None, t('Fehler'), t('Speichern fehlgeschlagen: {value0}', value0=exc))
         return False
 
 class PaimenOSTile(QPushButton):
@@ -260,13 +261,13 @@ class CameraImageViewer(QWidget):
         layout.addWidget(self.name_label)
         controls = QGridLayout()
         for index, (text, callback) in enumerate((
-            ("← Vorheriges", lambda: self.step(-1)),
-            ("Nächstes →", lambda: self.step(1)),
+            (t('← Vorheriges'), lambda: self.step(-1)),
+            (t('Nächstes →'), lambda: self.step(1)),
             ("−", lambda: self.change_zoom(1 / 1.25)),
             ("+", lambda: self.change_zoom(1.25)),
-            ("Einpassen", self.reset_zoom),
+            (t('Einpassen'), self.reset_zoom),
             ("🎨 Tux Paint", self.open_tuxpaint),
-            ("Zur Übersicht", browser.show_overview),
+            (t('Zur Übersicht'), browser.show_overview),
         )):
             button = QPushButton(text, self)
             button.setAutoDefault(False)
@@ -276,7 +277,7 @@ class CameraImageViewer(QWidget):
             if text == "🎨 Tux Paint":
                 self.paint_button = button
         layout.addLayout(controls)
-        help_label = QLabel("← / ↑ vorheriges Bild · → / ↓ nächstes Bild · + / − Zoom · Esc Übersicht", self)
+        help_label = QLabel(t('← / ↑ vorheriges Bild · → / ↓ nächstes Bild · + / − Zoom · Esc Übersicht'), self)
         help_label.setAlignment(Qt.AlignCenter)
         help_label.setWordWrap(True)
         layout.addWidget(help_label)
@@ -314,7 +315,7 @@ class CameraImageViewer(QWidget):
         self.zoom = 1.0
         self.pixmap = QPixmap()
         self.image_label.clear()
-        self.image_label.setText("Bild wird geladen …")
+        self.image_label.setText(t('Bild wird geladen …'))
         self.image_label.resize(400, 80)
         path = self.images[self.index]
         self.update_name()
@@ -335,7 +336,7 @@ class CameraImageViewer(QWidget):
         if kind == "image":
             if error:
                 self.image_label.setText(error)
-                log_event("Bilder", f"{os.path.basename(path)}: {error}")
+                log_event(t('Bilder'), f"{os.path.basename(path)}: {error}")
                 return
             self.pixmap = QPixmap.fromImage(value)
             self.render_image()
@@ -344,7 +345,7 @@ class CameraImageViewer(QWidget):
             self.paint_button.setText("🎨 Tux Paint")
             if error:
                 log_event("Tux Paint", error)
-                QMessageBox.warning(self, "Tux Paint", f"Arbeitskopie konnte nicht erstellt werden:\n{error}")
+                QMessageBox.warning(self, "Tux Paint", t('Arbeitskopie konnte nicht erstellt werden:\n{value0}', value0=error))
                 return
             menu = self.browser.parent()
             if not menu or getattr(menu, "active_process", None) is not None:
@@ -353,11 +354,11 @@ class CameraImageViewer(QWidget):
                 return
             try:
                 select_tuxpaint_image(value)
-                log_event("Tux Paint", "Arbeitskopie vorbereitet: " + os.path.basename(value["file"]))
+                log_event("Tux Paint", t('Arbeitskopie vorbereitet: ') + os.path.basename(value["file"]))
                 menu.launch({"command": find_program("tuxpaint"), "id": "tuxpaint"}, return_window=self.browser)
             except Exception as exc:
                 log_event("Tux Paint", str(exc))
-                QMessageBox.warning(self, "Tux Paint", f"Bild konnte nicht geöffnet werden:\n{exc}")
+                QMessageBox.warning(self, "Tux Paint", t('Bild konnte nicht geöffnet werden:\n{value0}', value0=exc))
 
     def step(self, offset):
         target = min(max(0, self.index + offset), len(self.images) - 1)
@@ -399,16 +400,16 @@ class CameraImageViewer(QWidget):
         if not self.images or not self.paint_button.isEnabled():
             return
         if not find_program("tuxpaint"):
-            QMessageBox.information(self, "Tux Paint", "Tux Paint ist nicht installiert.")
+            QMessageBox.information(self, "Tux Paint", t('Tux Paint ist nicht installiert.'))
             return
         if "tuxpaint" in read_settings().get("disabled_apps", []):
-            QMessageBox.information(self, "Tux Paint", "Tux Paint wurde im Elternbereich deaktiviert.")
+            QMessageBox.information(self, "Tux Paint", t('Tux Paint wurde im Elternbereich deaktiviert.'))
             return
         if getattr(self.browser.parent(), "active_process", None) is not None:
             return
         path = self.images[self.index]
         self.paint_button.setEnabled(False)
-        self.paint_button.setText("Bild vorbereiten …")
+        self.paint_button.setText(t('Bild vorbereiten …'))
         submit_task(lambda: prepare_tuxpaint_image(path), ("paint", self.load_generation, path),
                     self.task_signals, self.load_cancelled)
 
@@ -418,7 +419,7 @@ class CameraBrowser(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("📷 Kamera – Bilder und Videos")
+        self.setWindowTitle(t('📷 Kamera – Bilder und Videos'))
         self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setModal(True)
         bg = read_settings().get("bg_color", "#FF9F00")
@@ -436,13 +437,13 @@ class CameraBrowser(QDialog):
         self.overview = QWidget(self)
         root = QVBoxLayout(self.overview)
         header = QHBoxLayout()
-        title = QLabel("📷 Bilder und Videos · SD-Karte / USB", self)
+        title = QLabel(t('📷 Bilder und Videos · SD-Karte / USB'), self)
         title.setFont(QFont("DejaVu Sans", 22, QFont.Bold))
         root.addWidget(title)
         header.addStretch()
-        for text, callback in (("Aktualisieren", self.reload_images),
-                               ("Medium auswerfen", self.eject_media),
-                               ("Hauptmenü", self.reject)):
+        for text, callback in ((t('Aktualisieren'), self.reload_images),
+                               (t('Medium auswerfen'), self.eject_media),
+                               (t('Hauptmenü'), self.reject)):
             button = QPushButton(text, self)
             button.setAutoDefault(False)
             button.clicked.connect(callback)
@@ -474,8 +475,8 @@ class CameraBrowser(QDialog):
         self.thumbnail_running = 0
         self.scanning = False
         pages = QHBoxLayout()
-        self.page_previous = QPushButton("← Seite", self)
-        self.page_next = QPushButton("Seite →", self)
+        self.page_previous = QPushButton(t('← Seite'), self)
+        self.page_next = QPushButton(t('Seite →'), self)
         self.page_previous.clicked.connect(lambda: self.change_page(-1))
         self.page_next.clicked.connect(lambda: self.change_page(1))
         self.page_label = QLabel(self)
@@ -529,9 +530,9 @@ class CameraBrowser(QDialog):
         self.page_label.clear()
         if not roots:
             self.scanning = False
-            self.info.setText("Bitte Kamera-Speicherkarte oder USB-Medium einstecken.")
+            self.info.setText(t('Bitte Kamera-Speicherkarte oder USB-Medium einstecken.'))
             return
-        self.info.setText("Bilder und Videos werden gesucht … Du kannst jederzeit zurückgehen.")
+        self.info.setText(t('Bilder und Videos werden gesucht … Du kannst jederzeit zurückgehen.'))
         self.scanning = True
         cancel = self.cancelled
         submit_task(lambda: scan_media(roots, cancel), ("scan", self.generation, ""),
@@ -544,8 +545,8 @@ class CameraBrowser(QDialog):
         if kind == "scan":
             self.scanning = False
             if error:
-                self.info.setText("Bilder und Videos konnten nicht gesucht werden: " + error)
-                log_event("Medien", error)
+                self.info.setText(t('Bilder und Videos konnten nicht gesucht werden: ') + error)
+                log_event(t('Medien'), error)
                 return
             self.images = value
             self.render_page()
@@ -554,7 +555,7 @@ class CameraBrowser(QDialog):
             button = self.image_buttons.get(path)
             if button:
                 if error:
-                    button.setText("Nicht lesbar\n" + os.path.basename(path))
+                    button.setText(t('Nicht lesbar\n') + os.path.basename(path))
                     button.setToolTip(path + "\n" + error)
                 else:
                     button.setIcon(QIcon(QPixmap.fromImage(value)))
@@ -572,9 +573,9 @@ class CameraBrowser(QDialog):
         self.reset_jobs()
         self.clear_grid()
         videos = sum(is_video(path) for path in self.images)
-        self.info.setText(f"{len(self.images) - videos} Bild(er) und {videos} Video(s) gefunden.")
+        self.info.setText(t('{value0} Bild(er) und {value1} Video(s) gefunden.', value0=len(self.images) - videos, value1=videos))
         pages = max(1, (len(self.images) + self.PAGE_SIZE - 1) // self.PAGE_SIZE)
-        self.page_label.setText(f"Seite {self.page + 1} / {pages}")
+        self.page_label.setText(t('Seite {value0} / {value1}', value0=self.page + 1, value1=pages))
         self.page_previous.setEnabled(self.page > 0)
         self.page_next.setEnabled(self.page + 1 < pages)
         columns = max(1, (QApplication.primaryScreen().availableGeometry().width() - 80) // 225)
@@ -595,7 +596,7 @@ class CameraBrowser(QDialog):
             if not is_video(path):
                 self.thumbnail_queue.append(path)
         if not self.images:
-            self.grid.addWidget(QLabel("Keine unterstützten Bilder oder Videos gefunden.", self), 0, 0)
+            self.grid.addWidget(QLabel(t('Keine unterstützten Bilder oder Videos gefunden.'), self), 0, 0)
         self.schedule_thumbnails()
 
     def schedule_thumbnails(self):
@@ -668,11 +669,11 @@ class CameraBrowser(QDialog):
     def eject_media(self):
         roots = self.media_roots()
         if not roots:
-            QMessageBox.information(self, "Kamera", "Kein Medium ist eingehängt.")
+            QMessageBox.information(self, t('Kamera'), t('Kein Medium ist eingehängt.'))
             return
         root = roots[0]
         if len(roots) > 1:
-            choice, ok = QInputDialog.getItem(self, "Auswerfen", "Welches Medium?", roots, 0, False)
+            choice, ok = QInputDialog.getItem(self, t('Auswerfen'), t('Welches Medium?'), roots, 0, False)
             if not ok:
                 return
             root = choice
@@ -692,18 +693,18 @@ class CameraBrowser(QDialog):
                 result = subprocess.run(["udisksctl", "unmount", "-b", source, "--no-user-interaction"],
                                         capture_output=True, text=True, timeout=20)
                 if result.returncode:
-                    raise RuntimeError(result.stderr.strip() or "Auswerfen fehlgeschlagen.")
+                    raise RuntimeError(result.stderr.strip() or t('Auswerfen fehlgeschlagen.'))
                 atomic_json(marker, sorted(set(ejected + [source])))
             self.reload_images()
         except Exception as exc:
-            QMessageBox.warning(self, "Auswerfen", f"Medium konnte nicht ausgeworfen werden:\n{exc}")
+            QMessageBox.warning(self, t('Auswerfen'), t('Medium konnte nicht ausgeworfen werden:\n{value0}', value0=exc))
 
 
 
 class ColorPickerDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("🎨 Hintergrundfarbe wählen")
+        self.setWindowTitle(t('🎨 Hintergrundfarbe wählen'))
         self.setFixedSize(420, 260)
         self.selected_color = None
 
@@ -716,7 +717,7 @@ class ColorPickerDialog(QDialog):
         """)
 
         layout = QVBoxLayout(self)
-        label = QLabel("Wähle deine Lieblingsfarbe:", self)
+        label = QLabel(t('Wähle deine Lieblingsfarbe:'), self)
         label.setAlignment(Qt.AlignCenter)
         layout.addWidget(label)
 
@@ -768,16 +769,16 @@ class ColorPickerDialog(QDialog):
 class DiagnosticsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Geräte-Diagnose")
+        self.setWindowTitle(t('Geräte-Diagnose'))
         self.resize(800, 600)
         layout = QVBoxLayout(self)
         self.text = QPlainTextEdit(self)
         self.text.setReadOnly(True)
         layout.addWidget(self.text, 1)
         buttons = QHBoxLayout()
-        self.refresh_button = QPushButton("Aktualisieren", self)
+        self.refresh_button = QPushButton(t('Aktualisieren'), self)
         self.refresh_button.clicked.connect(self.refresh)
-        close = QPushButton("Zurück", self)
+        close = QPushButton(t('Zurück'), self)
         close.clicked.connect(self.reject)
         buttons.addWidget(self.refresh_button)
         buttons.addWidget(close)
@@ -787,7 +788,7 @@ class DiagnosticsDialog(QDialog):
         self.refresh()
 
     def refresh(self):
-        self.text.setPlainText("Diagnose wird gesammelt …")
+        self.text.setPlainText(t('Diagnose wird gesammelt …'))
         self.refresh_button.setEnabled(False)
         submit_task(collect_diagnostics, "diagnostics", self.signals)
 
@@ -804,7 +805,7 @@ class PaimenOSMenu(QWidget):
         self.return_window = None
         self.camera_browser = None
         self.overlay_proc = None
-        self.setWindowTitle("PaimenOS Kinder-Menü")
+        self.setWindowTitle(t('PaimenOS Kinder-Menü'))
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
 
         self.main_layout = QVBoxLayout(self)
@@ -825,7 +826,7 @@ class PaimenOSMenu(QWidget):
         self.battery_label.setFont(QFont("DejaVu Sans", 18, QFont.Bold))
         self.battery_label.setMinimumWidth(105)
         self.battery_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-        self.battery_label.setToolTip("Akku")
+        self.battery_label.setToolTip(t('Akku'))
         top_layout.addWidget(self.battery_label)
 
         top_layout.addStretch()
@@ -834,14 +835,14 @@ class PaimenOSMenu(QWidget):
         self.timer_info_label.setFont(QFont("DejaVu Sans", 16, QFont.Bold))
         top_layout.addWidget(self.timer_info_label)
 
-        color_btn = QPushButton("🎨 Farbe")
+        color_btn = QPushButton(t('🎨 Farbe'))
         color_btn.setObjectName("colorBtn")
         color_btn.setMinimumSize(120, 50)
         color_btn.setCursor(Qt.PointingHandCursor)
         color_btn.clicked.connect(self.open_color_picker)
         top_layout.addWidget(color_btn)
 
-        parent_btn = QPushButton("🔒 Eltern-Bereich")
+        parent_btn = QPushButton(t('🔒 Eltern-Bereich'))
         parent_btn.setObjectName("parentBtn")
         parent_btn.setMinimumSize(180, 50)
         parent_btn.setCursor(Qt.PointingHandCursor)
@@ -904,7 +905,7 @@ class PaimenOSMenu(QWidget):
         self.app_scroll.setWidget(self.app_container)
         self.main_layout.addWidget(self.app_scroll, 1)
         self.app_buttons = []
-        self.controller_hint = QLabel('Steuerkreuz / linker Stick: wählen · Bestätigungstaste: öffnen · Schultertasten: Kategorie · Start: Farbe / Eltern · Rechte Taste: zurück')
+        self.controller_hint = QLabel(t('Steuerkreuz / linker Stick: wählen · Bestätigungstaste: öffnen · Schultertasten: Kategorie · Start: Farbe / Eltern · Rechte Taste: zurück'))
         self.controller_hint.setFont(QFont('DejaVu Sans', 12))
         self.controller_hint.setWordWrap(True)
         self.controller_hint.setAlignment(Qt.AlignCenter)
@@ -1161,7 +1162,7 @@ class PaimenOSMenu(QWidget):
         correct_pin = settings["pin"]
 
         pin, ok = QInputDialog.getText(
-            self, "🔒 Eltern-PIN", "Bitte Eltern-PIN eingeben:", QLineEdit.Password
+            self, t('🔒 Eltern-PIN'), t('Bitte Eltern-PIN eingeben:'), QLineEdit.Password
         )
 
         if ok and pin == correct_pin:
@@ -1169,7 +1170,7 @@ class PaimenOSMenu(QWidget):
             if dlg.exec_() == QDialog.Accepted:
                 self.reload_apps()
         elif ok:
-            QMessageBox.warning(self, "Falsch", "Falscher PIN!")
+            QMessageBox.warning(self, t('Falsch'), t('Falscher PIN!'))
 
     def launch(self, item, return_window=None):
         if getattr(self, "active_process", None) is not None:
@@ -1214,14 +1215,14 @@ class PaimenOSMenu(QWidget):
             log_path = os.path.join(str(STATE_DIR), "paimenos-application.log")
             # Pro Start begrenzt: kein über Monate wachsendes gemeinsames Log.
             self.application_log = open(log_path, "w", encoding="utf-8")
-            log_event("Anwendung", "Start: " + os.path.basename(cmd[0]))
-            self.active_process = subprocess.Popen(cmd, start_new_session=True,
+            log_event(t('Anwendung'), "Start: " + os.path.basename(cmd[0]))
+            self.active_process = subprocess.Popen(cmd, start_new_session=True, env=application_environment(),
                                                    stdout=self.application_log, stderr=self.application_log)
         except Exception as exc:
             if getattr(self, "application_log", None):
                 self.application_log.close()
-            log_event("Anwendung", str(exc))
-            QMessageBox.critical(self, "Fehler", f"Fehler beim Starten:\n{exc}")
+            log_event(t('Anwendung'), str(exc))
+            QMessageBox.critical(self, t('Fehler'), t('Fehler beim Starten:\n{value0}', value0=exc))
             return
         self.hide()
         if return_window:
@@ -1250,13 +1251,11 @@ class PaimenOSMenu(QWidget):
         target.raise_()
         target.activateWindow()
         if code not in self.expected_exit_codes:
-            log_event("Anwendung", f"Programm mit Fehlercode {code} beendet.")
+            log_event(t('Anwendung'), t('Programm mit Fehlercode {value0} beendet.', value0=code))
             if code == 75 and self.active_is_webapp:
-                QMessageBox.warning(target, "Webapp", "Diese Webapp ist noch geöffnet oder wird gerade geschlossen.\n"
-                                    "Bitte kurz warten und erneut öffnen.")
+                QMessageBox.warning(target, "Webapp", t('Diese Webapp ist noch geöffnet oder wird gerade geschlossen.\nBitte kurz warten und erneut öffnen.'))
                 return
-            QMessageBox.warning(target, "Programmstart", f"Das Programm wurde mit Fehlercode {code} beendet.\n"
-                                "Details stehen im Elternbereich unter Geräte-Diagnose.")
+            QMessageBox.warning(target, t('Programmstart'), t('Das Programm wurde mit Fehlercode {value0} beendet.\nDetails stehen im Elternbereich unter Geräte-Diagnose.', value0=code))
 
     def camera_finished(self, browser):
         if getattr(self, "camera_browser", None) is browser:
@@ -1271,7 +1270,7 @@ class PaimenOSMenu(QWidget):
 
     def update_clock_and_net(self):
         self.time_label.setText(QTime.currentTime().toString("HH:mm"))
-        self.date_label.setText(QDate.currentDate().toString("dddd, d. MMMM yyyy"))
+        self.date_label.setText(QLocale().toString(QDate.currentDate(), "dddd, d MMMM yyyy" if language() == "en" else "dddd, d. MMMM yyyy"))
 
         battery = get_battery_status()
         if battery is None:
@@ -1290,7 +1289,7 @@ class PaimenOSMenu(QWidget):
             prefix = "⚡ " if charging else ""
             self.battery_label.setText(f"{prefix}{icon} {capacity}%")
             self.battery_label.setToolTip(
-                f"Akku: {capacity}%" + (" – wird geladen" if charging else "")
+                t('Akku: {value0}%', value0=capacity) + (t(' – wird geladen') if charging else "")
             )
 
         request_file = os.path.join(str(STATE_DIR), "paimenos-menu.raise")
@@ -1323,7 +1322,7 @@ class PaimenOSMenu(QWidget):
             used_sec = settings.get("today_used_seconds", 0)
             rem_sec = max(0, (total_limit_min * 60) - used_sec)
             rem_min = rem_sec // 60
-            self.timer_info_label.setText(f"⏳ Restzeit: {rem_min} Min.")
+            self.timer_info_label.setText(t('⏳ Restzeit: {value0} Min.', value0=rem_min))
         else:
             self.timer_info_label.setText("")
 
@@ -1336,7 +1335,7 @@ def report_exception(kind, value, trace):
             handle.write(details + "\n")
     except OSError:
         pass
-    QMessageBox.critical(QApplication.activeWindow(), "PaimenOS-Fehler", str(value))
+    QMessageBox.critical(QApplication.activeWindow(), t('PaimenOS-Fehler'), str(value))
 
 if __name__ == "__main__":
     instance = open(os.path.join(str(STATE_DIR), "paimenos-menu.lock"), "a")
@@ -1349,6 +1348,7 @@ if __name__ == "__main__":
         sys.exit(0)
     sys.excepthook = report_exception
     app = QApplication(sys.argv)
+    setup_qt(app)
     app.setWindowIcon(QIcon(str(ASSETS_DIR / 'branding/paimenos-logo.png')))
     window = PaimenOSMenu()
     window.showFullScreen()

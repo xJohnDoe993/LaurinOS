@@ -1,4 +1,5 @@
 """Gemeinsamer, gesperrter und atomarer Zugriff auf die Einstellungen."""
+from paimenos.i18n import t
 from paimenos.paths import CONFIG_DIR
 import fcntl
 import json
@@ -15,11 +16,15 @@ DEFAULTS = {
 
 
 def app_with_current_title(item):
-    """Refresh known built-in titles when reading existing app lists after updates."""
+    """Localise recognised built-in titles; preserve custom names and saved data."""
     if (item.get('id') == 'camera' and item.get('type') == 'camera'
             and item.get('command') == '__CAMERA__'
-            and item.get('title') in ('Kamera / Bilder', 'Kamera & Bilder')):
-        return dict(item, title='Kamera / Bilder / Videos')
+            and item.get('title') in ('Kamera / Bilder', 'Kamera & Bilder',
+                'Kamera / Bilder / Videos', 'Camera / Pictures / Videos')):
+        return dict(item, title=t('Kamera / Bilder / Videos'))
+    if (item.get('id') == 'poweroff' and item.get('command') == '__POWEROFF__'
+            and item.get('title') in ('Ausschalten', 'Shut down')):
+        return dict(item, title=t('Ausschalten'))
     return item
 
 
@@ -49,10 +54,10 @@ def update_settings(change=None):
             with open(SETTINGS_FILE, encoding="utf-8") as handle:
                 saved = json.load(handle)
             if not isinstance(saved, dict):
-                raise ValueError("Die Einstellungen müssen ein JSON-Objekt sein.")
+                raise ValueError(t('Die Einstellungen müssen ein JSON-Objekt sein.'))
             data.update(saved)
         except FileNotFoundError as exc:
-            raise ValueError("Eltern-Einstellungen fehlen. Installation abschließen oder Sicherung wiederherstellen.") from exc
+            raise ValueError(t('Eltern-Einstellungen fehlen. Installation abschließen oder Sicherung wiederherstellen.')) from exc
         # Beschädigte Dateien nicht still durch Standardwerte überschreiben.
         before = json.dumps(data, sort_keys=True)
         for key in ("daily_limit_minutes", "bonus_minutes", "today_used_seconds"):
@@ -64,7 +69,7 @@ def update_settings(change=None):
             data["disabled_apps"] = []
         data["pin"] = str(data["pin"])
         if not data["pin"].isascii() or not data["pin"].isdigit() or not 4 <= len(data["pin"]) <= 12:
-            raise ValueError("Die gespeicherte Eltern-PIN ist ungültig.")
+            raise ValueError(t('Die gespeicherte Eltern-PIN ist ungültig.'))
         if not isinstance(data.get("bg_color"), str):
             data["bg_color"] = DEFAULTS["bg_color"]
         today = str(date.today())

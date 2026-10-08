@@ -27,18 +27,18 @@ PAIMENOS_ENABLE_AUTO_UPDATES="${PAIMENOS_ENABLE_AUTO_UPDATES:-1}"
 PAIMENOS_ENABLE_APP_UPDATES="${PAIMENOS_ENABLE_APP_UPDATES:-$PAIMENOS_ENABLE_AUTO_UPDATES}"
 for install_option in "$PAIMENOS_ENABLE_TLP" "$PAIMENOS_ENABLE_ZRAM" "$PAIMENOS_ENABLE_AUTO_UPDATES" "$PAIMENOS_ENABLE_APP_UPDATES"; do
     if [[ "$install_option" != 0 && "$install_option" != 1 ]]; then
-        echo "FEHLER: Laptop-Installationsschalter müssen 0 oder 1 sein." >&2
+        echo "$(paimenos_text 'FEHLER: Laptop-Installationsschalter müssen 0 oder 1 sein.')" >&2
         exit 1
     fi
 done
 
-echo "PaimenOS $(cat "${REPO_DIR}/VERSION") – Neuinstallation"
+echo "$(paimenos_text 'PaimenOS {value0} – Neuinstallation' "$(cat "${REPO_DIR}/VERSION")")"
 
 # Einen laufenden Backend-Auftrag nicht mitten in apt/dpkg abbrechen.
 exec 9>/run/paimenos-emulator-install.lock
 chmod 0600 /run/paimenos-emulator-install.lock
 if ! flock -n 9; then
-    echo "FEHLER: Im Backend läuft eine Emulator-Installation. Bitte deren Abschluss abwarten und das Setup erneut starten." >&2
+    echo "$(paimenos_text 'FEHLER: Im Backend läuft eine Emulator-Installation. Bitte deren Abschluss abwarten und das Setup erneut starten.')" >&2
     exit 1
 fi
 systemctl stop paimenos-emulators.service >/dev/null 2>&1 || true

@@ -1,4 +1,5 @@
 """Serialize Webapp launches and let Firefox flush its persistent profile on exit."""
+from paimenos.i18n import t
 import errno
 import fcntl
 import os
@@ -144,7 +145,7 @@ def stop_browser(process, timeout=CLOSE_TIMEOUT):
         process.wait(timeout=timeout)
         return
     except subprocess.TimeoutExpired:
-        print('Webapp reagiert nicht auf Schließen; beende die eigene Browsergruppe.', flush=True)
+        print(t('Webapp reagiert nicht auf Schließen; beende die eigene Browsergruppe.'), flush=True)
     # Firefox was started in a separate session. Other apps/profiles are untouched.
     for sig, delay in ((signal.SIGTERM, 2), (signal.SIGKILL, 2)):
         try:
@@ -176,7 +177,7 @@ def run_browser(profile, template, url, command=None, with_overlay=True):
             try:
                 fcntl.flock(launch_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
-                print('Diese Webapp wird bereits gestartet oder geschlossen.', flush=True)
+                print(t('Diese Webapp wird bereits gestartet oder geschlossen.'), flush=True)
                 return PROFILE_BUSY
             available = wait_for_profile(profile, timeout=2, cancelled=lambda: stopping)
             if not available and not stopping:
@@ -184,7 +185,7 @@ def run_browser(profile, template, url, command=None, with_overlay=True):
             if not available:
                 if stopping:
                     return 0
-                print('Firefox-Profil ist noch durch einen anderen Prozess belegt.', flush=True)
+                print(t('Firefox-Profil ist noch durch einen anderen Prozess belegt.'), flush=True)
                 return PROFILE_BUSY
             # Never modify a running profile, or delete its cache/cookies/lock files.
             prepare_profile(profile, template)
@@ -196,12 +197,12 @@ def run_browser(profile, template, url, command=None, with_overlay=True):
                     overlay = subprocess.Popen([sys.executable, '-I', str(RELEASE_DIR / 'run.py'),
                         'close_overlay', str(process.pid), str(os.getpid())])
                 except OSError as exc:
-                    print('Schließen-Overlay: ' + str(exc), flush=True)
+                    print(t('Schließen-Overlay: ') + str(exc), flush=True)
                     stopping = True
                     overlay_failed = True
             while process.poll() is None and not stopping:
                 if overlay is not None and overlay.poll() is not None:
-                    print('Der Webapp-Menüknopf wurde unerwartet beendet.', flush=True)
+                    print(t('Der Webapp-Menüknopf wurde unerwartet beendet.'), flush=True)
                     overlay_failed = True
                     stopping = True
                     break
@@ -217,7 +218,7 @@ def run_browser(profile, template, url, command=None, with_overlay=True):
                     overlay.kill()
                     overlay.wait()
             if not wait_for_profile(profile, timeout=5):
-                print('Firefox hat das Profil noch nicht freigegeben.', flush=True)
+                print(t('Firefox hat das Profil noch nicht freigegeben.'), flush=True)
                 return PROFILE_BUSY
             if overlay_failed:
                 return 1

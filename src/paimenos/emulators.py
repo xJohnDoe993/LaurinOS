@@ -1,3 +1,4 @@
+from paimenos.i18n import t
 import glob
 import hashlib
 import json
@@ -28,7 +29,7 @@ PS1_BIOS_MD5 = {
     'scph5501.bin': '490f666e1afb15b7362b406ed1cea246',
     'scph5502.bin': '32736f17079d0b2b7024407c39bd3050',
 }
-PS1_REGIONS = {'jp': ('Japan', 'scph5500.bin'), 'us': ('USA', 'scph5501.bin'), 'eu': ('Europa', 'scph5502.bin')}
+PS1_REGIONS = {'jp': ('Japan', 'scph5500.bin'), 'us': ('USA', 'scph5501.bin'), 'eu': (t('Europa'), 'scph5502.bin')}
 
 def bios_inventory():
     result = []
@@ -38,14 +39,14 @@ def bios_inventory():
         if path.is_file():
             try:
                 if path.stat().st_size != BIOS[name]:
-                    item['status'] = 'Falsche Dateigröße'
+                    item['status'] = t('Falsche Dateigröße')
                 else:
                     digest = hashlib.md5(path.read_bytes()).hexdigest()
                     item['md5'] = digest
                     item['valid'] = digest == expected
-                    item['status'] = 'Geprüft – korrekt' if item['valid'] else 'Inhalt passt nicht zu diesem BIOS-Dateinamen'
+                    item['status'] = t('Geprüft – korrekt') if item['valid'] else t('Inhalt passt nicht zu diesem BIOS-Dateinamen')
             except OSError:
-                item['status'] = 'Nicht lesbar'
+                item['status'] = t('Nicht lesbar')
         result.append(item)
     return result
 
@@ -57,12 +58,12 @@ def cue_tracks(game):
         name = quoted or plain
         path = (game.parent / name).resolve()
         if '/' in name or '\\' in name or not path.is_relative_to(game.parent.resolve()) or not path.is_file():
-            raise ValueError('BIN-Track fehlt oder hat einen ungültigen Pfad: ' + name)
+            raise ValueError(t('BIN-Track fehlt oder hat einen ungültigen Pfad: ') + name)
         if path.stat().st_size == 0:
-            raise ValueError('BIN-Track ist leer: ' + name)
+            raise ValueError(t('BIN-Track ist leer: ') + name)
         tracks.append(path)
     if not tracks:
-        raise ValueError('Die CUE enthält keine lesbaren BIN-Tracks.')
+        raise ValueError(t('Die CUE enthält keine lesbaren BIN-Tracks.'))
     return tracks
 
 def ps1_region(game):
@@ -89,21 +90,21 @@ def ps1_preflight(game):
     if region:
         label, required = PS1_REGIONS[region]
         if not next(b for b in inventory if b['name'] == required)['valid']:
-            raise ValueError('PS1-Spielregion ' + label + ': ' + required + ' fehlt oder ist ungültig. Bitte unter Eltern → Emulatoren die BIOS-Prüfung ansehen.')
+            raise ValueError(t('PS1-Spielregion ') + label + ': ' + required + t(' fehlt oder ist ungültig. Bitte unter Eltern → Emulatoren die BIOS-Prüfung ansehen.'))
     elif not any(b['valid'] for b in inventory):
-        raise ValueError('Kein geprüftes PS1-BIOS vorhanden. Bitte unter Eltern → Emulatoren ein korrektes scph5500/5501/5502.bin hochladen.')
+        raise ValueError(t('Kein geprüftes PS1-BIOS vorhanden. Bitte unter Eltern → Emulatoren ein korrektes scph5500/5501/5502.bin hochladen.'))
     return region, inventory
 
 
 def controller_report():
     profile_root = Path('/usr/local/share/paimenos/retroarch-autoconfig')
     profiles = sorted((profile_root / 'udev').glob('*.cfg'))
-    lines = ['Eigene Controller-Profile: ' + str(len(controllers.read_profiles())), 'RetroArch-Joypad-Treiber: udev', 'Linux-Controller-Profile: ' + str(len(profiles)),
-             'SN30-Profile: ' + ', '.join(p.name for p in profiles if 'sn30' in p.name.lower())]
+    lines = [t('Eigene Controller-Profile: ') + str(len(controllers.read_profiles())), t('RetroArch-Joypad-Treiber: udev'), t('Linux-Controller-Profile: ') + str(len(profiles)),
+             t('SN30-Profile: ') + ', '.join(p.name for p in profiles if 'sn30' in p.name.lower())]
     try:
         import evdev
     except ImportError:
-        return '\n'.join(lines + ['Controller-Diagnose: python3-evdev fehlt.'])
+        return '\n'.join(lines + [t('Controller-Diagnose: python3-evdev fehlt.')])
     found = 0
     for path in sorted(glob.glob('/dev/input/event*')):
         try:
@@ -120,37 +121,37 @@ def controller_report():
             try:
                 props = subprocess.run(['/usr/bin/udevadm', 'info', '--query=property', '--name=' + path],
                                        capture_output=True, text=True, timeout=2)
-                prop = next((line for line in props.stdout.splitlines() if line.startswith('ID_INPUT_JOYSTICK=')), 'ID_INPUT_JOYSTICK fehlt')
+                prop = next((line for line in props.stdout.splitlines() if line.startswith('ID_INPUT_JOYSTICK=')), t('ID_INPUT_JOYSTICK fehlt'))
                 lines.append('  ' + prop)
             except (OSError, subprocess.TimeoutExpired):
-                lines.append('  udev-Merkmale konnten nicht gelesen werden.')
+                lines.append(t('  udev-Merkmale konnten nicht gelesen werden.'))
         except OSError as exc:
-            lines.append('Controller wurde während der Diagnose getrennt: ' + str(exc))
+            lines.append(t('Controller wurde während der Diagnose getrennt: ') + str(exc))
         finally:
             device.close()
         if found >= 8:
             break
     if not found:
-        lines.append('Kein lesbares Gamepad erkannt. Controller verbinden und Sitzung nach Gruppenänderungen neu starten.')
+        lines.append(t('Kein lesbares Gamepad erkannt. Controller verbinden und Sitzung nach Gruppenänderungen neu starten.'))
     return '\n'.join(lines)
 
 def emulator_log():
-    parts = ['PaimenOS Emulator-Diagnose', 'Zeit: ' + datetime.now().isoformat(timespec='seconds')]
+    parts = [t('PaimenOS Emulator-Diagnose'), t('Zeit: ') + datetime.now().isoformat(timespec='seconds')]
     for system, values in SYSTEMS.items():
-        parts.append(values[0] + ': ' + str(core_path(system) or 'Core fehlt'))
+        parts.append(values[0] + ': ' + str(core_path(system) or t('Core fehlt')))
     parts += ['\nController:', controller_report(), '\nPS1-BIOS:']
     for bios in bios_inventory():
         parts.append(bios['name'] + ': ' + bios['status'] + (' · MD5 ' + bios['md5'] if bios['md5'] else ''))
-    for title, path in [('Letzter Emulatorstart', ROOT / 'last-launch.txt'),
-                        ('Ausführliches Startprotokoll', ROOT / 'retroarch-last.log'),
-                        ('Anwendungsprotokoll', Path.home() / '.local/state/paimenos/paimenos-application.log')]:
+    for title, path in [(t('Letzter Emulatorstart'), ROOT / 'last-launch.txt'),
+                        (t('Ausführliches Startprotokoll'), ROOT / 'retroarch-last.log'),
+                        (t('Anwendungsprotokoll'), Path.home() / '.local/state/paimenos/paimenos-application.log')]:
         parts.append('\n' + title + ':')
         try:
             with path.open('rb') as handle:
                 handle.seek(max(0, path.stat().st_size - 64 * 1024))
                 parts.append(handle.read(64 * 1024).decode('utf-8', errors='replace'))
         except OSError:
-            parts.append('Noch kein Protokoll vorhanden.')
+            parts.append(t('Noch kein Protokoll vorhanden.'))
     return '\n'.join(parts)
 
 def core_path(system):
@@ -172,65 +173,65 @@ def copy_bounded(source, target, limit):
                 break
             total += len(block)
             if total > limit:
-                raise ValueError('Datei oder entpacktes Spiel überschreitet das Größenlimit.')
+                raise ValueError(t('Datei oder entpacktes Spiel überschreitet das Größenlimit.'))
             out.write(block)
     if not total:
-        raise ValueError('Die Datei ist leer.')
+        raise ValueError(t('Die Datei ist leer.'))
     return total
 
 def upload_bios(upload):
     name = (upload.filename or '').lower()
     if name not in BIOS:
-        raise ValueError('BIOS-Dateiname muss scph5500.bin, scph5501.bin, scph5502.bin oder gba_bios.bin sein.')
+        raise ValueError(t('BIOS-Dateiname muss scph5500.bin, scph5501.bin, scph5502.bin oder gba_bios.bin sein.'))
     folder = ROOT / 'bios'
     folder.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=folder) as temp:
         target = Path(temp) / name
         count = copy_bounded(upload.stream, target, BIOS[name])
         if count != BIOS[name]:
-            raise ValueError('Die BIOS-Datei hat eine unerwartete Größe.')
+            raise ValueError(t('Die BIOS-Datei hat eine unerwartete Größe.'))
         if name in PS1_BIOS_MD5:
             digest = hashlib.md5(target.read_bytes()).hexdigest()
             if digest != PS1_BIOS_MD5[name]:
                 actual = next((n for n, expected in PS1_BIOS_MD5.items() if expected == digest), None)
                 if actual:
-                    raise ValueError('Die Datei gehört zu ' + actual + '. Bitte mit diesem Namen hochladen.')
-                raise ValueError('Die BIOS-Prüfsumme passt nicht zu ' + name + '. Eine andere oder beschädigte Datei wurde gewählt.')
+                    raise ValueError(t('Die Datei gehört zu ') + actual + t('. Bitte mit diesem Namen hochladen.'))
+                raise ValueError(t('Die BIOS-Prüfsumme passt nicht zu ') + name + t('. Eine andere oder beschädigte Datei wurde gewählt.'))
         os.replace(target, folder / name)
 
 def validate_game(folder, system):
     files = [p for p in folder.iterdir() if p.suffix.lower() != '.sbi']
     entries = [p for p in files if p.suffix.lower() in SYSTEMS[system][2]]
     if len(entries) != 1:
-        raise ValueError('Bitte genau ein Spiel hochladen. PS1: eine CUE mit allen BIN-Tracks oder eine CHD/PBP-Datei.')
+        raise ValueError(t('Bitte genau ein Spiel hochladen. PS1: eine CUE mit allen BIN-Tracks oder eine CHD/PBP-Datei.'))
     entry = entries[0]
     if entry.suffix.lower() == '.cue':
         if entry.stat().st_size > 128 * 1024:
-            raise ValueError('CUE-Datei ist zu groß.')
+            raise ValueError(t('CUE-Datei ist zu groß.'))
         text = entry.read_text(encoding='utf-8-sig')
         refs = re.findall(r'^\s*FILE\s+(?:"([^"]+)"|(\S+))\s+BINARY\s*$', text, re.I | re.M)
         if not refs or len(refs) != len(re.findall(r'^\s*FILE\b', text, re.I | re.M)):
-            raise ValueError('CUE muss gültige FILE-Einträge mit BINARY-Tracks enthalten.')
+            raise ValueError(t('CUE muss gültige FILE-Einträge mit BINARY-Tracks enthalten.'))
         for quoted, plain in refs:
             name = quoted or plain
             if '/' in name or '\\' in name or name in ('.', '..') or not (folder / name).is_file() or Path(name).suffix.lower() != '.bin':
-                raise ValueError('Eine in der CUE genannte BIN-Datei fehlt oder der Pfad ist ungültig: ' + name)
+                raise ValueError(t('Eine in der CUE genannte BIN-Datei fehlt oder der Pfad ist ungültig: ') + name)
     elif len(files) != 1:
-        raise ValueError('Dieses Format benötigt nur eine ROM-Datei.')
+        raise ValueError(t('Dieses Format benötigt nur eine ROM-Datei.'))
     return entry.name
 
 def upload_game(system, title, uploads):
     if system not in SYSTEMS:
-        raise ValueError('Bitte eine gültige Konsole auswählen.')
+        raise ValueError(t('Bitte eine gültige Konsole auswählen.'))
     if not ready(system):
-        raise ValueError('Dieser Emulator ist noch nicht bereit. Bitte oben im Elternbackend installieren.')
+        raise ValueError(t('Dieser Emulator ist noch nicht bereit. Bitte oben im Elternbackend installieren.'))
     limit = 2 * LIMIT if system == 'psp' else LIMIT
     title = title.strip()
     if not title or len(title) > 80 or any(ord(c) < 32 for c in title):
-        raise ValueError('Bitte einen Spielnamen mit höchstens 80 Zeichen eingeben.')
+        raise ValueError(t('Bitte einen Spielnamen mit höchstens 80 Zeichen eingeben.'))
     uploads = [u for u in uploads if u.filename]
     if not uploads or len(uploads) > 100:
-        raise ValueError('Bitte ein Spiel mit höchstens 100 Dateien auswählen.')
+        raise ValueError(t('Bitte ein Spiel mit höchstens 100 Dateien auswählen.'))
     games = ROOT / 'roms'
     games.mkdir(parents=True, exist_ok=True)
     app_id = 'rom-' + secrets.token_hex(12)
@@ -242,9 +243,9 @@ def upload_game(system, title, uploads):
         allowed = SYSTEMS[system][2] | ({'.bin', '.sbi'} if system == 'ps1' else set())
         def safe_name(name):
             if not name or '/' in name or '\\' in name or name.startswith('.') or any(ord(c) < 32 for c in name) or Path(name).suffix.lower() not in allowed:
-                raise ValueError('Ungültiger Dateiname oder nicht unterstütztes Format: ' + name)
+                raise ValueError(t('Ungültiger Dateiname oder nicht unterstütztes Format: ') + name)
             if (folder / name).exists() or name.casefold() in {p.name.casefold() for p in folder.iterdir()}:
-                raise ValueError('Doppelter Dateiname: ' + name)
+                raise ValueError(t('Doppelter Dateiname: ') + name)
             return name
         if len(uploads) == 1 and uploads[0].filename.lower().endswith('.zip'):
             archive = Path(temp) / 'upload.zip'
@@ -253,15 +254,15 @@ def upload_game(system, title, uploads):
                 with zipfile.ZipFile(archive) as z:
                     members = z.infolist()
                     if not members or len(members) > 100 or sum(m.file_size for m in members) > limit:
-                        raise ValueError('ZIP ist leer oder zu groß.')
+                        raise ValueError(t('ZIP ist leer oder zu groß.'))
                     for member in members:
                         name = safe_name(member.filename)
                         if member.is_dir() or (member.external_attr >> 16) & 0o170000 == 0o120000:
-                            raise ValueError('ZIP darf nur Dateien direkt im Hauptverzeichnis enthalten.')
+                            raise ValueError(t('ZIP darf nur Dateien direkt im Hauptverzeichnis enthalten.'))
                         with z.open(member) as stream:
                             total += copy_bounded(stream, folder / name, limit - total)
             except (zipfile.BadZipFile, RuntimeError, NotImplementedError):
-                raise ValueError('ZIP-Datei ist beschädigt, verschlüsselt oder nicht unterstützt.') from None
+                raise ValueError(t('ZIP-Datei ist beschädigt, verschlüsselt oder nicht unterstützt.')) from None
         else:
             for upload in uploads:
                 name = safe_name(upload.filename)
@@ -283,13 +284,13 @@ def upload_game(system, title, uploads):
 
 def launch(system, filename):
     if system not in SYSTEMS:
-        raise ValueError('Unbekannter Emulator.')
+        raise ValueError(t('Unbekannter Emulator.'))
     game = Path(filename).resolve()
     if not game.is_file() or not game.is_relative_to((ROOT / 'roms').resolve()):
-        raise ValueError('Spiel wurde nicht gefunden.')
+        raise ValueError(t('Spiel wurde nicht gefunden.'))
     core = core_path(system)
     if not core or not ready(system):
-        raise ValueError('Emulator oder benötigte Zusatzdateien fehlen. Bitte im Elternbackend installieren.')
+        raise ValueError(t('Emulator oder benötigte Zusatzdateien fehlen. Bitte im Elternbackend installieren.'))
     region = None
     if system == 'ps1':
         region, inventory = ps1_preflight(game)
@@ -340,10 +341,10 @@ def launch(system, filename):
         content += 'core_options_path = "' + str(options) + '"\n'
         content += 'auto_overrides_enable = "false"\n'
     cfg.write_text(content)
-    (ROOT / 'last-launch.txt').write_text('Zeit: ' + datetime.now().isoformat(timespec='seconds') +
-        '\nSystem: ' + system + '\nSpiel: ' + str(game) + '\nCore: ' + core +
-        '\nRegion: ' + (PS1_REGIONS[region][0] if region else 'Nicht vorab erkannt') +
-        '\nKonfiguration: ' + str(cfg) + '\n')
+    (ROOT / 'last-launch.txt').write_text(t('Zeit: ') + datetime.now().isoformat(timespec='seconds') +
+        '\nSystem: ' + system + t('\nSpiel: ') + str(game) + '\nCore: ' + core +
+        '\nRegion: ' + (PS1_REGIONS[region][0] if region else t('Nicht vorab erkannt')) +
+        t('\nKonfiguration: ') + str(cfg) + '\n')
     log = ROOT / 'retroarch-last.log'
     log.write_text('')
     os.execv('/usr/bin/retroarch', ['retroarch', '--verbose', '--log-file', str(log),

@@ -1,4 +1,9 @@
 """Fehlende Komponenten derselben Debian-Version als eigene Quelle ergänzen."""
+from pathlib import Path as _Path
+import sys as _sys
+_release = _Path(__file__).resolve().parents[1]
+_sys.path.insert(0, str(_release / ('app' if (_release / 'app').is_dir() else 'src')))
+from paimenos.i18n import t
 from pathlib import Path
 import os
 import re
@@ -41,11 +46,11 @@ def entries(text, suffix, with_signing=False):
 
 def configure(root, codename):
     if codename not in ('bookworm', 'trixie'):
-        raise ValueError('Automatische Quellen-Ergänzung unterstützt Debian 12/13 (bookworm/trixie).')
+        raise ValueError(t('Automatische Quellen-Ergänzung unterstützt Debian 12/13 (bookworm/trixie).'))
     root = Path(root)
     keyring = root / 'usr/share/keyrings/debian-archive-keyring.gpg'
     if not keyring.is_file():
-        raise ValueError('debian-archive-keyring fehlt.')
+        raise ValueError(t('debian-archive-keyring fehlt.'))
     folder = root / 'etc/apt/sources.list.d'; folder.mkdir(parents=True, exist_ok=True)
     target = folder / 'paimenos-components.sources'
     suites = [codename, codename + '-updates', codename + '-security']
@@ -68,7 +73,7 @@ def configure(root, codename):
             continue
         for suite, components, uri, key in entries(file.read_text(), file.suffix, with_signing=True):
             if uri in signing and signing[uri] != key:
-                raise ValueError('Vorhandene Debian-Quellen haben widersprüchliche Signed-By-Angaben: ' + uri)
+                raise ValueError(t('Vorhandene Debian-Quellen haben widersprüchliche Signed-By-Angaben: ') + uri)
             signing[uri] = key
     blocks = []
     for suite in suites:
@@ -87,7 +92,7 @@ def configure(root, codename):
             shutil.copy2(target, target.with_suffix('.sources.before-update'))
         temporary = target.with_suffix('.sources.new'); temporary.write_text(content)
         temporary.chmod(0o644); os.replace(temporary, target)
-    print('Debian-Quellen geprüft: ' + codename + ', contrib / non-free / non-free-firmware.')
+    print(t('Debian-Quellen geprüft: ') + codename + ', contrib / non-free / non-free-firmware.')
 
 if __name__ == '__main__':
     configure('/', sys.argv[1])

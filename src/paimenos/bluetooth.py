@@ -1,4 +1,5 @@
 """Bluetooth für beide Elternbereiche; BlueZ-Zugriff nur im lokalen Dienst."""
+from paimenos.i18n import t
 import concurrent.futures
 import json
 import os
@@ -25,31 +26,31 @@ class BluetoothError(Exception):
 def friendly_error(error):
     name = getattr(error, 'get_dbus_name', lambda: '')()
     messages = {
-        'NotReady': 'Bluetooth ist ausgeschaltet oder blockiert. Bitte auch den Flugmodus bzw. Hardware-Schalter prüfen.',
-        'AuthenticationFailed': 'Kopplung fehlgeschlagen. Gerät erneut in den Kopplungsmodus versetzen und nochmals versuchen.',
-        'AuthenticationRejected': 'Die Kopplung wurde abgelehnt.',
-        'AuthenticationCanceled': 'Die Kopplung wurde abgebrochen.',
-        'AuthenticationTimeout': 'Zeit für die Kopplung abgelaufen. Gerät erneut in den Kopplungsmodus versetzen.',
-        'ConnectionAttemptFailed': 'Keine Verbindung. Gerät einschalten, näher an den Laptop legen und erneut versuchen.',
-        'InProgress': 'Für dieses Gerät läuft bereits ein Vorgang.',
-        'NotSupported': 'Dieses Gerät oder Bluetooth-Profil wird nicht unterstützt.',
-        'AccessDenied': 'Bluetooth-Berechtigung fehlt. Bitte PaimenOS-Setup aktualisieren.',
-        'ServiceUnknown': 'Der Bluetooth-Dienst ist nicht verfügbar.',
-        'NameHasNoOwner': 'Der Bluetooth-Dienst ist nicht verfügbar.',
-        'NoReply': 'Der Bluetooth-Dienst antwortet nicht. Bitte erneut versuchen.',
+        'NotReady': t('Bluetooth ist ausgeschaltet oder blockiert. Bitte auch den Flugmodus bzw. Hardware-Schalter prüfen.'),
+        'AuthenticationFailed': t('Kopplung fehlgeschlagen. Gerät erneut in den Kopplungsmodus versetzen und nochmals versuchen.'),
+        'AuthenticationRejected': t('Die Kopplung wurde abgelehnt.'),
+        'AuthenticationCanceled': t('Die Kopplung wurde abgebrochen.'),
+        'AuthenticationTimeout': t('Zeit für die Kopplung abgelaufen. Gerät erneut in den Kopplungsmodus versetzen.'),
+        'ConnectionAttemptFailed': t('Keine Verbindung. Gerät einschalten, näher an den Laptop legen und erneut versuchen.'),
+        'InProgress': t('Für dieses Gerät läuft bereits ein Vorgang.'),
+        'NotSupported': t('Dieses Gerät oder Bluetooth-Profil wird nicht unterstützt.'),
+        'AccessDenied': t('Bluetooth-Berechtigung fehlt. Bitte PaimenOS-Setup aktualisieren.'),
+        'ServiceUnknown': t('Der Bluetooth-Dienst ist nicht verfügbar.'),
+        'NameHasNoOwner': t('Der Bluetooth-Dienst ist nicht verfügbar.'),
+        'NoReply': t('Der Bluetooth-Dienst antwortet nicht. Bitte erneut versuchen.'),
     }
     if name.rsplit('.', 1)[-1] in messages:
         return messages[name.rsplit('.', 1)[-1]]
     text = str(error)[:240]
     if 'br-connection-profile-unavailable' in text:
-        return 'Bluetooth-Profil nicht verfügbar. Gerät erneut koppeln; bei Kopfhörern Bluetooth-Audio-Pakete prüfen.'
-    return text or 'Bluetooth-Vorgang fehlgeschlagen.'
+        return t('Bluetooth-Profil nicht verfügbar. Gerät erneut koppeln; bei Kopfhörern Bluetooth-Audio-Pakete prüfen.')
+    return text or t('Bluetooth-Vorgang fehlgeschlagen.')
 
 
 def bluetooth_request(action='status', **values):
     payload = json.dumps(dict(values, action=action), ensure_ascii=False).encode() + b'\n'
     if len(payload) > 4096:
-        raise BluetoothError('Bluetooth-Anfrage ist zu groß.')
+        raise BluetoothError(t('Bluetooth-Anfrage ist zu groß.'))
     try:
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
             connection.settimeout(4)
@@ -58,16 +59,16 @@ def bluetooth_request(action='status', **values):
             with connection.makefile('rb') as stream:
                 raw = stream.readline(MAX_MESSAGE + 1)
         if not raw.endswith(b'\n') or len(raw) > MAX_MESSAGE:
-            raise ValueError('Ungültige Antwort')
+            raise ValueError(t('Ungültige Antwort'))
         result = json.loads(raw)
         if not isinstance(result, dict):
-            raise ValueError('Ungültige Antwort')
+            raise ValueError(t('Ungültige Antwort'))
     except (OSError, ValueError) as exc:
-        raise BluetoothError('Bluetooth-Verwaltung nicht erreichbar. Bitte das aktualisierte Setup installieren.', True) from exc
+        raise BluetoothError(t('Bluetooth-Verwaltung nicht erreichbar. Bitte das aktualisierte Setup installieren.'), True) from exc
     if not result.get('ok'):
-        raise BluetoothError(result.get('error', 'Bluetooth-Vorgang fehlgeschlagen.'))
+        raise BluetoothError(result.get('error', t('Bluetooth-Vorgang fehlgeschlagen.')))
     if not isinstance(result.get('state'), dict):
-        raise BluetoothError('Ungültige Antwort der Bluetooth-Verwaltung.', True)
+        raise BluetoothError(t('Ungültige Antwort der Bluetooth-Verwaltung.'), True)
     return result['state']
 
 
@@ -87,10 +88,10 @@ class BluetoothController:
     def checked(self, path, interface):
         pattern = r'/org/bluez/hci[0-9]+' + (r'/dev_(?:[0-9A-Fa-f]{2}_){5}[0-9A-Fa-f]{2}' if interface == DEVICE else '')
         if not isinstance(path, str) or not re.fullmatch(pattern, path):
-            raise ValueError('Ungültiges Bluetooth-Gerät.')
+            raise ValueError(t('Ungültiges Bluetooth-Gerät.'))
         properties = self.objects().get(path, {}).get(interface)
         if properties is None:
-            raise ValueError('Gerät ist nicht mehr verfügbar. Bitte erneut suchen.')
+            raise ValueError(t('Gerät ist nicht mehr verfügbar. Bitte erneut suchen.'))
         return properties
 
     def snapshot(self):
@@ -104,12 +105,12 @@ class BluetoothController:
         for path, interfaces in objects.items():
             if ADAPTER in interfaces:
                 props = interfaces[ADAPTER]
-                adapters.append(dict(path=str(path), name=str(props.get('Alias', props.get('Name', 'Bluetooth'))),
+                adapters.append(dict(path=str(path), name=str(props.get('Alias', props.get(t('Name'), 'Bluetooth'))),
                                      powered=bool(props.get('Powered')), discovering=bool(props.get('Discovering'))))
             if DEVICE in interfaces:
                 props = interfaces[DEVICE]
                 devices.append(dict(path=str(path), adapter=str(props.get('Adapter', '')),
-                    name=str(props.get('Alias', props.get('Name', props.get('Address', 'Unbekanntes Gerät'))))[:160],
+                    name=str(props.get('Alias', props.get(t('Name'), props.get('Address', t('Unbekanntes Gerät')))))[:160],
                     address=str(props.get('Address', '')), icon=str(props.get('Icon', '')),
                     paired=bool(props.get('Paired')), connected=bool(props.get('Connected')),
                     trusted=bool(props.get('Trusted'))))
@@ -145,12 +146,12 @@ class BluetoothController:
         props = self.checked(path, DEVICE)
         adapter = str(props['Adapter'])
         if action in ('pair', 'connect') and not self.checked(adapter, ADAPTER).get('Powered'):
-            raise BluetoothError('Bluetooth einschalten, bevor ein Gerät verbunden wird.')
+            raise BluetoothError(t('Bluetooth einschalten, bevor ein Gerät verbunden wird.'))
         token = secrets.token_hex(12)
         self.operation = dict(id=token, action=action, device=path,
-                              name=str(props.get('Alias', props.get('Address', 'Gerät')))[:160],
+                              name=str(props.get('Alias', props.get('Address', t('Gerät'))))[:160],
                               deadline=self.clock() + timeout)
-        self.message, self.error = 'Gerät wird gekoppelt …' if action == 'pair' else 'Verbindung wird hergestellt …', ''
+        self.message, self.error = t('Gerät wird gekoppelt …') if action == 'pair' else t('Verbindung wird hergestellt …'), ''
         return token
 
     def connect(self, token, paired=False):
@@ -162,12 +163,12 @@ class BluetoothController:
         try:
             # Nur nach erfolgreichem Pair() oder für ein bereits gekoppeltes Gerät.
             if not self.checked(path, DEVICE).get('Paired'):
-                raise BluetoothError('Gerät zuerst koppeln.')
+                raise BluetoothError(t('Gerät zuerst koppeln.'))
             def trusted():
                 if not self.operation or self.operation['id'] != token:
                     return
                 self.driver.async_method(path, DEVICE, 'Connect',
-                    lambda: self.finish(token, 'Gerät gekoppelt und verbunden.' if paired else 'Gerät verbunden.'),
+                    lambda: self.finish(token, t('Gerät gekoppelt und verbunden.') if paired else t('Gerät verbunden.')),
                     lambda error: self.connection_failed(token, error, paired))
             self.driver.set_property(path, DEVICE, 'Trusted', True, trusted,
                 lambda error: self.connection_failed(token, error, paired))
@@ -176,20 +177,20 @@ class BluetoothController:
 
     def connection_failed(self, token, error, paired):
         if getattr(error, 'get_dbus_name', lambda:'')().endswith('.AlreadyConnected'):
-            self.finish(token, 'Gerät verbunden.')
+            self.finish(token, t('Gerät verbunden.'))
         else:
-            prefix = 'Gerät ist gekoppelt. Verbindung noch nicht hergestellt: ' if paired else ''
+            prefix = t('Gerät ist gekoppelt. Verbindung noch nicht hergestellt: ') if paired else ''
             self.finish(token, error=prefix + friendly_error(error))
 
     def clear_prompt(self, reject=False):
         callbacks, self.prompt_callbacks = self.prompt_callbacks, None
         self.prompt = None
         if callbacks and reject:
-            callbacks[1](self.driver.rejected('Kopplung abgebrochen.'))
+            callbacks[1](self.driver.rejected(t('Kopplung abgebrochen.')))
 
     def require_target(self, path):
         if not self.operation or self.operation['action'] != 'pair' or self.operation['device'] != str(path):
-            raise self.driver.rejected('Nur die im Elternbereich gestartete Kopplung ist erlaubt.')
+            raise self.driver.rejected(t('Nur die im Elternbereich gestartete Kopplung ist erlaubt.'))
 
     def request_prompt(self, kind, path, success, error, code='', entered=0):
         try:
@@ -211,20 +212,20 @@ class BluetoothController:
 
     def answer(self, data):
         if not self.prompt or data.get('prompt_id') != self.prompt['id'] or not self.prompt_callbacks:
-            raise ValueError('Kopplungsanfrage ist abgelaufen. Bitte aktualisieren.')
+            raise ValueError(t('Kopplungsanfrage ist abgelaufen. Bitte aktualisieren.'))
         if data.get('accept') not in ('0', '1'):
-            raise ValueError('Bitte Kopplung bestätigen oder ablehnen.')
+            raise ValueError(t('Bitte Kopplung bestätigen oder ablehnen.'))
         if data['accept'] == '0':
             self.cancel()
             return
         kind = self.prompt['kind']
         value = data.get('value', '')
         if not isinstance(value, str):
-            raise ValueError('Ungültiger Kopplungscode.')
+            raise ValueError(t('Ungültiger Kopplungscode.'))
         if kind == 'pin' and (not 1 <= len(value) <= 16 or not value.isascii() or not value.isalnum()):
-            raise ValueError('PIN muss 1–16 Buchstaben/Ziffern enthalten.')
+            raise ValueError(t('PIN muss 1–16 Buchstaben/Ziffern enthalten.'))
         if kind == 'passkey' and not re.fullmatch(r'[0-9]{1,6}', value):
-            raise ValueError('Code muss 1–6 Ziffern enthalten.')
+            raise ValueError(t('Code muss 1–6 Ziffern enthalten.'))
         success, _ = self.prompt_callbacks
         self.prompt, self.prompt_callbacks = None, None
         if kind == 'pin':
@@ -243,13 +244,13 @@ class BluetoothController:
                 self.driver.async_method(operation['device'], DEVICE, method, lambda:None, lambda error:None)
             elif operation['action'] == 'scan':
                 self.driver.async_method(operation['device'], ADAPTER, 'StopDiscovery', lambda:None, lambda error:None)
-        self.message, self.error = 'Vorgang abgebrochen.', ''
+        self.message, self.error = t('Vorgang abgebrochen.'), ''
 
     def tick(self):
         if self.operation and (self.clock() >= self.operation['deadline'] or
                                (self.prompt and self.clock() >= self.prompt['deadline'])):
             self.cancel()
-            self.error = 'Zeit für den Bluetooth-Vorgang abgelaufen. Bitte erneut versuchen.'
+            self.error = t('Zeit für den Bluetooth-Vorgang abgelaufen. Bitte erneut versuchen.')
         if self.scan and self.clock() >= self.scan['deadline']:
             try:
                 self.stop_scan()
@@ -259,7 +260,7 @@ class BluetoothController:
 
     def handle(self, data):
         if not isinstance(data, dict):
-            raise ValueError('Ungültige Bluetooth-Anfrage.')
+            raise ValueError(t('Ungültige Bluetooth-Anfrage.'))
         self.tick()
         action = data.get('action')
         if action == 'status':
@@ -274,7 +275,7 @@ class BluetoothController:
             self.stop_scan()
             return self.snapshot()
         if self.operation:
-            raise BluetoothError('Bitte den laufenden Vorgang abschließen oder abbrechen.')
+            raise BluetoothError(t('Bitte den laufenden Vorgang abschließen oder abbrechen.'))
         self.error = ''
         if action in ('power_on', 'power_off', 'scan'):
             adapter = data.get('adapter')
@@ -282,19 +283,19 @@ class BluetoothController:
             token = secrets.token_hex(12)
             self.operation = dict(id=token, action=action, device=adapter,
                                   name=str(props.get('Alias', 'Bluetooth')), deadline=self.clock()+15)
-            self.message = 'Bluetooth wird eingerichtet …'
+            self.message = t('Bluetooth wird eingerichtet …')
             def fail(exc):
                 self.finish(token, error=friendly_error(exc))
             def powered():
                 if not self.operation or self.operation['id'] != token:
                     return
                 if action != 'scan':
-                    self.finish(token, 'Bluetooth eingeschaltet.' if action == 'power_on' else 'Bluetooth ausgeschaltet.')
+                    self.finish(token, t('Bluetooth eingeschaltet.') if action == 'power_on' else t('Bluetooth ausgeschaltet.'))
                     return
                 def scanned():
                     if self.operation and self.operation['id'] == token:
                         self.scan = dict(adapter=adapter, deadline=self.clock() + 30)
-                        self.finish(token, 'Suche läuft 30 Sekunden. Gerät jetzt in den Kopplungsmodus versetzen.')
+                        self.finish(token, t('Suche läuft 30 Sekunden. Gerät jetzt in den Kopplungsmodus versetzen.'))
                     else:
                         self.driver.async_method(adapter, ADAPTER, 'StopDiscovery', lambda:None, lambda error:None)
                 self.driver.async_method(adapter, ADAPTER, 'StartDiscovery', scanned, fail)
@@ -308,7 +309,7 @@ class BluetoothController:
         elif action in ('pair', 'connect'):
             props = self.checked(data.get('device'), DEVICE)
             if action == 'connect' and not props.get('Paired'):
-                raise BluetoothError('Gerät zuerst koppeln.')
+                raise BluetoothError(t('Gerät zuerst koppeln.'))
             token = self.start_operation(action, data['device'], 120 if action == 'pair' else 40)
             try:
                 def fail(exc):
@@ -334,16 +335,16 @@ class BluetoothController:
             fail = lambda error: self.finish(token, error=friendly_error(error))
             if action == 'remove':
                 self.driver.async_method(str(props['Adapter']), ADAPTER, 'RemoveDevice',
-                    lambda:self.finish(token, 'Gerät entfernt. Für eine neue Verbindung muss es erneut gekoppelt werden.'),
+                    lambda:self.finish(token, t('Gerät entfernt. Für eine neue Verbindung muss es erneut gekoppelt werden.')),
                     fail, data['device'])
             else:
                 if props.get('Connected'):
                     self.driver.async_method(data['device'], DEVICE, 'Disconnect',
-                        lambda:self.finish(token, 'Gerät getrennt. Die Kopplung bleibt gespeichert.'), fail)
+                        lambda:self.finish(token, t('Gerät getrennt. Die Kopplung bleibt gespeichert.')), fail)
                 else:
-                    self.finish(token, 'Gerät ist bereits getrennt. Die Kopplung bleibt gespeichert.')
+                    self.finish(token, t('Gerät ist bereits getrennt. Die Kopplung bleibt gespeichert.'))
         else:
-            raise ValueError('Unbekannte Bluetooth-Aktion.')
+            raise ValueError(t('Unbekannte Bluetooth-Aktion.'))
         return self.snapshot()
 
 
@@ -383,7 +384,7 @@ class AsyncBluezDriver:
 
     def objects(self):
         if not self.ready:
-            raise BluetoothError(self.load_error or 'Bluetooth-Geräteliste wird geladen. Bitte kurz warten.')
+            raise BluetoothError(self.load_error or t('Bluetooth-Geräteliste wird geladen. Bitte kurz warten.'))
         return self.cache
 
     def signal(self, kind, values):
@@ -428,12 +429,12 @@ class AsyncBluezDriver:
         self.generation += 1
         self.ready, self.fetching, self.agent_registered = False, False, False
         self.cache, self.pending_signals = {}, []
-        self.trace('Bluetooth-Dienst neu gestartet.' if current else 'Bluetooth-Dienst beendet.')
+        self.trace(t('Bluetooth-Dienst neu gestartet.') if current else t('Bluetooth-Dienst beendet.'))
         self.on_lost()
         if current:
             self.refresh()
         else:
-            self.load_error = 'Der Bluetooth-Dienst wurde beendet. Warte auf Neustart.'
+            self.load_error = t('Der Bluetooth-Dienst wurde beendet. Warte auf Neustart.')
 
     def refresh(self):
         if self.fetching:
@@ -456,7 +457,7 @@ class AsyncBluezDriver:
             self.fetching = False
             self.pending_signals = []
             self.load_error = friendly_error(exc)
-            self.trace('Geräteliste: ' + self.load_error)
+            self.trace(t('Geräteliste: ') + self.load_error)
         try:
             self.interface('/', 'org.freedesktop.DBus.ObjectManager').GetManagedObjects(
                 reply_handler=success, error_handler=error, timeout=5, signature='')
@@ -472,7 +473,7 @@ class AsyncBluezDriver:
     def async_method(self, path, interface, method, success, error, *args):
         started, generation = self.clock(), self.generation
         timeout = 125 if method == 'Pair' else 40 if method == 'Connect' else 5
-        self.trace(method + ' gestartet')
+        self.trace(method + t(' gestartet'))
         def reply(*values):
             if generation != self.generation:
                 return
@@ -485,7 +486,7 @@ class AsyncBluezDriver:
                 self.cache.pop(str(args[0]), None)
             elif method in ('StartDiscovery', 'StopDiscovery'):
                 props['Discovering'] = method == 'StartDiscovery'
-            self.trace(method + ' abgeschlossen nach ' + f'{self.clock() - started:.1f}' + ' s')
+            self.trace(method + t(' abgeschlossen nach ') + f'{self.clock() - started:.1f}' + ' s')
             success(*values)
         def failed(exc):
             if generation != self.generation:
@@ -509,7 +510,7 @@ class AsyncBluezDriver:
             success()
         def failed(exc):
             if generation == self.generation:
-                self.trace('Eigenschaft ' + name + ': ' + friendly_error(exc))
+                self.trace(t('Eigenschaft ') + name + ': ' + friendly_error(exc))
                 error(exc)
         try:
             self.interface(path, 'org.freedesktop.DBus.Properties').Set(
@@ -622,7 +623,7 @@ def run_daemon():
             return future.result(timeout=2)
         except concurrent.futures.TimeoutError:
             future.cancel()
-            return dict(ok=False, error='Bluetooth-Dienst beschäftigt. Bitte erneut versuchen.')
+            return dict(ok=False, error=t('Bluetooth-Dienst beschäftigt. Bitte erneut versuchen.'))
 
     class Handler(socketserver.StreamRequestHandler):
         def handle(self):
@@ -630,7 +631,7 @@ def run_daemon():
             try:
                 raw = self.rfile.readline(4097)
                 if not raw.endswith(b'\n') or len(raw) > 4096:
-                    raise ValueError('Ungültige Bluetooth-Anfrage.')
+                    raise ValueError(t('Ungültige Bluetooth-Anfrage.'))
                 result = dispatch(json.loads(raw))
                 self.wfile.write(json.dumps(result, ensure_ascii=False).encode() + b'\n')
             except (OSError, ValueError):

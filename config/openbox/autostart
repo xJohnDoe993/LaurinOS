@@ -21,7 +21,7 @@ if systemctl --user import-environment DISPLAY XAUTHORITY DBUS_SESSION_BUS_ADDRE
     systemctl --user reset-failed paimenos-menu.service paimenos-timer.service paimenos-media.service paimenos-cursor.service paimenos-osd.service
     systemctl --user start paimenos-session.target
 else
-    echo "PaimenOS: systemd-Benutzersitzung fehlt; siehe Geräte-Diagnose." >&2
+    /usr/bin/python3 -I /usr/local/lib/paimenos/current/tools/language.py "PaimenOS: systemd-Benutzersitzung fehlt; siehe Geräte-Diagnose." >&2
     # Auch ohne User-Manager bleiben Menü, Zeitlimit, Medien und Cursor überwacht.
     supervise_fallback() {
         while :; do

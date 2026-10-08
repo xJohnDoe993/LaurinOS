@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """Helligkeit/Lautstärke anzeigen, ohne Fokus oder Eingaben zu übernehmen."""
+from paimenos.i18n import t, setup_qt
 import fcntl
 import os
 import socket
@@ -31,7 +32,7 @@ class StatusOverlay(QWidget):
         self.muted = False
         self.pending = None
         self.busy = False
-        self.setWindowTitle('PaimenOS Lautstärke / Helligkeit')
+        self.setWindowTitle(t('PaimenOS Lautstärke / Helligkeit'))
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint |
                             Qt.X11BypassWindowManagerHint | Qt.WindowDoesNotAcceptFocus |
                             Qt.WindowTransparentForInput)
@@ -85,8 +86,8 @@ class StatusOverlay(QWidget):
         if result is not None and (self.pending is None or self.pending == kind):
             self.kind = kind
             self.level, self.muted = result
-            self.setAccessibleName(('Lautstärke' if kind == 'volume' else 'Helligkeit') +
-                                   (' stumm, ' if self.muted else ' ') + str(self.level) + ' Prozent')
+            self.setAccessibleName((t('Lautstärke') if kind == 'volume' else t('Helligkeit')) +
+                                   (t(' stumm, ') if self.muted else ' ') + str(self.level) + t(' Prozent'))
             screen = QApplication.primaryScreen().geometry()
             self.move(screen.x() + (screen.width() - self.width()) // 2,
                       screen.y() + screen.height() - self.height() - 60)
@@ -105,7 +106,7 @@ class StatusOverlay(QWidget):
         p.drawRect(self.rect().adjusted(1, 1, -2, -2))
         p.setPen(QColor('#ffffff'))
         p.setFont(QFont('DejaVu Sans', 15, QFont.Bold))
-        title = 'Helligkeit' if self.kind == 'brightness' else 'Lautstärke'
+        title = t('Helligkeit') if self.kind == 'brightness' else t('Lautstärke')
         p.drawText(QRectF(70, 15, 205, 30), Qt.AlignVCenter | Qt.AlignLeft, title)
         p.setPen(QColor('#ffb347'))
         p.drawText(QRectF(275, 15, 90, 30), Qt.AlignVCenter | Qt.AlignRight, str(self.level) + ' %')
@@ -135,7 +136,7 @@ class StatusOverlay(QWidget):
             p.drawRoundedRect(QRectF(24, 61, 342 * fraction, 15), 7, 7)
         p.setPen(QColor('#b4c0d1'))
         p.setFont(QFont('DejaVu Sans', 9))
-        p.drawText(QRectF(24, 82, 342, 20), Qt.AlignLeft, 'Stumm' if self.muted else '0 %' )
+        p.drawText(QRectF(24, 82, 342, 20), Qt.AlignLeft, t('Stumm') if self.muted else '0 %' )
         p.drawText(QRectF(24, 82, 342, 20), Qt.AlignRight, '100 %')
 
     def shutdown(self):
@@ -145,6 +146,7 @@ class StatusOverlay(QWidget):
 
 def main():
     app = QApplication(sys.argv)
+    setup_qt(app)
     app.setQuitOnLastWindowClosed(False)
     folder = socket_folder()
     lock = open(folder / 'daemon.lock', 'a')

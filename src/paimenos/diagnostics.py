@@ -1,4 +1,5 @@
 """Begrenzte Geräte-Diagnose; keine PINs, Cookies oder Profilinhalte."""
+from paimenos.i18n import t
 from paimenos.paths import STATE_DIR
 import fcntl
 import json
@@ -47,7 +48,7 @@ def read_tail(path, maximum=12000):
             handle.seek(max(0, handle.tell() - maximum))
             return handle.read(maximum).decode("utf-8", errors="replace")
     except OSError:
-        return "Noch keine Meldungen vorhanden."
+        return t('Noch keine Meldungen vorhanden.')
 
 
 def find_program(name):
@@ -67,11 +68,11 @@ def power_supply_summary(directory="/sys/class/power_supply"):
     try:
         devices = sorted(Path(directory).iterdir())
     except OSError:
-        return "Keine Akku-/Netzteilinformationen verfügbar."
+        return t('Keine Akku-/Netzteilinformationen verfügbar.')
     for device in devices:
         fields = []
-        for name, label in (("type", "Typ"), ("status", "Status"),
-                            ("capacity", "Ladestand (%)"), ("online", "Netzteil verbunden")):
+        for name, label in (("type", t('Typ')), ("status", t('Status')),
+                            ("capacity", t('Ladestand (%)')), ("online", t('Netzteil verbunden'))):
             try:
                 value = (device / name).read_text(encoding="utf-8").strip()[:80]
             except OSError:
@@ -80,7 +81,7 @@ def power_supply_summary(directory="/sys/class/power_supply"):
                 fields.append(label + ": " + value)
         if fields:
             lines.append(device.name + " · " + ", ".join(fields))
-    return "\n".join(lines) or "Keine Akku-/Netzteilinformationen verfügbar."
+    return "\n".join(lines) or t('Keine Akku-/Netzteilinformationen verfügbar.')
 
 
 def bluetooth_diagnostics():
@@ -88,19 +89,19 @@ def bluetooth_diagnostics():
         from paimenos.bluetooth import bluetooth_request
         state = bluetooth_request()
         operation = state.get('operation')
-        parts = ['Bluetooth-Verwaltung: ' + ('bereit' if state.get('available') else 'nicht bereit')]
+        parts = [t('Bluetooth-Verwaltung: ') + (t('bereit') if state.get('available') else t('nicht bereit'))]
         if operation:
-            parts.append('Laufender Vorgang: ' + operation.get('action', '') + ' · ' + operation.get('name', ''))
+            parts.append(t('Laufender Vorgang: ') + operation.get('action', '') + ' · ' + operation.get('name', ''))
         if state.get('error'):
-            parts.append('Fehler: ' + state['error'])
+            parts.append(t('Fehler: ') + state['error'])
         parts += state.get('events', [])
         return '\n'.join(parts)
     except Exception as exc:
-        return 'Bluetooth-Diagnose nicht erreichbar: ' + str(exc)
+        return t('Bluetooth-Diagnose nicht erreichbar: ') + str(exc)
 
 
 def collect_diagnostics():
-    programs = {name: find_program(name) or "Nicht gefunden" for name in
+    programs = {name: find_program(name) or t('Nicht gefunden') for name in
                 ("tuxpaint", "udisksctl", "lsblk", "findmnt", "systemctl", "firefox-esr",
                  "tlp-stat", "zramctl", "sensors", "smartctl", "fwupdmgr", "v4l2-ctl", "flatpak")}
     media = command_output(["lsblk", "-o", "NAME,TYPE,FSTYPE,LABEL,MOUNTPOINTS,RM,HOTPLUG,TRAN"])
@@ -113,7 +114,7 @@ def collect_diagnostics():
     nearest = saved
     while not os.path.exists(nearest) and os.path.dirname(nearest) != nearest:
         nearest = os.path.dirname(nearest)
-    tuxpaint = programs["tuxpaint"]
+    tuxpaint = find_program("tuxpaint")
     laptop = {"Bluetooth-Kopplung": bluetooth_diagnostics(), "Akku und Netzteil": power_supply_summary(),
               "Arbeitsspeicher": command_output(["free", "-h"]),
               "Auslagerungsspeicher": command_output(["swapon", "--show"]),
@@ -127,7 +128,7 @@ def collect_diagnostics():
             "flatpak_apps": command_output(['flatpak', 'list', '--system', '--app', '--columns=name,application,version,branch,origin']),
             "flatpak_updates": command_output(['systemctl', 'show', 'paimenos-app-update.timer', 'paimenos-app-update.service', '-p', 'Id', '-p', 'ActiveState', '-p', 'Result', '-p', 'NextElapseUSecRealtime']),
             "tuxpaint_writable": os.access(nearest, os.W_OK),
-            "tuxpaint_version": command_output([tuxpaint, "--version"]) if tuxpaint != "Nicht gefunden" else "Nicht installiert",
+            "tuxpaint_version": command_output([tuxpaint, "--version"]) if tuxpaint else t('Nicht installiert'),
             "events": read_tail(LOG_FILE), "errors": read_tail(os.path.join(CONFIG_DIR, "paimenos-errors.log")),
             "application": read_tail(os.path.join(CONFIG_DIR, "paimenos-application.log")),
             "session": read_tail(os.path.join(CONFIG_DIR, "paimenos-session.log")),
@@ -136,16 +137,16 @@ def collect_diagnostics():
 
 
 def diagnostics_text(data):
-    parts = ["PaimenOS Geräte-Diagnose · " + data["timestamp"], "\nProgramme:"]
+    parts = [t('PaimenOS Geräte-Diagnose · ') + data["timestamp"], t('\nProgramme:')]
     parts += [f"{name}: {path}" for name, path in data["programs"].items()]
-    parts += ["\nTux Paint:", data["tuxpaint_version"], "Bilder: " + data["tuxpaint_savedir"],
-              "Speicherordner beschreibbar: " + ("Ja" if data["tuxpaint_writable"] else "Nein"), "\nMedien:", data["media"], "\nDienste:"]
+    parts += ["\nTux Paint:", data["tuxpaint_version"], t('Bilder: ') + data["tuxpaint_savedir"],
+              t('Speicherordner beschreibbar: ') + (t('Ja') if data["tuxpaint_writable"] else t('Nein')), t('\nMedien:'), data["media"], t('\nDienste:')]
     parts += [f"{name}:\n{status}" for name, status in data["services"].items()]
-    parts += ['\nFlatpak-Apps (installierte Versionen):', data.get('flatpak_apps', 'Nicht installiert'),
-              '\nApp-Aktualisierungen:', data.get('flatpak_updates', 'Nicht eingerichtet')]
+    parts += [t('\nFlatpak-Apps (installierte Versionen):'), data.get('flatpak_apps', t('Nicht installiert')),
+              t('\nApp-Aktualisierungen:'), data.get('flatpak_updates', t('Nicht eingerichtet'))]
     for heading, status in data.get("laptop", {}).items():
-        parts += ["\n" + heading + ":", status]
-    for heading, key in (("Letzte Ereignisse", "events"), ("Fehler", "errors"),
-                         ("Anwendungsstart", "application"), ("Sitzungsstart", "session"), ("Hintergrunddienste", "journal")):
+        parts += ["\n" + t(heading) + ":", status]
+    for heading, key in ((t('Letzte Ereignisse'), "events"), (t('Fehler'), "errors"),
+                         (t('Anwendungsstart'), "application"), (t('Sitzungsstart'), "session"), (t('Hintergrunddienste'), "journal")):
         parts += ["\n" + heading + ":", data[key]]
     return "\n".join(parts)

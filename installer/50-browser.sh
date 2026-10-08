@@ -2,7 +2,7 @@
 # Wird von install.sh in einer gemeinsamen Shell geladen.
 # 5. Polkit Rechte, Proxy, DNS & Webapp-Icon Caching
 # ---------------------------------------------------------------------------
-echo "System-Rechte, Family-DNS, Proxy & Webapp-Logos cachen ..."
+echo "$(paimenos_text 'System-Rechte, Family-DNS, Proxy & Webapp-Logos cachen ...')"
 
 mkdir -p /etc/polkit-1/rules.d
 install_repo_file config/polkit/49-kids-shutdown.rules /etc/polkit-1/rules.d/49-kids-shutdown.rules
@@ -64,13 +64,20 @@ webapp_icon_download() {
 install_repo_file assets/icons/poweroff.svg "${ICONS_DIR}/poweroff.svg"
 
 UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-echo "Lade gewünschte Original-Logos herunter ..."
+echo "$(paimenos_text 'Lade gewünschte Original-Logos herunter ...')"
+if [[ "$PAIMENOS_LANGUAGE" == en ]]; then
+    for icon in pbs-kids learnenglish-kids nasa-space-place blockly-games scratch-web; do
+        install_repo_file "assets/icons/${icon}.svg" "${ICONS_DIR}/${icon}.svg"
+    done
+else
 webapp_icon_download "https://licensing.wdr-mediagroup.com/wp-content/uploads/2021/12/die_maus_logo-1200x414.png" "maus"
 webapp_icon_download "https://www.wdrmaus.de/elefantenseite/codebase/eltern2021/images/elefant_header.svg" "elefant"
 webapp_icon_download "https://logos-world.net/wp-content/uploads/2022/07/KiKA-Logo-700x394.png" "kika"
 webapp_icon_download "https://www.kika.de/adventskalender/adventskalender-138-resimage_v-cropped_w-1024.png?version=58631" "kikaninchen"
 webapp_icon_download "https://www.scout-magazin.de/files/aktuelles/news/2021/fragFINN.de_Logo.png" "fragfinn"
 webapp_icon_download "https://gs-am-selzbogen.de/wp-content/uploads/2023/05/blindekuh-logo_0-1125x715-2-768x524.png" "blinde-kuh"
+
+fi
 
 if [[ ! -s "${ICONS_DIR}/youtube-kids.png" ]]; then
     convert -size 256x256 xc:'#FF3B30' -gravity center -fill white -pointsize 90 -annotate +0+0 '▶' "${ICONS_DIR}/youtube-kids.png" 2>/dev/null || true

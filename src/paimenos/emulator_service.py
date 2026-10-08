@@ -1,4 +1,5 @@
 """Fehlende Cores und Controller-Profile aus dem offiziellen Libretro-Buildbot."""
+from paimenos.i18n import t
 import glob
 import hashlib
 import io
@@ -33,18 +34,18 @@ def download(url):
     request = urllib.request.Request(url, headers={'User-Agent': 'PaimenOS-Setup/59'})
     with urllib.request.urlopen(request, timeout=40) as response:
         if not response.url.startswith('https://buildbot.libretro.com/'):
-            raise ValueError('Download wurde auf eine unerwartete Adresse umgeleitet.')
+            raise ValueError(t('Download wurde auf eine unerwartete Adresse umgeleitet.'))
         data = response.read(64 * 1024 * 1024 + 1)
     if len(data) > 64 * 1024 * 1024:
-        raise ValueError('Download überschreitet das Größenlimit.')
+        raise ValueError(t('Download überschreitet das Größenlimit.'))
     return data
 
 def validate_elf(data, architecture):
     _, elf_class, machine = ARCHES[architecture]
     if len(data) < 64 or data[:4] != b'\x7fELF' or data[4] != elf_class or data[5] != 1:
-        raise ValueError('Core ist keine passende Linux-Bibliothek.')
+        raise ValueError(t('Core ist keine passende Linux-Bibliothek.'))
     if struct.unpack_from('<H', data, 18)[0] != machine or struct.unpack_from('<H', data, 16)[0] != 3:
-        raise ValueError('Core passt nicht zur CPU-Architektur.')
+        raise ValueError(t('Core passt nicht zur CPU-Architektur.'))
 
 def existing_core(name):
     paths = glob.glob('/usr/lib/*/libretro/' + name) + glob.glob('/usr/lib/libretro/' + name) + [str(ROOT / name)]
@@ -52,16 +53,16 @@ def existing_core(name):
 
 def install_core(name, architecture):
     if existing_core(name):
-        print('  ✓ ' + CORES[name] + ': Core bereits vorhanden.')
+        print('  ✓ ' + CORES[name] + t(': Core bereits vorhanden.'))
         return
     if architecture not in ARCHES:
-        raise ValueError('Direktdownload unterstützt hier amd64/arm64; Debian-Paket für ' + architecture + ' verwenden.')
+        raise ValueError(t('Direktdownload unterstützt hier amd64/arm64; Debian-Paket für ') + architecture + t(' verwenden.'))
     url = 'https://buildbot.libretro.com/nightly/linux/' + ARCHES[architecture][0] + '/latest/' + name + '.zip'
     archive = download(url)
     with zipfile.ZipFile(io.BytesIO(archive)) as zip_file:
         members = zip_file.infolist()
         if len(members) != 1 or members[0].filename != name or not 0 < members[0].file_size <= 64 * 1024 * 1024:
-            raise ValueError('Core-Archiv hat einen unerwarteten Inhalt.')
+            raise ValueError(t('Core-Archiv hat einen unerwarteten Inhalt.'))
         data = zip_file.read(members[0])
     validate_elf(data, architecture)
     ROOT.mkdir(parents=True, exist_ok=True)
@@ -74,15 +75,15 @@ def install_core(name, architecture):
                                 'import ctypes,sys; c=ctypes.CDLL(sys.argv[1]); assert c.retro_api_version()==1',
                                 str(candidate)], capture_output=True, text=True, timeout=10)
         if check.returncode:
-            raise ValueError('Core konnte nicht geladen werden: ' + (check.stderr.strip().splitlines()[-1] if check.stderr.strip() else 'ABI-Prüfung fehlgeschlagen'))
+            raise ValueError(t('Core konnte nicht geladen werden: ') + (check.stderr.strip().splitlines()[-1] if check.stderr.strip() else t('ABI-Prüfung fehlgeschlagen')))
         receipt = {'url': url, 'sha256': hashlib.sha256(data).hexdigest(), 'architecture': architecture}
         os.replace(candidate, ROOT / name)
         (ROOT / (name + '.json')).write_text(json.dumps(receipt, indent=2) + '\n')
-    print('  ✓ ' + CORES[name] + ': offizieller Libretro-Core ergänzt und Ladefähigkeit geprüft.')
+    print('  ✓ ' + CORES[name] + t(': offizieller Libretro-Core ergänzt und Ladefähigkeit geprüft.'))
 
 def install_profiles():
     if (PROFILES / '.paimenos-linux-profiles-v55').is_file() and any((PROFILES / 'udev').glob('*.cfg')):
-        print('  ✓ Controller-Profile bereits eingerichtet.'); return
+        print(t('  ✓ Controller-Profile bereits eingerichtet.')); return
     archive = download('https://buildbot.libretro.com/assets/frontend/autoconfig.zip')
     PROFILES.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.paimenos-profiles-', dir=PROFILES.parent) as temp:
@@ -90,13 +91,13 @@ def install_profiles():
         with zipfile.ZipFile(io.BytesIO(archive)) as z:
             members = z.infolist()
             if len(members) > 10000 or sum(m.file_size for m in members) > 64 * 1024 * 1024:
-                raise ValueError('Controller-Profilarchiv ist zu groß.')
+                raise ValueError(t('Controller-Profilarchiv ist zu groß.'))
             for member in members:
                 if member.is_dir():
                     continue
                 path = PurePosixPath(member.filename)
                 if path.is_absolute() or '..' in path.parts or '\\' in member.filename or (member.external_attr >> 16) & 0o170000 == 0o120000:
-                    raise ValueError('Ungültiger Pfad im Controller-Profilarchiv.')
+                    raise ValueError(t('Ungültiger Pfad im Controller-Profilarchiv.'))
                 parts = list(path.parts)
                 if parts and parts[0] == 'autoconfig':
                     parts.pop(0)
@@ -111,7 +112,7 @@ def install_profiles():
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(z.read(member)); count += 1
         if count == 0 or not (stage / 'udev').is_dir():
-            raise ValueError('Keine Linux-Controller-Profile gefunden.')
+            raise ValueError(t('Keine Linux-Controller-Profile gefunden.'))
         PROFILES.mkdir(parents=True, exist_ok=True)
         PROFILES.chmod(0o755)
         # Zusätzliche eigene Profile behalten; offizielle Profile ergänzen.
@@ -119,9 +120,9 @@ def install_profiles():
         for folder in PROFILES.rglob('*'):
             folder.chmod(0o755 if folder.is_dir() else 0o644)
         (PROFILES / '.paimenos-linux-profiles-v55').write_text(str(count) + '\n')
-    print('  ✓ ' + str(count) + ' offizielle Linux-Controller-Profile ergänzt.')
+    print('  ✓ ' + str(count) + t(' offizielle Linux-Controller-Profile ergänzt.'))
     if skipped:
-        print('  Hinweis: ' + str(skipped) + ' leere oder übergroße Einzelprofile übersprungen.')
+        print(t('  Hinweis: ') + str(skipped) + t(' leere oder übergroße Einzelprofile übersprungen.'))
 
 
 def install_psp_assets():
@@ -135,14 +136,14 @@ def install_psp_assets():
         with zipfile.ZipFile(io.BytesIO(archive)) as z:
             members = z.infolist()
             if len(members) > 10000 or sum(m.file_size for m in members) > 128 * 1024 * 1024:
-                raise ValueError('PSP-Zusatzdateien überschreiten das Größenlimit.')
+                raise ValueError(t('PSP-Zusatzdateien überschreiten das Größenlimit.'))
             for member in members:
                 path = PurePosixPath(member.filename)
                 if path.is_absolute() or '..' in path.parts or '\\' in member.filename or (member.external_attr >> 16) & 0o170000 == 0o120000:
-                    raise ValueError('Ungültiger Pfad in den PSP-Zusatzdateien.')
+                    raise ValueError(t('Ungültiger Pfad in den PSP-Zusatzdateien.'))
                 parts = list(path.parts)
                 if not parts or parts[0] != 'PPSSPP':
-                    raise ValueError('Unerwarteter Inhalt der PSP-Zusatzdateien.')
+                    raise ValueError(t('Unerwarteter Inhalt der PSP-Zusatzdateien.'))
                 target = stage.joinpath(*parts[1:])
                 if member.is_dir():
                     target.mkdir(parents=True, exist_ok=True)
@@ -151,7 +152,7 @@ def install_psp_assets():
                     with z.open(member) as source, target.open('xb') as dest:
                         shutil.copyfileobj(source, dest)
         if not (stage / 'ppge_atlas.zim').is_file() or not (stage / 'lang').is_dir() or not (stage / 'flash0/font').is_dir():
-            raise ValueError('PSP-Zusatzdateien sind unvollständig.')
+            raise ValueError(t('PSP-Zusatzdateien sind unvollständig.'))
         for path in stage.rglob('*'):
             path.chmod(0o755 if path.is_dir() else 0o644)
         stage.chmod(0o755)
@@ -179,7 +180,7 @@ def installation_lock():
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            raise ValueError('Eine Emulator-Installation läuft bereits. Bitte später erneut versuchen.') from None
+            raise ValueError(t('Eine Emulator-Installation läuft bereits. Bitte später erneut versuchen.')) from None
         yield
     finally:
         os.close(fd)
@@ -193,7 +194,7 @@ def command(args, timeout=1200):
         if run.returncode:
             log.seek(0, 2); log.seek(max(0, log.tell() - 4096))
             detail = log.read().decode('utf-8', errors='replace').strip()
-            raise ValueError('Paketinstallation fehlgeschlagen: ' + detail[-1500:])
+            raise ValueError(t('Paketinstallation fehlgeschlagen: ') + detail[-1500:])
 
 
 def package_available(name):
@@ -206,19 +207,19 @@ def install_selected(keys, report=lambda message, **fields: print(message, flush
     keys = selection(','.join(keys) if keys else 'none')
     results = {}; notices = []
     if not keys:
-        report('Keine zusätzlichen Emulatoren ausgewählt.', percent=100)
+        report(t('Keine zusätzlichen Emulatoren ausgewählt.'), percent=100)
         return results
     with installation_lock():
         architecture = subprocess.check_output(['/usr/bin/dpkg', '--print-architecture'], text=True, timeout=10).strip()
         missing = not shutil.which('retroarch') or any(not core_path(key) for key in keys)
         if missing:
-            report('Paketlisten werden aktualisiert …', percent=2)
+            report(t('Paketlisten werden aktualisiert …'), percent=2)
             command(['/usr/bin/apt-get', '-o', 'DPkg::Lock::Timeout=120', 'update'], timeout=300)
-            report('Emulator-Grundprogramm wird eingerichtet …', percent=8)
+            report(t('Emulator-Grundprogramm wird eingerichtet …'), percent=8)
             command(['/usr/bin/apt-get', '-o', 'DPkg::Lock::Timeout=120', 'install', '-y', '--no-install-recommends', 'retroarch', 'libretro-core-info'])
         for index, key in enumerate(keys):
             item = CATALOG[key]
-            report(item['name'] + ' wird eingerichtet …', percent=10 + int(index / len(keys) * 80), current=key)
+            report(item['name'] + t(' wird eingerichtet …'), percent=10 + int(index / len(keys) * 80), current=key)
             try:
                 if not core_path(key):
                     candidates = [name for name in item['packages'] if package_available(name)]
@@ -233,20 +234,20 @@ def install_selected(keys, report=lambda message, **fields: print(message, flush
                     if not core_path(key):
                         install_core(item['core'] + '_libretro.so', architecture)
                 if key == 'psp':
-                    report('PSP-Zusatzdateien werden eingerichtet …')
+                    report(t('PSP-Zusatzdateien werden eingerichtet …'))
                     install_psp_assets()
-                results[key] = {'ok': True, 'message': 'Installiert'}
-                report(item['name'] + ' ist bereit.')
+                results[key] = {'ok': True, 'message': t('Installiert')}
+                report(item['name'] + t(' ist bereit.'))
             except Exception as exc:
                 results[key] = {'ok': False, 'message': str(exc)[:2000]}
                 report(item['name'] + ': ' + str(exc)[:2000])
-        report('Controller-Profile werden geprüft …', percent=95, current='')
+        report(t('Controller-Profile werden geprüft …'), percent=95, current='')
         try:
             install_profiles()
         except Exception as exc:
-            notices.append('Controller-Profile: ' + str(exc)[:1500])
+            notices.append(t('Controller-Profile: ') + str(exc)[:1500])
             report(notices[-1])
-        report('Installation abgeschlossen.' if all(result['ok'] for result in results.values()) else 'Installation mit Fehlern beendet.',
+        report(t('Installation abgeschlossen.') if all(result['ok'] for result in results.values()) else t('Installation mit Fehlern beendet.'),
                percent=100, current='', warnings=notices)
     return results
 
@@ -261,14 +262,14 @@ def choose_setup(value=None, tty=None):
         try:
             tty = open('/dev/tty', 'r+')
         except OSError:
-            print('Kein Terminal: vorhandene bzw. empfohlene Emulatoren ausgewählt. PAIMENOS_EMULATORS=none/all/nes,gb,... setzt die Auswahl.', file=sys.stderr)
+            print(t('Kein Terminal: vorhandene bzw. empfohlene Emulatoren ausgewählt. PAIMENOS_EMULATORS=none/all/nes,gb,... setzt die Auswahl.'), file=sys.stderr)
             return defaults
     try:
-        tty.write('\nEmulatoren auswählen (vorhandene werden nie entfernt)\n')
+        tty.write(t('\nEmulatoren auswählen (vorhandene werden nie entfernt)\n'))
         for index, (key, item) in enumerate(CATALOG.items(), 1):
-            tty.write(f" {index:2d}) {'[x]' if key in defaults else '[ ]'} {item['name']}" + (' – Leistung spielabhängig' if key in ('n64', 'psp') else '') + '\n')
+            tty.write(f" {index:2d}) {'[x]' if key in defaults else '[ ]'} {item['name']}" + (t(' – Leistung spielabhängig') if key in ('n64', 'psp') else '') + '\n')
         while True:
-            tty.write('Nummern durch Leerzeichen trennen; Enter = markierte Auswahl, alle / keine / empfohlen: '); tty.flush()
+            tty.write(t('Nummern durch Leerzeichen trennen; Enter = markierte Auswahl, alle / keine / empfohlen: ')); tty.flush()
             answer = tty.readline()
             if not answer:
                 return defaults
@@ -301,7 +302,7 @@ class Jobs:
             if isinstance(previous, dict) and previous.get('state') in ('done', 'error', 'running'):
                 self.job = previous
                 if previous['state'] == 'running':
-                    self.job.update(state='error', message='Die Installation wurde durch einen Neustart unterbrochen. Bitte erneut installieren.', current='')
+                    self.job.update(state='error', message=t('Die Installation wurde durch einen Neustart unterbrochen. Bitte erneut installieren.'), current='')
         except (OSError, ValueError):
             pass
 
@@ -325,12 +326,12 @@ class Jobs:
 
     def start(self, keys):
         if not isinstance(keys, list) or not 1 <= len(keys) <= len(CATALOG) or any(not isinstance(key, str) or key not in CATALOG for key in keys):
-            raise ValueError('Bitte gültige Emulatoren auswählen.')
+            raise ValueError(t('Bitte gültige Emulatoren auswählen.'))
         keys = list(dict.fromkeys(keys))
         with self.lock:
             if self.job['state'] == 'running':
-                raise ValueError('Eine Installation läuft bereits.')
-            self.job = {'state': 'running', 'percent': 0, 'log': [], 'results': {}, 'systems': keys, 'current': '', 'warnings': [], 'message': 'Installation wird gestartet …'}
+                raise ValueError(t('Eine Installation läuft bereits.'))
+            self.job = {'state': 'running', 'percent': 0, 'log': [], 'results': {}, 'systems': keys, 'current': '', 'warnings': [], 'message': t('Installation wird gestartet …')}
             self.save_locked()
         threading.Thread(target=self.worker, args=(keys,), daemon=True).start()
         return self.snapshot()
@@ -359,19 +360,19 @@ def serve():
             self.request.settimeout(3)
             try:
                 if not allowed_peer(self.request, kids_uid):
-                    raise ValueError('Zugriff verweigert.')
+                    raise ValueError(t('Zugriff verweigert.'))
                 raw = self.rfile.readline(4097)
                 if len(raw) > 4096 or not raw.endswith(b'\n'):
-                    raise ValueError('Ungültige Anfrage.')
+                    raise ValueError(t('Ungültige Anfrage.'))
                 data = json.loads(raw)
                 if not isinstance(data, dict):
-                    raise ValueError('Ungültige Anfrage.')
+                    raise ValueError(t('Ungültige Anfrage.'))
                 if data.get('action') == 'status':
                     result = {'job': jobs.snapshot(), 'systems': status()}
                 elif data.get('action') == 'install':
                     result = {'job': jobs.start(data.get('systems'))}
                 else:
-                    raise ValueError('Unbekannte Aktion.')
+                    raise ValueError(t('Unbekannte Aktion.'))
                 response = {'ok': True, **result}
             except Exception as exc:
                 response = {'ok': False, 'error': str(exc)[:2000]}
@@ -412,7 +413,7 @@ def main():
     if args.select:
         print(','.join(choose_setup(os.environ.get('PAIMENOS_EMULATORS'))) or 'none')
     elif os.geteuid() != 0:
-        parser.error('Installationen erfordern root.')
+        parser.error(t('Installationen erfordern root.'))
     elif args.serve:
         serve()
     else:

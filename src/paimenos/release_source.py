@@ -1,4 +1,5 @@
 """Bounded HTTPS access to the fixed GitHub release source and safe ZIP extraction."""
+from paimenos.i18n import t
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
@@ -21,7 +22,7 @@ HOSTS = {'api.github.com', 'github.com', 'release-assets.githubusercontent.com',
 def trusted_url(url):
     parts = urlsplit(url)
     if parts.scheme != 'https' or parts.hostname not in HOSTS or parts.username or parts.password or parts.port not in (None, 443):
-        raise UpdateError('Release-Datei verweist auf eine nicht erlaubte Download-Adresse.')
+        raise UpdateError(t('Release-Datei verweist auf eine nicht erlaubte Download-Adresse.'))
     return url
 
 
@@ -45,17 +46,17 @@ def download(url, target=None, limit=MAX_ARCHIVE, progress=None):
         with open_url(url) as response:
             announced = int(response.headers.get('Content-Length', '0'))
             if announced > limit:
-                raise UpdateError('Release-Datei überschreitet die erlaubte Größe.')
+                raise UpdateError(t('Release-Datei überschreitet die erlaubte Größe.'))
             count = 0
             while True:
                 if time.monotonic() - started > 600:
-                    raise UpdateError('Download dauert zu lange. Bitte später erneut versuchen.')
+                    raise UpdateError(t('Download dauert zu lange. Bitte später erneut versuchen.'))
                 chunk = response.read(64 * 1024)
                 if not chunk:
                     break
                 count += len(chunk)
                 if count > limit:
-                    raise UpdateError('Release-Datei überschreitet die erlaubte Größe.')
+                    raise UpdateError(t('Release-Datei überschreitet die erlaubte Größe.'))
                 if handle:
                     handle.write(chunk)
                 else:
@@ -63,7 +64,7 @@ def download(url, target=None, limit=MAX_ARCHIVE, progress=None):
                 if progress:
                     progress(count, announced)
             if announced and count != announced:
-                raise UpdateError('Release-Datei wurde unvollständig heruntergeladen.')
+                raise UpdateError(t('Release-Datei wurde unvollständig heruntergeladen.'))
         return bytes(data) if data is not None else count
     finally:
         if handle:
@@ -78,56 +79,55 @@ def release_metadata(tag=None, force_source=False):
         if exc.code == 404 and tag is None:
             return None
         if exc.code in (403, 429):
-            raise UpdateError('GitHub begrenzt momentan die Anfragen. Bitte später erneut prüfen.') from exc
-        raise UpdateError('GitHub-Release ist derzeit nicht erreichbar.') from exc
+            raise UpdateError(t('GitHub begrenzt momentan die Anfragen. Bitte später erneut prüfen.')) from exc
+        raise UpdateError(t('GitHub-Release ist derzeit nicht erreichbar.')) from exc
     except (URLError, OSError, ValueError) as exc:
         if isinstance(exc, UpdateError):
             raise
-        raise UpdateError('Versionsprüfung nicht möglich. Internetverbindung prüfen und später erneut versuchen.') from exc
+        raise UpdateError(t('Versionsprüfung nicht möglich. Internetverbindung prüfen und später erneut versuchen.')) from exc
     return parse_release(payload, expected_tag=tag, force_source=force_source)
 
 
 def parse_release(payload, expected_tag=None, force_source=False):
     if not isinstance(payload, dict) or payload.get('draft') or payload.get('prerelease') or not payload.get('published_at'):
-        raise UpdateError('Es werden nur veröffentlichte stabile Releases angeboten.')
+        raise UpdateError(t('Es werden nur veröffentlichte stabile Releases angeboten.'))
     tag = payload.get('tag_name', '')
     version_key(tag)
     if expected_tag is not None and tag != expected_tag:
-        raise UpdateError('Das ausgewählte Release hat sich geändert. Bitte erneut prüfen.')
+        raise UpdateError(t('Das ausgewählte Release hat sich geändert. Bitte erneut prüfen.'))
     version = tag.removeprefix('v')
     names = ['PaimenOS-' + version + '.zip']
     assets = payload.get('assets', [])
     if not isinstance(assets, list):
-        raise UpdateError('Ungültige Release-Dateiliste.')
+        raise UpdateError(t('Ungültige Release-Dateiliste.'))
     by_name = {asset.get('name'): asset for asset in assets if isinstance(asset, dict) and asset.get('state') == 'uploaded'}
     archive_name = next((name for name in names if name in by_name and name + '.sha256' in by_name), None)
     if not archive_name:
-        raise UpdateError('Im Release fehlen das PaimenOS-Update-ZIP oder seine SHA-256-Datei.')
+        raise UpdateError(t('Im Release fehlen das PaimenOS-Update-ZIP oder seine SHA-256-Datei.'))
     selected = []
     repositories = set()
     for name in (archive_name, archive_name + '.sha256'):
         asset = by_name[name]
         asset_url = asset.get('browser_download_url')
         if not isinstance(asset_url, str):
-            raise UpdateError('Ungültige Release-Download-Adresse.')
+            raise UpdateError(t('Ungültige Release-Download-Adresse.'))
         trusted_url(asset_url)
         parts = urlsplit(asset_url)
         match = re.fullmatch(r'/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)/releases/download/'
                              + re.escape(quote(tag, safe='')) + '/' + re.escape(name), parts.path)
         if parts.netloc != 'github.com' or parts.query or parts.fragment or not match:
-            raise UpdateError('Release-Datei hat keinen passenden GitHub-Release-Pfad.')
+            raise UpdateError(t('Release-Datei hat keinen passenden GitHub-Release-Pfad.'))
         repository = match[1]
         if repository not in REPOSITORY_ALIASES and not force_source:
-            raise UpdateError('Release-Datei stammt nicht aus dem festgelegten PaimenOS-Repo. '
-                              'Für diese Prüfung abweichende Release-Quelle ausdrücklich zulassen.')
+            raise UpdateError(t('Release-Datei stammt nicht aus dem festgelegten PaimenOS-Repo. Für diese Prüfung abweichende Release-Quelle ausdrücklich zulassen.'))
         repositories.add(repository)
         size = asset.get('size')
         bound = MAX_ARCHIVE if name == archive_name else 4096
         if not isinstance(size, int) or not 0 < size <= bound:
-            raise UpdateError('Release-Dateigröße ist ungültig.')
+            raise UpdateError(t('Release-Dateigröße ist ungültig.'))
         selected.append({'name': name, 'url': asset_url, 'size': size, 'digest': asset.get('digest', '')})
     if len(repositories) != 1:
-        raise UpdateError('ZIP und Prüfsumme stammen aus unterschiedlichen Repositories.')
+        raise UpdateError(t('ZIP und Prüfsumme stammen aus unterschiedlichen Repositories.'))
     repository = repositories.pop()
     return {'source_repository': repository, 'source_override': repository not in REPOSITORY_ALIASES,
             'tag': tag, 'version': version, 'title': str(payload.get('name') or tag)[:200],
@@ -139,16 +139,16 @@ def parse_release(payload, expected_tag=None, force_source=False):
 def verify_archive(archive, checksum_text, asset):
     lines = checksum_text.strip().splitlines()
     if len(lines) != 1:
-        raise UpdateError('Ungültige SHA-256-Datei.')
+        raise UpdateError(t('Ungültige SHA-256-Datei.'))
     match = re.fullmatch(r'([a-fA-F0-9]{64})\s+\*?([^/\\\s]+)', lines[0])
     if not match or match[2] != asset['name']:
-        raise UpdateError('SHA-256-Datei passt nicht zum Update-Archiv.')
+        raise UpdateError(t('SHA-256-Datei passt nicht zum Update-Archiv.'))
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
     if digest != match[1].lower():
-        raise UpdateError('Prüfsumme stimmt nicht überein. Update wurde nicht installiert.')
+        raise UpdateError(t('Prüfsumme stimmt nicht überein. Update wurde nicht installiert.'))
     github_digest = asset.get('digest')
     if github_digest and github_digest != 'sha256:' + digest:
-        raise UpdateError('GitHub-Dateiprüfsumme stimmt nicht überein.')
+        raise UpdateError(t('GitHub-Dateiprüfsumme stimmt nicht überein.'))
 
 
 def extract_archive(archive, target):
@@ -156,7 +156,7 @@ def extract_archive(archive, target):
     with zipfile.ZipFile(archive) as package:
         members = package.infolist()
         if not members or len(members) > 5000 or sum(item.file_size for item in members) > MAX_UNPACKED:
-            raise UpdateError('Update-Archiv ist zu groß oder ungültig.')
+            raise UpdateError(t('Update-Archiv ist zu groß oder ungültig.'))
         seen = set()
         for item in members:
             name = item.filename
@@ -167,7 +167,7 @@ def extract_archive(archive, target):
                     not path.parts or path.parts[0] != 'PaimenOS' or path.as_posix() in seen or
                     kind not in (0, stat.S_IFREG, stat.S_IFDIR) or item.flag_bits & 1 or
                     item.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED)):
-                raise UpdateError('Update-Archiv enthält einen unerlaubten Dateipfad oder Dateityp.')
+                raise UpdateError(t('Update-Archiv enthält einen unerlaubten Dateipfad oder Dateityp.'))
             seen.add(path.as_posix())
         target.mkdir(parents=True, exist_ok=True)
         # Validate everything before writing any archive file.
@@ -187,5 +187,5 @@ def extract_archive(archive, target):
     root = target / 'PaimenOS'
     for relative in ('VERSION', 'manifest.json', 'tools/deploy.py', 'src/paimenos/__init__.py'):
         if not (root / relative).is_file():
-            raise UpdateError('Das Archiv enthält kein vollständiges modulares PaimenOS-Release.')
+            raise UpdateError(t('Das Archiv enthält kein vollständiges modulares PaimenOS-Release.'))
     return root

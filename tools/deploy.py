@@ -5,6 +5,11 @@ Mutable user data and system configuration are never part of code deployment.
 Systemd units are applied only when the services component is selected.
 Declared missing Debian dependencies are installed before live activation.
 """
+from pathlib import Path as _Path
+import sys as _sys
+_release = _Path(__file__).resolve().parents[1]
+_sys.path.insert(0, str(_release / ('app' if (_release / 'app').is_dir() else 'src')))
+from paimenos.i18n import t
 import argparse
 import contextlib
 import fcntl
@@ -23,7 +28,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = Path('/usr/local/lib/paimenos')
-API = 2
+API = 3
 
 def package_tool():
     # This helper belongs to the trusted installed/local deployer, not the download.
@@ -41,47 +46,47 @@ def read_json(path):
 def destination(relative):
     path = PurePosixPath(relative)
     if path.is_absolute() or '..' in path.parts or not path.parts:
-        raise ValueError('Ungültiger Manifest-Pfad: ' + relative)
+        raise ValueError(t('Ungültiger Manifest-Pfad: ') + relative)
     allowed = {'src', 'assets', 'data', 'tools', 'bin', 'sbin', 'systemd'}
     if path.parts[0] not in allowed and relative != 'run.py':
-        raise ValueError('Nicht verwalteter Pfad: ' + relative)
+        raise ValueError(t('Nicht verwalteter Pfad: ') + relative)
     if path.parts[0] == 'src':
         if len(path.parts) < 3 or path.parts[1] != 'paimenos':
-            raise ValueError('Ungültiges Python-Paket.')
+            raise ValueError(t('Ungültiges Python-Paket.'))
         return Path('app', *path.parts[1:])
     return Path(relative)
 
 def validate_source(source):
     manifest = read_json(source / 'manifest.json')
     if manifest.get('schema') != 1 or manifest.get('runtime_api') != API:
-        raise ValueError('Nicht unterstütztes Manifest/API.')
+        raise ValueError(t('Nicht unterstütztes Manifest/API.'))
     if manifest['version'] != (source / 'VERSION').read_text().strip():
-        raise ValueError('VERSION und Manifest stimmen nicht überein.')
+        raise ValueError(t('VERSION und Manifest stimmen nicht überein.'))
     if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.-]+)?', manifest['version']):
-        raise ValueError('Ungültige Version.')
+        raise ValueError(t('Ungültige Version.'))
     components = manifest['components']
     if not isinstance(components, dict) or not components:
-        raise ValueError('Komponenten fehlen.')
+        raise ValueError(t('Komponenten fehlen.'))
     package_tool().read_plan(source / 'data/update-packages.json', components)
     seen = set()
     for name, definition in components.items():
         if not re.fullmatch(r'[a-z][a-z0-9-]*', name):
-            raise ValueError('Ungültiger Komponentenname.')
+            raise ValueError(t('Ungültiger Komponentenname.'))
         for relative in definition['files']:
             destination(relative)
             path = source / relative
             if relative in seen:
-                raise ValueError('Doppelter Manifest-Pfad: ' + relative)
+                raise ValueError(t('Doppelter Manifest-Pfad: ') + relative)
             seen.add(relative)
             if not path.is_file() or path.is_symlink() or source.resolve() not in path.resolve().parents:
-                raise ValueError('Datei fehlt oder liegt außerhalb des Projekts: ' + relative)
+                raise ValueError(t('Datei fehlt oder liegt außerhalb des Projekts: ') + relative)
             if path.suffix == '.py':
                 compile(path.read_bytes(), str(path), 'exec')
             if relative.startswith(('bin/', 'sbin/')):
                 subprocess.run(['bash', '-n', str(path)], check=True)
     source_modules = {str(p.relative_to(source)) for p in (source / 'src/paimenos').glob('*.py')}
     if not source_modules <= seen:
-        raise ValueError('Python-Datei fehlt im Manifest; build-manifest.py ausführen.')
+        raise ValueError(t('Python-Datei fehlt im Manifest; build-manifest.py ausführen.'))
     return manifest
 
 def validate_stage(stage):
@@ -99,9 +104,9 @@ def stage_release(source, base, selected=None):
     old = current.resolve() if current.is_symlink() else None
     names = list(manifest['components']) if selected is None else list(dict.fromkeys(selected))
     if not names or any(name not in manifest['components'] for name in names):
-        raise ValueError('Unbekannte/leere Komponenten-Auswahl.')
+        raise ValueError(t('Unbekannte/leere Komponenten-Auswahl.'))
     if selected is not None and old is None:
-        raise ValueError('Für Komponenten-Updates fehlt die Erstinstallation.')
+        raise ValueError(t('Für Komponenten-Updates fehlt die Erstinstallation.'))
     installed = read_json(old / 'installed.json') if old else {'runtime_api': API, 'components': {}}
     incoming_requirements = package_tool().read_plan(source / 'data/update-packages.json', manifest['components'])
     requirements = package_tool().release_requirements(old) if old else {}
@@ -111,7 +116,7 @@ def stage_release(source, base, selected=None):
         for name in names:
             requirements[name] = incoming_requirements.get(name, [])
     if installed['runtime_api'] != manifest['runtime_api'] and selected is not None:
-        raise ValueError('Die Paket-API hat sich geändert; vollständiges Update erforderlich.')
+        raise ValueError(t('Die Paket-API hat sich geändert; vollständiges Update erforderlich.'))
     releases = base / 'releases'
     releases.mkdir(parents=True, exist_ok=True)
     stage = Path(tempfile.mkdtemp(prefix='.stage-', dir=releases))
@@ -175,7 +180,7 @@ def install_launchers(release, previous=None):
             target = target_dir / file.name
             expected = BASE / 'current' / folder / file.name
             if (target.exists() or target.is_symlink()) and (not target.is_symlink() or target.readlink() != expected):
-                raise ValueError('Startprogramm existiert bereits: ' + str(target))
+                raise ValueError(t('Startprogramm existiert bereits: ') + str(target))
             launchers.append((target, expected))
     for target, expected in launchers:
         if not target.is_symlink():
@@ -265,54 +270,54 @@ def activate(base, release, *, initial=False, units=False, live=True, package_pr
         switch(base, old, 'previous')
 
 def main():
-    parser = argparse.ArgumentParser(description='PaimenOS-Code aus diesem lokalen Projekt aktualisieren. Eltern-Daten bleiben erhalten.')
-    parser.add_argument('--component', action='append', help='z.B. controller; mehrfach verwendbar')
-    parser.add_argument('--check', action='store_true', help='Quellen prüfen, nichts installieren')
-    parser.add_argument('--list', action='store_true', help='Komponenten anzeigen')
-    parser.add_argument('--rollback', action='store_true', help='Vorherigen Code aktivieren')
+    parser = argparse.ArgumentParser(description=t('PaimenOS-Code aus diesem lokalen Projekt aktualisieren. Eltern-Daten bleiben erhalten.'))
+    parser.add_argument('--component', action='append', help=t('z.B. controller; mehrfach verwendbar'))
+    parser.add_argument('--check', action='store_true', help=t('Quellen prüfen, nichts installieren'))
+    parser.add_argument('--list', action='store_true', help=t('Komponenten anzeigen'))
+    parser.add_argument('--rollback', action='store_true', help=t('Vorherigen Code aktivieren'))
     parser.add_argument('--initial', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.rollback and (args.component or args.initial):
-        parser.error('--rollback darf nicht mit --component/--initial kombiniert werden.')
+        parser.error(t('--rollback darf nicht mit --component/--initial kombiniert werden.'))
     if args.check or args.list:
         manifest = validate_source(ROOT)
         if args.component and any(name not in manifest['components'] for name in args.component):
-            parser.error('Unbekannte Komponente.')
+            parser.error(t('Unbekannte Komponente.'))
         for name, definition in manifest['components'].items():
-            print(f'{name}: {len(definition["files"])} Dateien')
-        print('Quellen gültig. Keine Änderungen vorgenommen.')
+            print(t('{value0}: {value1} Dateien', value0=name, value1=len(definition['files'])))
+        print(t('Quellen gültig. Keine Änderungen vorgenommen.'))
         return
     if os.geteuid() != 0:
-        parser.error('Bitte mit sudo ausführen.')
+        parser.error(t('Bitte mit sudo ausführen.'))
     if not args.initial and not (BASE / 'current').is_symlink():
-        parser.error('Modulare Erstinstallation fehlt. Zuerst install.sh auf einem frischen System ausführen.')
+        parser.error(t('Modulare Erstinstallation fehlt. Zuerst install.sh auf einem frischen System ausführen.'))
     lock_path = '/run/paimenos-maintenance.lock'
     with open(lock_path, 'a') as lock:
         if not args.initial:
             try:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
-                parser.error('Eine andere PaimenOS-Wartung läuft bereits.')
+                parser.error(t('Eine andere PaimenOS-Wartung läuft bereits.'))
         # Do not interrupt a privileged backend apt/dpkg transaction.
         with open('/run/paimenos-emulator-install.lock', 'a') as emulator_lock:
             try:
                 fcntl.flock(emulator_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
-                parser.error('Eine Emulator-Installation läuft. Bitte deren Abschluss abwarten.')
+                parser.error(t('Eine Emulator-Installation läuft. Bitte deren Abschluss abwarten.'))
             if args.rollback:
                 previous = BASE / 'previous'
                 if not previous.is_symlink():
-                    parser.error('Keine vorherige Code-Version vorhanden.')
+                    parser.error(t('Keine vorherige Code-Version vorhanden.'))
                 activate(BASE, previous.resolve(), units=True)
-                print('Vorherige Code-Version aktiviert.')
+                print(t('Vorherige Code-Version aktiviert.'))
                 return
             release, names = stage_release(ROOT, BASE, args.component)
             activate(BASE, release, initial=args.initial, units='services' in names)
-        print('Code aktiviert: ' + release.name + ' · ' + ', '.join(names))
+        print(t('Code aktiviert: ') + release.name + ' · ' + ', '.join(names))
 
 if __name__ == '__main__':
     try:
         main()
     except (OSError, ValueError, SyntaxError, subprocess.CalledProcessError) as exc:
-        print('PaimenOS-Update fehlgeschlagen: ' + str(exc), file=sys.stderr)
+        print(t('PaimenOS-Update fehlgeschlagen: ') + str(exc), file=sys.stderr)
         raise SystemExit(1)

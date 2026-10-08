@@ -1,5 +1,10 @@
 #!/usr/bin/python3
 """Install declared missing Debian dependencies; no scripts or repositories in metadata."""
+from pathlib import Path as _Path
+import sys as _sys
+_release = _Path(__file__).resolve().parents[1]
+_sys.path.insert(0, str(_release / ('app' if (_release / 'app').is_dir() else 'src')))
+from paimenos.i18n import t
 import argparse
 import fcntl
 import json
@@ -17,26 +22,26 @@ def validate_requirements(payload, components):
     if (not isinstance(payload, dict) or set(payload) != {'schema', 'components'}
             or type(payload['schema']) is not int or payload['schema'] != 1
             or not isinstance(payload['components'], dict)):
-        raise ValueError('Ungültige Paketanforderungen.')
+        raise ValueError(t('Ungültige Paketanforderungen.'))
     result = {}
     for name, packages in payload['components'].items():
         if name not in components or not isinstance(packages, list):
-            raise ValueError('Unbekannte Komponente oder ungültige Paketliste: ' + str(name))
+            raise ValueError(t('Unbekannte Komponente oder ungültige Paketliste: ') + str(name))
         if any(not isinstance(package, str) or not PACKAGE_NAME.fullmatch(package) for package in packages):
-            raise ValueError('Nur Debian-Paketnamen sind als Update-Abhängigkeiten erlaubt.')
+            raise ValueError(t('Nur Debian-Paketnamen sind als Update-Abhängigkeiten erlaubt.'))
         result[name] = sorted(set(packages))
     if sum(map(len, result.values())) > MAX_PACKAGES:
-        raise ValueError('Zu viele Paketanforderungen.')
+        raise ValueError(t('Zu viele Paketanforderungen.'))
     return result
 
 
 def read_plan(path, components):
     if path.is_symlink():
-        raise ValueError('Ungültige Paketanforderungsdatei.')
+        raise ValueError(t('Ungültige Paketanforderungsdatei.'))
     if not path.exists():
         return {}
     if path.stat().st_size > 65536:
-        raise ValueError('Ungültige Paketanforderungsdatei.')
+        raise ValueError(t('Ungültige Paketanforderungsdatei.'))
     return validate_requirements(json.loads(path.read_text()), components)
 
 
@@ -56,7 +61,7 @@ def installed_packages(packages, run):
                   '-f=${db:Status-Status}\t${Package}\t${db:Status-Eflag}\t${Architecture}\n', *packages],
                  capture_output=True, text=True, check=False)
     if result.returncode not in (0, 1):
-        raise ValueError('Installierte Debian-Pakete konnten nicht geprüft werden.')
+        raise ValueError(t('Installierte Debian-Pakete konnten nicht geprüft werden.'))
     return {parts[1] for line in result.stdout.splitlines()
             if len(parts := line.split('\t')) == 4 and parts[0] == 'installed'
             and parts[2] == 'ok' and parts[3] in (native, 'all')}
@@ -75,7 +80,7 @@ def candidates(packages, run, environment):
                 versions[current] = version
     unavailable = sorted(set(packages) - versions.keys())
     if unavailable:
-        raise ValueError('Benötigte Pakete fehlen in den konfigurierten Paketquellen: ' + ', '.join(unavailable))
+        raise ValueError(t('Benötigte Pakete fehlen in den konfigurierten Paketquellen: ') + ', '.join(unavailable))
     # Exact candidate versions prevent APT interpreting names as patterns or +/- actions.
     return [package + '=' + versions[package] for package in packages]
 
@@ -91,7 +96,7 @@ def ensure_release(release, progress=print, run=subprocess.run,
         fcntl.flock(lock, fcntl.LOCK_EX)
         missing = sorted(set(packages) - installed_packages(packages, run))
         if not missing:
-            progress('Benötigte Debian-Pakete sind bereits installiert.')
+            progress(t('Benötigte Debian-Pakete sind bereits installiert.'))
             return []
         # Leave PaimenOS restarts to the activation step; avoid a dependency/lock cycle
         # if a locally installed needrestart hook would restart our services inside APT.
@@ -99,32 +104,31 @@ def ensure_release(release, progress=print, run=subprocess.run,
         options = ['-o', 'DPkg::Lock::Timeout=120', '-o', 'Acquire::Retries=2',
                    '-o', 'Acquire::http::Timeout=30', '-o', 'Acquire::https::Timeout=30']
         try:
-            progress('Paketlisten werden aktualisiert.')
+            progress(t('Paketlisten werden aktualisiert.'))
             run(['/usr/bin/apt-get', *options, '-o', 'APT::Update::Error-Mode=any', 'update'],
                 check=True, capture_output=True, text=True, env=environment)
             targets = candidates(missing, run, environment)
-            progress('Fehlende Debian-Pakete werden installiert: ' + ', '.join(missing))
+            progress(t('Fehlende Debian-Pakete werden installiert: ') + ', '.join(missing))
             run(['/usr/bin/apt-get', *options, '-o', 'Dpkg::Options::=--force-confdef',
                  '-o', 'Dpkg::Options::=--force-confold', 'install', '-y', '--no-remove',
                  '--no-install-recommends', *targets],
                 check=True, capture_output=True, text=True, env=environment)
         except subprocess.CalledProcessError as exc:
             details = (exc.stderr or exc.stdout or '').strip()[-2000:]
-            raise ValueError('Paket-Nachinstallation fehlgeschlagen. APT/DNS und laufende Paketwartung prüfen. '
-                             'Bereits installierte Pakete bleiben erhalten. ' + details) from exc
+            raise ValueError(t('Paket-Nachinstallation fehlgeschlagen. APT/DNS und laufende Paketwartung prüfen. Bereits installierte Pakete bleiben erhalten. ') + details) from exc
         remaining = sorted(set(packages) - installed_packages(packages, run))
         if remaining:
-            raise ValueError('Paket-Nachinstallation unvollständig: ' + ', '.join(remaining))
-        progress('Benötigte Debian-Pakete sind installiert.')
+            raise ValueError(t('Paket-Nachinstallation unvollständig: ') + ', '.join(remaining))
+        progress(t('Benötigte Debian-Pakete sind installiert.'))
         return missing
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Fehlende PaimenOS-Update-Abhängigkeiten installieren.')
+    parser = argparse.ArgumentParser(description=t('Fehlende PaimenOS-Update-Abhängigkeiten installieren.'))
     parser.add_argument('--release', type=Path, default=Path('/usr/local/lib/paimenos/current'))
     args = parser.parse_args()
     if os.geteuid() != 0:
-        parser.error('Bitte mit sudo ausführen.')
+        parser.error(t('Bitte mit sudo ausführen.'))
     ensure_release(args.release)
 
 
@@ -132,4 +136,4 @@ if __name__ == '__main__':
     try:
         main()
     except (OSError, ValueError, subprocess.CalledProcessError) as exc:
-        raise SystemExit('FEHLER: ' + str(exc))
+        raise SystemExit(t('FEHLER: ') + str(exc))

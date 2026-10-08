@@ -1,5 +1,10 @@
 #!/usr/bin/python3
 """Install the bundled PaimenOS Plymouth theme. No downloads or image libraries."""
+from pathlib import Path as _Path
+import sys as _sys
+_release = _Path(__file__).resolve().parents[1]
+_sys.path.insert(0, str(_release / ('app' if (_release / 'app').is_dir() else 'src')))
+from paimenos.i18n import t
 import argparse
 import contextlib
 import fcntl
@@ -24,60 +29,60 @@ EXPECTED = {'paimenos.script', 'paimenos.plymouth', 'logo.png', 'entry.png'} | {
 def verify_png(data):
     """Check PNG structure and chunk CRCs, including a complete IEND."""
     if not data.startswith(b'\x89PNG\r\n\x1a\n'):
-        raise ValueError('Ungültiges PNG.')
+        raise ValueError(t('Ungültiges PNG.'))
     offset, first, image_data = 8, True, False
     while offset + 12 <= len(data):
         size, kind = struct.unpack('>I4s', data[offset:offset + 8])
         end = offset + 12 + size
         if end > len(data):
-            raise ValueError('Abgeschnittenes PNG.')
+            raise ValueError(t('Abgeschnittenes PNG.'))
         body = data[offset + 8:offset + 8 + size]
         crc = struct.unpack('>I', data[offset + 8 + size:end])[0]
         if zlib.crc32(kind + body) & 0xffffffff != crc:
-            raise ValueError('PNG-Prüfsumme stimmt nicht.')
+            raise ValueError(t('PNG-Prüfsumme stimmt nicht.'))
         if first:
             if kind != b'IHDR' or size != 13:
-                raise ValueError('PNG-Kopf fehlt.')
+                raise ValueError(t('PNG-Kopf fehlt.'))
             width, height, depth, color, compression, filtering, interlace = struct.unpack('>IIBBBBB', body)
             if not (0 < width <= 2048 and 0 < height <= 2048 and depth == 8
                     and color == 6 and compression == 0 and filtering == 0 and interlace == 0):
-                raise ValueError('Nicht unterstütztes Theme-PNG.')
+                raise ValueError(t('Nicht unterstütztes Theme-PNG.'))
             first = False
         if kind == b'IDAT' and size:
             image_data = True
         if kind == b'IEND':
             if size != 0 or not image_data or end != len(data):
-                raise ValueError('Ungültiges PNG-Ende.')
+                raise ValueError(t('Ungültiges PNG-Ende.'))
             return width, height
         offset = end
-    raise ValueError('PNG-Ende fehlt.')
+    raise ValueError(t('PNG-Ende fehlt.'))
 
 
 def validate_assets(source=None):
     source = Path(source) if source is not None else ROOT / 'assets/plymouth/paimenos'
     if not source.is_dir() or source.is_symlink():
-        raise ValueError('PaimenOS-Theme fehlt: ' + str(source))
+        raise ValueError(t('PaimenOS-Theme fehlt: ') + str(source))
     if {p.name for p in source.iterdir()} != EXPECTED | {'SHA256SUMS'}:
-        raise ValueError('PaimenOS-Theme ist unvollständig oder enthält unerwartete Dateien.')
+        raise ValueError(t('PaimenOS-Theme ist unvollständig oder enthält unerwartete Dateien.'))
     checksums = source / 'SHA256SUMS'
     if checksums.is_symlink() or not checksums.is_file():
-        raise ValueError('Ungültige Theme-Prüfsummenliste.')
+        raise ValueError(t('Ungültige Theme-Prüfsummenliste.'))
     hashes = {}
     for line in checksums.read_text().splitlines():
         match = re.fullmatch(r'([a-f0-9]{64})  ([a-z0-9_.-]+)', line)
         if not match or match[2] not in EXPECTED or match[2] in hashes:
-            raise ValueError('Ungültiger Eintrag in den Theme-Prüfsummen.')
+            raise ValueError(t('Ungültiger Eintrag in den Theme-Prüfsummen.'))
         hashes[match[2]] = match[1]
     if set(hashes) != EXPECTED:
-        raise ValueError('Theme-Prüfsummen sind unvollständig.')
+        raise ValueError(t('Theme-Prüfsummen sind unvollständig.'))
     contents = {}
     for name in sorted(EXPECTED):
         path = source / name
         if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= 1024 * 1024:
-            raise ValueError('Ungültige Theme-Datei: ' + name)
+            raise ValueError(t('Ungültige Theme-Datei: ') + name)
         data = path.read_bytes()
         if hashlib.sha256(data).hexdigest() != hashes[name]:
-            raise ValueError('Theme-Prüfsumme stimmt nicht: ' + name)
+            raise ValueError(t('Theme-Prüfsumme stimmt nicht: ') + name)
         if name.endswith('.png'):
             verify_png(data)
         contents[name] = data
@@ -85,7 +90,7 @@ def validate_assets(source=None):
     if any(line not in descriptor.splitlines() for line in (
             'ModuleName=script', 'ImageDir=/usr/share/plymouth/themes/paimenos',
             'ScriptFile=/usr/share/plymouth/themes/paimenos/paimenos.script')):
-        raise ValueError('Ungültige PaimenOS-Theme-Beschreibung.')
+        raise ValueError(t('Ungültige PaimenOS-Theme-Beschreibung.'))
     contents['SHA256SUMS'] = checksums.read_bytes()
     return contents
 
@@ -97,9 +102,9 @@ def install(root=Path('/'), source=None):
     destination = themes / THEME
     backup = themes / '.paimenos-backup'
     if destination.is_symlink() or (destination.exists() and not destination.is_dir()):
-        raise ValueError('Ungültiges Theme-Verzeichnis: ' + str(destination))
+        raise ValueError(t('Ungültiges Theme-Verzeichnis: ') + str(destination))
     if backup.exists() or backup.is_symlink():
-        raise ValueError('Ein Theme-Backup liegt noch vor. Vorige Installation prüfen: ' + str(backup))
+        raise ValueError(t('Ein Theme-Backup liegt noch vor. Vorige Installation prüfen: ') + str(backup))
     themes.mkdir(parents=True, exist_ok=True)
     stage = Path(tempfile.mkdtemp(prefix='.paimenos-stage-', dir=themes))
     try:
@@ -120,7 +125,7 @@ def install(root=Path('/'), source=None):
     finally:
         if stage.exists():
             shutil.rmtree(stage)
-    print('  ✓ PaimenOS: Logo und 48 kleine Animationsbilder offline installiert.')
+    print(t('  ✓ PaimenOS: Logo und 48 kleine Animationsbilder offline installiert.'))
     return destination
 
 def configure_grub(path):
@@ -131,7 +136,7 @@ def configure_grub(path):
     match = re.search(pattern, original, re.M)
     if not match:
         if re.search(r'^\s*GRUB_CMDLINE_LINUX_DEFAULT=', original, re.M):
-            raise ValueError('GRUB_CMDLINE_LINUX_DEFAULT bitte in Anführungszeichen setzen.')
+            raise ValueError(t('GRUB_CMDLINE_LINUX_DEFAULT bitte in Anführungszeichen setzen.'))
         prefix, quote, value, suffix = 'GRUB_CMDLINE_LINUX_DEFAULT=', '"', '', ''
     else:
         prefix, quote, value, suffix = match.groups()
@@ -170,7 +175,7 @@ def activate(root=Path('/'), source=None, run=subprocess.run):
     """Explicit system migration; ordinary application updates only stage the files."""
     previous = run(['plymouth-set-default-theme'], check=True, capture_output=True, text=True).stdout.strip()
     if not re.fullmatch(r'[A-Za-z0-9_-]+', previous):
-        raise ValueError('Das bisherige Plymouth-Theme konnte nicht ermittelt werden.')
+        raise ValueError(t('Das bisherige Plymouth-Theme konnte nicht ermittelt werden.'))
     grub = root / 'etc/default/grub'
     original_grub = grub.read_bytes() if grub.is_file() else None
     install(root, source)
@@ -181,7 +186,7 @@ def activate(root=Path('/'), source=None, run=subprocess.run):
         run(['plymouth-set-default-theme', THEME], check=True)
         actual = run(['plymouth-set-default-theme'], check=True, capture_output=True, text=True).stdout.strip()
         if actual != THEME:
-            raise ValueError('PaimenOS wurde nicht als Plymouth-Theme aktiviert.')
+            raise ValueError(t('PaimenOS wurde nicht als Plymouth-Theme aktiviert.'))
         if original_grub is not None:
             configure_grub(grub)
             run(['update-grub'], check=True)
@@ -203,26 +208,26 @@ def activate(root=Path('/'), source=None, run=subprocess.run):
                     run(['update-grub'], check=True)
                 run(['update-initramfs', '-u', '-k', 'all'], check=True)
             except (OSError, subprocess.CalledProcessError) as rollback_error:
-                print('Hinweis: Wiederherstellung der Startkonfiguration unvollständig: '
+                print(t('Hinweis: Wiederherstellung der Startkonfiguration unvollständig: ')
                       + str(rollback_error), file=sys.stderr)
         raise
-    print('  ✓ PaimenOS ist für den nächsten Systemstart aktiviert. Kein automatischer Neustart.')
+    print(t('  ✓ PaimenOS ist für den nächsten Systemstart aktiviert. Kein automatischer Neustart.'))
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Mitgeliefertes PaimenOS-Plymouth-Theme installieren.')
+    parser = argparse.ArgumentParser(description=t('Mitgeliefertes PaimenOS-Plymouth-Theme installieren.'))
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument('--check', action='store_true', help='Theme-Dateien offline prüfen; keine Systemänderung')
-    mode.add_argument('--grub', action='store_true', help='Nur GRUB-Splash-Parameter ergänzen')
+    mode.add_argument('--check', action='store_true', help=t('Theme-Dateien offline prüfen; keine Systemänderung'))
+    mode.add_argument('--grub', action='store_true', help=t('Nur GRUB-Splash-Parameter ergänzen'))
     mode.add_argument('--activate', action='store_true',
-                      help='Theme installieren, aktivieren und Startabbilder neu bauen')
+                      help=t('Theme installieren, aktivieren und Startabbilder neu bauen'))
     args = parser.parse_args()
     if args.check:
         validate_assets()
-        print('PaimenOS-Theme vollständig; Prüfsummen und PNG-Dateien gültig.')
+        print(t('PaimenOS-Theme vollständig; Prüfsummen und PNG-Dateien gültig.'))
         return
     if os.geteuid() != 0:
-        parser.error('Bitte mit sudo ausführen.')
+        parser.error(t('Bitte mit sudo ausführen.'))
     if args.activate:
         # Coordinate with application maintenance and package installations.
         with contextlib.ExitStack() as locks:
@@ -232,7 +237,7 @@ def main():
                 try:
                     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 except BlockingIOError:
-                    raise ValueError('PaimenOS-Wartung oder Paketinstallation läuft bereits.')
+                    raise ValueError(t('PaimenOS-Wartung oder Paketinstallation läuft bereits.'))
             activate()
     elif args.grub:
         configure_grub(Path('/etc/default/grub'))
@@ -244,4 +249,4 @@ if __name__ == '__main__':
     try:
         main()
     except (OSError, ValueError, subprocess.CalledProcessError) as exc:
-        sys.exit('FEHLER bei PaimenOS/Plymouth: ' + str(exc))
+        sys.exit(t('FEHLER bei PaimenOS/Plymouth: ') + str(exc))

@@ -14,6 +14,6 @@ else
 fi
 systemctl restart paimenos-wifi.service
 systemctl is-active --quiet paimenos-wifi.service || {
-    echo 'FEHLER: WLAN-Menüdienst konnte nicht gestartet werden.' >&2
+    echo "$(paimenos_text 'FEHLER: WLAN-Menüdienst konnte nicht gestartet werden.')" >&2
     exit 1
 }

@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -178,6 +179,10 @@ class ShellTests(unittest.TestCase):
             (self.root/directory).mkdir(parents=True)
         helper = (ROOT/'tools/wifi-handoff.py').read_text().replace("Path('/etc/network')", 'Path('+repr(str(self.root/'etc/network'))+')')
         (self.root/'usr/local/lib/paimenos/current/tools/wifi-handoff.py').write_text(helper)
+        runtime = self.root/'usr/local/lib/paimenos/current'
+        shutil.copy2(ROOT/'tools/language.py', runtime/'tools/language.py')
+        shutil.copytree(ROOT/'src/paimenos', runtime/'app/paimenos')
+        shutil.copytree(ROOT/'assets/i18n', runtime/'assets/i18n')
         self.original = 'auto lo wlan0\niface lo inet loopback\niface wlan0 inet dhcp\n wpa-ssid Home WiFi\n wpa-psk secret#12345\n'
         self.interfaces = self.root/'etc/network/interfaces'
         self.interfaces.write_text(self.original)

@@ -1,4 +1,9 @@
 """Einmalige Kopie vorhandener App-Daten; Ausführung als kids, nie als root."""
+from pathlib import Path as _Path
+import sys as _sys
+_release = _Path(__file__).resolve().parents[1]
+_sys.path.insert(0, str(_release / ('app' if (_release / 'app').is_dir() else 'src')))
+from paimenos.i18n import t
 import os
 import shutil
 import subprocess
@@ -34,7 +39,7 @@ def copy_once(home, sources, destination):
                     not ((Path(directory) / name).is_file() or (Path(directory) / name).is_dir())]
         shutil.copytree(source, staging / 'data', ignore=ignore)
         os.rename(staging / 'data', target)
-        print('  ✓ Vorhandene Daten kopiert: ' + str(source))
+        print(t('  ✓ Vorhandene Daten kopiert: ') + str(source))
     finally:
         shutil.rmtree(staging, ignore_errors=True)
 
@@ -46,7 +51,7 @@ def migrate(home, app_id):
                                   '(minetest|minetestserver|luanti|luantiserver|luanti.bin)'],
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if running.returncode == 0:
-            raise RuntimeError('Luanti/Minetest läuft noch. Bitte schließen und das Setup erneut ausführen, damit Spielstände sicher kopiert werden.')
+            raise RuntimeError(t('Luanti/Minetest läuft noch. Bitte schließen und das Setup erneut ausführen, damit Spielstände sicher kopiert werden.'))
     for sources, destination in MIGRATIONS.get(app_id, []):
         copy_once(home, sources, '.var/app/' + app_id + '/' + destination)
     if app_id == 'org.luanti.luanti':
@@ -60,7 +65,7 @@ def migrate(home, app_id):
                     copy_once(home, (str(game),), '.var/app/' + app_id + '/.minetest/games/' + game.name)
         games = home / '.var/app' / app_id / '.minetest/games'
         if not games.is_dir() or not any(games.glob('*/game.conf')):
-            print('  Hinweis: Luanti benötigt ein Spiel. Im Startbildschirm unter Inhalte z. B. Minetest Game installieren.')
+            print(t('  Hinweis: Luanti benötigt ein Spiel. Im Startbildschirm unter Inhalte z. B. Minetest Game installieren.'))
 
 
 if __name__ == '__main__':
