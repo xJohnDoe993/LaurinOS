@@ -70,7 +70,7 @@ class FirefoxIntegrationTests(unittest.TestCase):
                            f'http://127.0.0.1:{server.server_port}/']
                 for attempt, mode in enumerate(('normal', 'normal', 'crash', 'orphan', 'normal')):
                     previous_pages = requests['/']
-                    environment = dict(os.environ, MOZ_LOG='cache2:5,nsHttp:3',
+                    environment = dict(os.environ, MOZ_LOG='cache2:5,nsHttp:5',
                                        MOZ_LOG_FILE=str(Path(folder) / f'cache-{attempt}.log'))
                     process = subprocess.Popen(command, env=environment)
                     deadline = time.monotonic() + 45
@@ -103,6 +103,8 @@ class FirefoxIntegrationTests(unittest.TestCase):
                             print('CACHE DIAGNOSTICS', flush=True)
                             for path in Path(folder).rglob(f'cache-{attempt}.log*'):
                                 lines = path.read_text(errors='replace').splitlines()
+                                print('\n'.join(line for line in lines if any(word in line for word in
+                                      ('Validating', 'validating', 'expiration time', 'CheckCache', 'no-cache', 'load flags')))[-20000:], flush=True)
                                 for index, line in enumerate(lines):
                                     if '/asset.js' in line:
                                         print('\n'.join(lines[max(0,index-3):index+12]), flush=True)

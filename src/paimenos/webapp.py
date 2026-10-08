@@ -23,6 +23,8 @@ user_pref("browser.cache.disk.smart_size.enabled", true);
 user_pref("browser.cache.memory.enable", true);
 user_pref("privacy.sanitize.sanitizeOnShutdown", false);
 user_pref("browser.aboutwelcome.enabled", false);
+user_pref("browser.newtabpage.enabled", false);
+user_pref("browser.newtab.preload", false);
 user_pref("browser.shell.checkDefaultBrowser", false);
 user_pref("browser.link.open_newwindow", 1);
 user_pref("browser.link.open_newwindow.restriction", 0);
@@ -74,4 +76,4 @@ def prepare_profile(profile_dir, template):
 
 def browser_command(profile_dir, url):
     # Openbox maximiert das Fenster; Firefox reserviert selbst den Leistenplatz.
-    return ['firefox-esr', '--no-remote', '--profile', profile_dir, '--new-window', url]
+    return ['firefox-esr', '--no-remote', '--profile', profile_dir, url]
