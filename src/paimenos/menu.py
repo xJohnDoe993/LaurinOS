@@ -1197,7 +1197,7 @@ class PaimenOSMenu(QWidget):
                 profile = "webapp"
             profile_dir = os.path.join(WEBAPP_BASE, profile)
             user_js = os.path.expanduser("~/.mozilla/firefox/paimenos-user.js")
-            cmd = [sys.executable, '-I', OVERLAY_SCRIPT, 'browser', profile_dir, user_js, url]
+            cmd = [sys.executable, '-I', OVERLAY_SCRIPT, 'close_overlay', '--browser', profile_dir, user_js, url]
         else:
             cmd = shlex.split(item.get("command", ""))
             if cmd:

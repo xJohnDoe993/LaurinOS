@@ -65,9 +65,8 @@ class FirefoxIntegrationTests(unittest.TestCase):
         try:
             with tempfile.TemporaryDirectory() as folder:
                 profile = Path(folder) / 'profile'
-                code = ('import sys;sys.path.insert(0,sys.argv[1]);from paimenos.browser import run_browser;'
-                        'sys.exit(run_browser(sys.argv[2],"",sys.argv[3],with_overlay=False))')
-                command = [sys.executable, '-c', code, str(ROOT / 'src'), str(profile),
+                command = [sys.executable, '-I', str(ROOT / 'run.py'), 'close_overlay', '--browser',
+                           str(profile), str(Path(folder) / 'missing-template.js'),
                            f'http://127.0.0.1:{server.server_port}/']
                 for mode in ('normal', 'normal', 'crash', 'orphan', 'normal'):
                     previous_pages = requests['/']
