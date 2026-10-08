@@ -13,7 +13,6 @@ from paimenos.parent_ui import ParentDialog
 from paimenos.categories import CATEGORIES, available_categories, filter_category
 from paimenos.controller import ControllerReader
 from paimenos.network_status import NetworkStatus
-from paimenos.webapp import prepare_profile, browser_command
 from datetime import date
 from PyQt5 import sip
 from PyQt5.QtCore import Qt, QTimer, QTime, QDate, QSize
@@ -1198,13 +1197,7 @@ class PaimenOSMenu(QWidget):
                 profile = "webapp"
             profile_dir = os.path.join(WEBAPP_BASE, profile)
             user_js = os.path.expanduser("~/.mozilla/firefox/paimenos-user.js")
-            try:
-                prepare_profile(profile_dir, user_js)
-            except OSError as exc:
-                log_event("Webapp", str(exc))
-                QMessageBox.warning(self, "Webapp", f"Webapp konnte nicht vorbereitet werden:\n{exc}")
-                return
-            cmd = browser_command(profile_dir, url)
+            cmd = [sys.executable, '-I', OVERLAY_SCRIPT, 'browser', profile_dir, user_js, url]
         else:
             cmd = shlex.split(item.get("command", ""))
             if cmd:
@@ -1214,8 +1207,7 @@ class PaimenOSMenu(QWidget):
         if not cmd:
             return
         self.return_window = return_window
-        # Der Menü-Knopf beendet Firefox absichtlich mit SIGTERM.
-        self.expected_exit_codes = {0, -signal.SIGTERM} if url else {0}
+        self.expected_exit_codes = {0}
         self.overlay_proc = None
         try:
             log_path = os.path.join(str(STATE_DIR), "paimenos-application.log")
@@ -1233,11 +1225,7 @@ class PaimenOSMenu(QWidget):
         self.hide()
         if return_window:
             return_window.hide()
-        if url:
-            try:
-                self.overlay_proc = subprocess.Popen([sys.executable, "-I", OVERLAY_SCRIPT, "close_overlay", str(self.active_process.pid)])
-            except OSError as exc:
-                print(f"Schließen-Overlay konnte nicht gestartet werden: {exc}", file=sys.stderr)
+        # The browser supervisor owns the overlay and waits for profile release.
         self.process_timer = QTimer(self)
         self.process_timer.timeout.connect(self.check_process)
         self.process_timer.start(250)
@@ -1262,6 +1250,10 @@ class PaimenOSMenu(QWidget):
         target.activateWindow()
         if code not in self.expected_exit_codes:
             log_event("Anwendung", f"Programm mit Fehlercode {code} beendet.")
+            if code == 75:
+                QMessageBox.warning(target, "Webapp", "Diese Webapp ist noch geöffnet oder wird gerade geschlossen.\n"
+                                    "Bitte kurz warten und erneut öffnen.")
+                return
             QMessageBox.warning(target, "Programmstart", f"Das Programm wurde mit Fehlercode {code} beendet.\n"
                                 "Details stehen im Elternbereich unter Geräte-Diagnose.")
 

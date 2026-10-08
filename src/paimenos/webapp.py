@@ -13,6 +13,15 @@ user_pref("browser.fullscreen.autohide", false);
 user_pref("browser.tabs.drawInTitlebar", true);
 user_pref("browser.startup.page", 0);
 user_pref("browser.sessionstore.resume_from_crash", false);
+user_pref("browser.sessionstore.resume_session_once", false);
+user_pref("browser.sessionstore.resuming_after_os_restart", false);
+user_pref("browser.warnOnQuit", false);
+user_pref("browser.tabs.warnOnClose", false);
+user_pref("browser.tabs.warnOnCloseOtherTabs", false);
+user_pref("browser.cache.disk.enable", true);
+user_pref("browser.cache.disk.smart_size.enabled", true);
+user_pref("browser.cache.memory.enable", true);
+user_pref("privacy.sanitize.sanitizeOnShutdown", false);
 user_pref("browser.aboutwelcome.enabled", false);
 user_pref("browser.shell.checkDefaultBrowser", false);
 user_pref("browser.link.open_newwindow", 1);
@@ -21,6 +30,9 @@ user_pref("browser.link.open_newwindow.restriction", 0);
 
 
 def write_text(path, text):
+    # Avoid rewriting and fsyncing three unchanged files on every launch.
+    if read_text(path) == text:
+        return
     os.makedirs(os.path.dirname(path), exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix='.paimenos-webapp-', dir=os.path.dirname(path))
     try:

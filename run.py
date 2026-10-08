@@ -9,7 +9,7 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, str(release / ("app" if (release / "app").is_dir() else "src")))
 from paimenos.paths import ensure_user_directories
 
-ALLOWED = {"menu", "timer", "media", "status_overlay", "close_overlay", "lockscreen",
+ALLOWED = {"menu", "timer", "media", "status_overlay", "close_overlay", "lockscreen", "browser",
            "parent_web", "bluetooth", "wifi", "controller", "emulator_service", "update_service",
            "cli_osd_notify", "cli_update_apps", "cli_flatpak", "cli_emulator", "cli_emulator_check"}
 if len(sys.argv) < 2 or sys.argv[1] not in ALLOWED:

@@ -1,0 +1,167 @@
+import fcntl
+import os
+from pathlib import Path
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+import unittest
+from unittest.mock import patch
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'src'))
+from paimenos import browser, webapp
+
+
+class BrowserTests(unittest.TestCase):
+    def test_profile_preserves_site_data_and_skips_unchanged_writes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            profile = Path(folder)
+            for name in ('cookies.sqlite', 'sessionstore.jsonlz4', 'cache2/entries/site'):
+                path = profile / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b'keep')
+            template = profile / 'template.js'
+            template.write_text('user_pref("browser.startup.page", 3);\n')
+            webapp.prepare_profile(folder, str(template))
+            config = (profile / 'user.js').read_text()
+            self.assertGreater(config.rfind('user_pref("browser.startup.page", 0)'),
+                               config.find('user_pref("browser.startup.page", 3)'))
+            for pref in ('resume_from_crash', 'resume_session_once', 'resuming_after_os_restart'):
+                self.assertIn(f'user_pref("browser.sessionstore.{pref}", false);', config)
+            for name in ('cookies.sqlite', 'sessionstore.jsonlz4', 'cache2/entries/site'):
+                self.assertEqual((profile / name).read_bytes(), b'keep')
+            paths = [profile / 'user.js', profile / 'chrome/userChrome.css', profile / 'chrome/paimenos-webapp.css']
+            inodes = [path.stat().st_ino for path in paths]
+            webapp.prepare_profile(folder, str(template))
+            self.assertEqual(inodes, [path.stat().st_ino for path in paths])
+
+    def test_live_firefox_lock_is_respected_and_inode_never_deleted(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / '.parentlock'
+            code = 'import fcntl,sys; f=open(sys.argv[1],"a"); fcntl.lockf(f,fcntl.LOCK_EX); print("ready",flush=True); sys.stdin.read()'
+            child = subprocess.Popen([sys.executable, '-c', code, str(path)], stdin=subprocess.PIPE,
+                                     stdout=subprocess.PIPE, text=True)
+            try:
+                self.assertEqual(child.stdout.readline().strip(), 'ready')
+                inode = path.stat().st_ino
+                self.assertFalse(browser.profile_available(folder))
+                self.assertFalse(browser.wait_for_profile(folder, timeout=.01))
+                self.assertEqual(path.stat().st_ino, inode)
+                child.communicate('done', timeout=3)
+                self.assertTrue(browser.profile_available(folder))
+                self.assertEqual(path.stat().st_ino, inode)
+            finally:
+                if child.poll() is None:
+                    child.kill()
+                    child.communicate()
+                child.stdout.close()
+
+    def test_duplicate_launch_does_not_spawn_or_modify_profile(self):
+        with tempfile.TemporaryDirectory() as folder:
+            with open(Path(folder) / '.paimenos-launch.lock', 'a') as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX)
+                with patch.object(browser.subprocess, 'Popen') as spawn, patch.object(browser, 'prepare_profile') as prepare:
+                    self.assertEqual(browser.run_browser(folder, '', 'https://example.test'), browser.PROFILE_BUSY)
+                    spawn.assert_not_called()
+                    prepare.assert_not_called()
+
+    def test_busy_unknown_profile_does_not_start_firefox(self):
+        with tempfile.TemporaryDirectory() as folder, patch.object(browser, 'wait_for_profile', return_value=False), \
+                patch.object(browser, 'recover_profile', return_value=False), patch.object(browser.subprocess, 'Popen') as spawn:
+            self.assertEqual(browser.run_browser(folder, '', 'https://example.test'), browser.PROFILE_BUSY)
+            spawn.assert_not_called()
+
+    def test_orphan_matching_requires_uid_executable_and_exact_profile(self):
+        with tempfile.TemporaryDirectory() as folder:
+            entry = Path(folder) / '123'
+            entry.mkdir()
+            (entry / 'exe').symlink_to('/usr/lib/firefox-esr/firefox-esr')
+            (entry / 'cmdline').write_bytes(b'firefox-esr\0--profile\0/tmp/ours\0')
+            self.assertTrue(browser.owns_profile(123, '/tmp/ours', Path(folder)))
+            self.assertFalse(browser.owns_profile(123, '/tmp/ours-other', Path(folder)))
+            (entry / 'exe').unlink()
+            (entry / 'exe').symlink_to('/usr/bin/python3')
+            self.assertFalse(browser.owns_profile(123, '/tmp/ours', Path(folder)))
+
+    def test_normal_window_close_does_not_send_termination_signal(self):
+        with tempfile.TemporaryDirectory() as folder:
+            child = subprocess.Popen([sys.executable, '-c', 'import time;time.sleep(30)'], start_new_session=True)
+            try:
+                def close(pid):
+                    child.terminate()
+                    return True
+                with patch.object(browser, 'close_windows', side_effect=close) as windows, \
+                        patch.object(browser.os, 'killpg') as kill:
+                    browser.stop_browser(child, timeout=2)
+                    windows.assert_called_once_with(child.pid)
+                    kill.assert_not_called()
+            finally:
+                if child.poll() is None:
+                    child.kill()
+                child.wait()
+
+    def test_hung_browser_recovery_only_signals_its_own_group(self):
+        child = subprocess.Popen([sys.executable, '-c', 'import time;time.sleep(30)'], start_new_session=True)
+        try:
+            with patch.object(browser, 'close_windows', return_value=False), \
+                    patch.object(browser.os, 'killpg', wraps=os.killpg) as kill:
+                browser.stop_browser(child, timeout=.01)
+                kill.assert_called_once_with(child.pid, signal.SIGTERM)
+                self.assertIsNotNone(child.poll())
+        finally:
+            if child.poll() is None:
+                child.kill()
+            child.wait()
+
+    def test_supervisor_signal_allows_flush_then_immediate_restart(self):
+        with tempfile.TemporaryDirectory() as folder:
+            profile = Path(folder)
+            fake = profile / 'fake.py'
+            fake.write_text('''import fcntl, os, signal, sys, time
+from pathlib import Path
+p = Path(sys.argv[1])
+f = open(p / '.parentlock', 'a')
+fcntl.lockf(f, fcntl.LOCK_EX)
+def close(*args):
+    (p / 'flushed').write_text('cache saved')
+    sys.exit(0)
+signal.signal(signal.SIGUSR1, close)
+(p / 'ready').write_text(str(os.getpid()))
+while True: time.sleep(.05)
+''')
+            harness = ('import sys,os,signal; sys.path.insert(0,sys.argv[1]); '
+                       'from paimenos import browser; '
+                       'browser.close_windows=lambda pid: os.kill(pid,signal.SIGUSR1); '
+                       'sys.exit(browser.run_browser(sys.argv[2],"","https://example.test",'
+                       'command=[sys.executable,sys.argv[3],sys.argv[2]],with_overlay=False))')
+            for attempt in range(2):
+                (profile / 'ready').unlink(missing_ok=True)
+                process = subprocess.Popen([sys.executable, '-c', harness, str(ROOT / 'src'), folder, str(fake)])
+                child_pid = None
+                try:
+                    deadline = time.monotonic() + 5
+                    while not (profile / 'ready').exists() and time.monotonic() < deadline:
+                        time.sleep(.02)
+                    self.assertTrue((profile / 'ready').exists())
+                    child_pid = int((profile / 'ready').read_text())
+                    process.terminate()
+                    self.assertEqual(process.wait(timeout=5), 0)
+                    self.assertEqual((profile / 'flushed').read_text(), 'cache saved')
+                    self.assertTrue(browser.profile_available(folder))
+                    with self.assertRaises(ProcessLookupError):
+                        os.kill(child_pid, 0)
+                finally:
+                    if process.poll() is None:
+                        process.kill()
+                        process.wait()
+                    if child_pid is not None:
+                        try:
+                            os.kill(child_pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+
+
+if __name__ == '__main__':
+    unittest.main()

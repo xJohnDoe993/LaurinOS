@@ -1,0 +1,39 @@
+name: Firefox Webapps
+on:
+  push:
+    branches: ['fix/firefox-*']
+  pull_request:
+    paths:
+      - 'src/paimenos/browser.py'
+      - 'src/paimenos/webapp.py'
+      - 'src/paimenos/close_overlay.py'
+      - 'src/paimenos/menu.py'
+      - 'tests/test_browser.py'
+      - 'tests/test_firefox_integration.py'
+      - '.github/workflows/firefox.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  firefox:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        debian: [bookworm, trixie]
+    container: debian:${{ matrix.debian }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Firefox and X11 test dependencies
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3 python3-xlib firefox-esr xvfb xauth openbox
+      - name: Profile and lifecycle tests
+        run: python3 -B -m unittest discover -s tests -p test_browser.py -v
+      - name: Real Firefox cache and restart tests
+        env:
+          PAIMENOS_FIREFOX_INTEGRATION: '1'
+          MOZ_DISABLE_CONTENT_SANDBOX: '1'
+        run: |
+          xvfb-run -a sh -c 'openbox > /tmp/openbox.log 2>&1 & python3 -B -m unittest discover -s tests -p test_firefox_integration.py -v'
