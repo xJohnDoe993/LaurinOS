@@ -11,7 +11,9 @@ from pathlib import Path
 import re
 from paimenos.paths import ASSETS_DIR
 
-LOCALE_FILES = (Path('/etc/default/locale'), Path('/etc/locale.conf'))
+# Debian 13's installed locale takes precedence over legacy live-image defaults.
+# Debian 12 still uses /etc/default/locale.
+LOCALE_FILES = (Path('/etc/locale.conf'), Path('/etc/default/locale'))
 
 
 @lru_cache(maxsize=1)

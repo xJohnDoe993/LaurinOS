@@ -4,7 +4,9 @@
 PAIMENOS_LANGUAGE=${PAIMENOS_LANGUAGE:-}
 if [[ "${PAIMENOS_LANGUAGE,,}" != de && "${PAIMENOS_LANGUAGE,,}" != en ]]; then
     locale_value=''
-    for locale_file in /etc/default/locale /etc/locale.conf; do
+    # Debian 13 writes here; a live image may leave an older German locale file.
+    # Keep /etc/default/locale as a fallback for Debian 12.
+    for locale_file in /etc/locale.conf /etc/default/locale; do
         [[ -r "$locale_file" ]] || continue
         declare -A locale_values=()
         while IFS= read -r locale_line || [[ -n "$locale_line" ]]; do

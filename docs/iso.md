@@ -8,13 +8,18 @@ verfügbar; der Workflow veröffentlicht keinen Release.
 ## Installation
 
 1. ISO auf einen USB-Stick schreiben und davon booten.
-2. Im Bootmenü den Debian-Installer starten. Zielplatte und Administrator-Zugang
+2. Im Bootmenü den Debian-Installer starten. Systemsprache, Zielplatte und Administrator-Zugang
    selbst wählen; als Administrator einen anderen Namen als `kids` verwenden.
 3. Installation abschließen, USB-Stick entfernen und neu starten.
 4. Auf der ersten Textkonsole erscheint die PaimenOS-Einrichtung automatisch.
    Bei Bedarf mit **1** über `nmtui` WLAN einrichten; mit **2** das Setup starten.
 5. Eltern-PIN, Emulatoren, Apps und Debian/Flathub-Paketquelle im normalen
    Setup selbst wählen. Nach Abschluss neu starten: Die Kinderoberfläche erscheint.
+
+Die PaimenOS-Einrichtung übernimmt die im Debian-Installer gewählte Systemsprache.
+Englisch führt zu englischen Setup-Dialogen und englischsprachigen Standard-Webapps.
+Unter Debian 13 gilt `/etc/locale.conf` vor einem älteren Eintrag in
+`/etc/default/locale`; unter Debian 12 wird weiterhin dessen Locale-Datei verwendet.
 
 Das ISO enthält das Debian-Grundsystem, NetworkManager, WLAN-Firmware und
 root-eigenen PaimenOS-Quellcode. Es installiert beim ISO-Bau keine Kinderprogramme,
