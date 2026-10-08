@@ -115,6 +115,25 @@ class BrowserTests(unittest.TestCase):
                 child.kill()
             child.wait()
 
+    def test_failed_overlay_closes_browser_and_returns_to_menu_with_error(self):
+        spawn = subprocess.Popen
+        children = []
+        def launch(command, **kwargs):
+            if children:
+                command = [sys.executable, '-c', 'raise SystemExit(3)']
+            child = spawn(command, **kwargs)
+            children.append(child)
+            return child
+        def close(pid):
+            os.kill(pid, signal.SIGTERM)
+            return True
+        with tempfile.TemporaryDirectory() as folder, patch.object(browser.subprocess, 'Popen', side_effect=launch), \
+                patch.object(browser, 'close_windows', side_effect=close):
+            result = browser.run_browser(folder, '', 'https://example.test',
+                                         command=[sys.executable, '-c', 'import time;time.sleep(30)'])
+            self.assertEqual(result, 1)
+            self.assertTrue(all(child.poll() is not None for child in children))
+
     def test_supervisor_signal_allows_flush_then_immediate_restart(self):
         with tempfile.TemporaryDirectory() as folder:
             profile = Path(folder)

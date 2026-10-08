@@ -162,6 +162,7 @@ def run_browser(profile, template, url, command=None, with_overlay=True):
     profile = os.path.realpath(profile)
     os.makedirs(profile, mode=0o700, exist_ok=True)
     stopping = False
+    overlay_failed = False
 
     def stop(signum, frame):
         nonlocal stopping
@@ -197,7 +198,13 @@ def run_browser(profile, template, url, command=None, with_overlay=True):
                 except OSError as exc:
                     print('Schließen-Overlay: ' + str(exc), flush=True)
                     stopping = True
+                    overlay_failed = True
             while process.poll() is None and not stopping:
+                if overlay is not None and overlay.poll() is not None:
+                    print('Der Webapp-Menüknopf wurde unerwartet beendet.', flush=True)
+                    overlay_failed = True
+                    stopping = True
+                    break
                 time.sleep(.1)
             if stopping:
                 stop_browser(process)
@@ -212,6 +219,8 @@ def run_browser(profile, template, url, command=None, with_overlay=True):
             if not wait_for_profile(profile, timeout=5):
                 print('Firefox hat das Profil noch nicht freigegeben.', flush=True)
                 return PROFILE_BUSY
+            if overlay_failed:
+                return 1
             return 0 if stopping else (code if code >= 0 else 1)
     finally:
         if process is not None and process.poll() is None:
@@ -222,11 +231,3 @@ def run_browser(profile, template, url, command=None, with_overlay=True):
             signal.signal(sig, handler)
 
 
-if __name__ == '__main__':
-    if len(sys.argv) != 4:
-        raise SystemExit('Aufruf: run.py browser PROFIL VORLAGE URL')
-    try:
-        raise SystemExit(run_browser(*sys.argv[1:]))
-    except OSError as exc:
-        print('Webapp konnte nicht gestartet werden: ' + str(exc), file=sys.stderr, flush=True)
-        raise SystemExit(1)

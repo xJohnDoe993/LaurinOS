@@ -6,6 +6,12 @@ Festplatten-Caches verwaltet Firefox automatisch. Cookies, Website-Speicher
 und Cache werden beim Menüwechsel nicht gelöscht. Die Cache-Regeln der
 Website bleiben wirksam.
 
+Die Firefox-Startseite, deren Vorladen, Top-Sites-Feeds und automatische
+Seiten-Vorschaubilder sind in diesen Profilen abgeschaltet. Diese Funktionen
+werden im Kinder-Menü nicht verwendet und können zusätzliche Seiten im
+Hintergrund laden. Unveränderte Profil-/CSS-Dateien werden beim Wiederstart
+nicht erneut geschrieben.
+
 Der Start wird durch `paimenos.browser` überwacht. Ein zusätzlicher Start
 desselben Profils wird verhindert. Der Menüknopf fordert zunächst normales
 Fensterschließen an, damit Firefox seine Daten speichern kann. Erst bei einem

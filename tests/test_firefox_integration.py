@@ -2,7 +2,6 @@
 from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import os
-import re
 from pathlib import Path
 import signal
 import subprocess
@@ -20,7 +19,8 @@ from paimenos import browser
 @unittest.skipUnless(os.environ.get('PAIMENOS_FIREFOX_INTEGRATION') == '1', 'requires Firefox, Openbox and X11')
 class FirefoxIntegrationTests(unittest.TestCase):
     def test_cache_clean_close_crash_and_orphan_restart(self):
-        from Xlib import Xatom, display
+        from Xlib import X, Xatom, display
+        from Xlib.ext import xtest
         requests = Counter()
 
         class Handler(BaseHTTPRequestHandler):
@@ -71,9 +71,7 @@ class FirefoxIntegrationTests(unittest.TestCase):
                            f'http://127.0.0.1:{server.server_port}/']
                 for attempt, mode in enumerate(('normal', 'normal', 'crash', 'orphan', 'normal')):
                     previous_pages = requests['/']
-                    environment = dict(os.environ, MOZ_LOG='cache2:5,nsHttp:5',
-                                       MOZ_LOG_FILE=str(Path(folder) / f'cache-{attempt}.log'))
-                    process = subprocess.Popen(command, env=environment)
+                    process = subprocess.Popen(command)
                     deadline = time.monotonic() + 45
                     while time.monotonic() < deadline:
                         self.assertIsNone(process.poll(), 'Firefox supervisor exited during startup')
@@ -95,32 +93,19 @@ class FirefoxIntegrationTests(unittest.TestCase):
                         process.wait(timeout=5)
                         # The next supervisor must recover this exact profile.
                     else:
-                        process.terminate()
+                        if attempt == 0:
+                            # Click the real overlay: its Firefox PID and close PID differ.
+                            screen = x.screen()
+                            xtest.fake_input(x, X.MotionNotify, x=screen.width_in_pixels - 92, y=32)
+                            xtest.fake_input(x, X.ButtonPress, detail=1)
+                            xtest.fake_input(x, X.ButtonRelease, detail=1)
+                            x.sync()
+                        else:
+                            process.terminate()
                         self.assertEqual(process.wait(timeout=15), 0)
                         self.assertTrue(browser.profile_available(str(profile)))
                     process = None
                     if mode == 'normal':
-                        if requests['/asset.js'] != 1:
-                            print('CACHE DIAGNOSTICS', flush=True)
-                            for path in Path(folder).rglob(f'cache-{attempt}.log*'):
-                                lines = path.read_text(errors='replace').splitlines()
-                                addresses = set()
-                                for index, line in enumerate(lines):
-                                    if 'uri=http://127.0.0.1:' in line and '/asset.js' in line:
-                                        for candidate in lines[max(0,index-5):index+5]:
-                                            addresses.update(re.findall(r'(?:this|channel)=(?:0x)?([0-9a-f]{8,16})', candidate))
-                                for index, line in enumerate(lines):
-                                    if any(address in line for address in addresses):
-                                        print('\n'.join(lines[max(0,index-1):index+3]), flush=True)
-                                print('\n'.join(line for line in lines if any(word in line for word in
-                                      ('Validating', 'validating', 'expiration time', 'CheckCache', 'no-cache', 'load flags',
-                                       'CacheIndex::ChangeState', 'CacheIndex::Shutdown', 'rcwn', 'Racing')))[-20000:], flush=True)
-                                for index, line in enumerate(lines):
-                                    if '/asset.js' in line:
-                                        print('\n'.join(lines[max(0,index-3):index+12]), flush=True)
-                            print('cache files:', [str(p.relative_to(profile)) for p in profile.rglob('*') if 'cache' in str(p)], flush=True)
-                            print('cache prefs:', [line for line in (profile / 'prefs.js').read_text().splitlines()
-                                                   if 'cache' in line or 'sanitize' in line or 'privatebrowsing' in line], flush=True)
                         self.assertEqual(requests['/asset.js'], 1, 'Cacheable asset downloaded again')
                 self.assertGreaterEqual(requests['/'], 5)
         finally:

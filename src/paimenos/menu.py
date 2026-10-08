@@ -1208,6 +1208,7 @@ class PaimenOSMenu(QWidget):
             return
         self.return_window = return_window
         self.expected_exit_codes = {0}
+        self.active_is_webapp = bool(url)
         self.overlay_proc = None
         try:
             log_path = os.path.join(str(STATE_DIR), "paimenos-application.log")
@@ -1250,7 +1251,7 @@ class PaimenOSMenu(QWidget):
         target.activateWindow()
         if code not in self.expected_exit_codes:
             log_event("Anwendung", f"Programm mit Fehlercode {code} beendet.")
-            if code == 75:
+            if code == 75 and self.active_is_webapp:
                 QMessageBox.warning(target, "Webapp", "Diese Webapp ist noch geöffnet oder wird gerade geschlossen.\n"
                                     "Bitte kurz warten und erneut öffnen.")
                 return
