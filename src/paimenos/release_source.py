@@ -10,7 +10,7 @@ from urllib.parse import quote, urlsplit
 from urllib.request import Request, HTTPRedirectHandler, build_opener
 import zipfile
 
-from paimenos.updates import REPOSITORY, REPOSITORY_URL, UpdateError, version_key
+from paimenos.updates import REPOSITORY, REPOSITORY_ALIASES, REPOSITORY_URL, UpdateError, version_key
 
 API = 'https://api.github.com/repos/' + REPOSITORY + '/releases/'
 MAX_ARCHIVE = 50 * 1024 * 1024
@@ -70,7 +70,7 @@ def download(url, target=None, limit=MAX_ARCHIVE, progress=None):
             handle.close()
 
 
-def release_metadata(tag=None):
+def release_metadata(tag=None, force_source=False):
     endpoint = API + ('tags/' + quote(tag, safe='') if tag else 'latest')
     try:
         payload = json.loads(download(endpoint, limit=1024 * 1024))
@@ -84,10 +84,10 @@ def release_metadata(tag=None):
         if isinstance(exc, UpdateError):
             raise
         raise UpdateError('Versionsprüfung nicht möglich. Internetverbindung prüfen und später erneut versuchen.') from exc
-    return parse_release(payload, expected_tag=tag)
+    return parse_release(payload, expected_tag=tag, force_source=force_source)
 
 
-def parse_release(payload, expected_tag=None):
+def parse_release(payload, expected_tag=None, force_source=False):
     if not isinstance(payload, dict) or payload.get('draft') or payload.get('prerelease') or not payload.get('published_at'):
         raise UpdateError('Es werden nur veröffentlichte stabile Releases angeboten.')
     tag = payload.get('tag_name', '')
@@ -104,19 +104,35 @@ def parse_release(payload, expected_tag=None):
     if not archive_name:
         raise UpdateError('Im Release fehlen das PaimenOS-Update-ZIP oder seine SHA-256-Datei.')
     selected = []
+    repositories = set()
     for name in (archive_name, archive_name + '.sha256'):
         asset = by_name[name]
-        expected_url = REPOSITORY_URL + '/releases/download/' + quote(tag, safe='') + '/' + name
-        if asset.get('browser_download_url') != expected_url:
-            raise UpdateError('Release-Datei stammt nicht aus dem festgelegten PaimenOS-Repo.')
+        asset_url = asset.get('browser_download_url')
+        if not isinstance(asset_url, str):
+            raise UpdateError('Ungültige Release-Download-Adresse.')
+        trusted_url(asset_url)
+        parts = urlsplit(asset_url)
+        match = re.fullmatch(r'/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)/releases/download/'
+                             + re.escape(quote(tag, safe='')) + '/' + re.escape(name), parts.path)
+        if parts.netloc != 'github.com' or parts.query or parts.fragment or not match:
+            raise UpdateError('Release-Datei hat keinen passenden GitHub-Release-Pfad.')
+        repository = match[1]
+        if repository not in REPOSITORY_ALIASES and not force_source:
+            raise UpdateError('Release-Datei stammt nicht aus dem festgelegten PaimenOS-Repo. '
+                              'Für diese Prüfung abweichende Release-Quelle ausdrücklich zulassen.')
+        repositories.add(repository)
         size = asset.get('size')
         bound = MAX_ARCHIVE if name == archive_name else 4096
         if not isinstance(size, int) or not 0 < size <= bound:
             raise UpdateError('Release-Dateigröße ist ungültig.')
-        selected.append({'name': name, 'url': expected_url, 'size': size, 'digest': asset.get('digest', '')})
-    return {'tag': tag, 'version': version, 'title': str(payload.get('name') or tag)[:200],
+        selected.append({'name': name, 'url': asset_url, 'size': size, 'digest': asset.get('digest', '')})
+    if len(repositories) != 1:
+        raise UpdateError('ZIP und Prüfsumme stammen aus unterschiedlichen Repositories.')
+    repository = repositories.pop()
+    return {'source_repository': repository, 'source_override': repository not in REPOSITORY_ALIASES,
+            'tag': tag, 'version': version, 'title': str(payload.get('name') or tag)[:200],
             'notes': str(payload.get('body') or '')[:24000], 'published_at': str(payload['published_at'])[:40],
-            'url': REPOSITORY_URL + '/releases/tag/' + quote(tag, safe=''),
+            'url': 'https://github.com/' + repository + '/releases/tag/' + quote(tag, safe=''),
             'archive': selected[0], 'checksum': selected[1]}
 
 

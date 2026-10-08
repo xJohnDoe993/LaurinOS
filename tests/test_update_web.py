@@ -62,6 +62,21 @@ class UpdateWebTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200); update.assert_called_with('check', None)
             response = self.client.post('/updates/install', data={'csrf_token': 'test-csrf', 'tag': 'v0.62.0'})
             self.assertEqual(response.status_code, 200); update.assert_called_with('install', 'v0.62.0')
+    def test_explicit_source_override_is_forwarded_only_from_parent_post(self):
+        self.authenticate()
+        with patch.object(self.web, 'update_request', return_value={'ok': True}) as update:
+            for action in ('check', 'install'):
+                response = self.client.post('/updates/' + action, data={
+                    'csrf_token': 'test-csrf', 'tag': 'v0.62.0', 'force_source': '1'})
+                self.assertEqual(response.status_code, 200)
+                update.assert_called_with(action, 'v0.62.0' if action == 'install' else None, force_source=True)
+            update.reset_mock()
+            response = self.client.post('/updates/check', data={'csrf_token': 'test-csrf', 'force_source': 'yes'})
+            self.assertEqual(response.status_code, 409)
+            update.assert_not_called()
+            response = self.client.post('/updates/install', data={'force_source': '1', 'tag': 'v0.62.0'})
+            self.assertEqual(response.status_code, 400)
+            update.assert_not_called()
     def test_page_renders_without_remote_request_and_uses_correct_links(self):
         self.authenticate()
         with patch.object(self.web, 'update_request') as update:

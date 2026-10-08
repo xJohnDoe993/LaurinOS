@@ -4,7 +4,10 @@
   <div class="row"><h2>Code-Version</h2><span id="update-label" class="badge on">Status wird geladen …</span></div>
   <p>Installiert: <strong id="current-version">…</strong><span id="mixed-versions" class="hint"></span></p>
   <p id="latest-version" class="muted"></p><p id="last-checked" class="hint"></p>
-  <div class="actions"><button id="check-update" class="secondary" disabled>Nach Updates suchen</button><button id="install-update" disabled hidden>Update installieren</button><a class="btn secondary" href="https://github.com/xJohnDoe993/LaurinOS/releases" target="_blank" rel="noopener noreferrer">GitHub-Releases</a></div>
+  <div class="actions"><button id="check-update" class="secondary" disabled>Nach Updates suchen</button><button id="install-update" disabled hidden>Update installieren</button><a class="btn secondary" href="https://github.com/xJohnDoe993/PaimenOS/releases" target="_blank" rel="noopener noreferrer">GitHub-Releases</a></div>
+  <p><label><input type="checkbox" id="force-source"> Abweichende Release-Quelle zulassen</label></p>
+  <p class="hint">Gilt für diese Prüfung und Installation. ZIP und Prüfsumme müssen aus demselben GitHub-Repository stammen; alle Datei- und Versionsprüfungen bleiben aktiv.</p>
+  <p id="source-repository" class="hint"></p>
   <p class="hint">Manuelle Prüfungen sind höchstens einmal pro Minute möglich.</p>
 </section>
 <section id="update-progress" class="panel" aria-live="polite" hidden><h2>Update-Auftrag</h2><p id="job-message"></p><div class="bar" role="progressbar" aria-label="Update-Fortschritt" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="job-bar" style="width:0%"></i></div><p id="job-version" class="hint"></p></section>
@@ -14,7 +17,7 @@
 <script>
 (() => {
   const check = document.getElementById('check-update'), install = document.getElementById('install-update');
-  const error = document.getElementById('update-error');
+  const error = document.getElementById('update-error'), forceSource = document.getElementById('force-source');
   let state = null, sending = false, timer;
   const date = value => value ? new Date(value * 1000).toLocaleString('de-DE') : 'Noch keine erfolgreiche Prüfung';
   function display(next) {
@@ -27,6 +30,8 @@
     document.getElementById('update-label').textContent = busy ? 'Update läuft' : state.checking ? 'Prüfung läuft' : state.check_error ? 'Prüfung fehlgeschlagen' : state.update_available ? 'Update verfügbar' : state.last_checked ? 'Kein neueres Update' : 'Noch nicht geprüft';
     error.hidden = !state.check_error;
     error.textContent = state.check_error || '';
+    document.getElementById('source-repository').textContent = state.release ? 'Release-Quelle: ' + (state.release.source_repository || 'xJohnDoe993/PaimenOS') + (state.release.source_override ? ' · abweichende Quelle' : '') : '';
+    forceSource.disabled = sending || busy || state.checking;
     check.disabled = sending || busy || state.checking;
     install.hidden = !state.update_available;
     install.disabled = sending || busy || state.checking;
@@ -66,12 +71,17 @@
     sending = true; check.disabled = true; install.disabled = true;
     const body = new URLSearchParams({csrf_token:{{ csrf_token()|tojson }}});
     if (tag) body.set('tag', tag);
+    if (forceSource.checked) body.set('force_source', '1');
     try { const next = await readResponse(await fetch(url, {method:'POST', body, headers:{Accept:'application/json'}})); if (next) display(next); }
     catch (exc) { error.hidden = false; error.textContent = exc.message; }
     finally { sending = false; clearTimeout(timer); timer = setTimeout(poll, 2000); }
   }
   check.addEventListener('click', () => action({{ url_for('updates_check')|tojson }}));
   install.addEventListener('click', () => {
+    if (state?.release?.source_override) {
+      if (!forceSource.checked) { error.hidden = false; error.textContent = 'Abweichende Release-Quelle vor der Installation ausdrücklich zulassen.'; return; }
+      if (!confirm('Update aus ' + state.release.source_repository + ' dennoch installieren? Dieses Repository liefert den ausführbaren PaimenOS-Code.')) return;
+    }
     if (state && state.update_available && confirm('Version ' + state.release.version + ' installieren? Benötigte Debian-Pakete werden bei Bedarf nachinstalliert. Apps und Spiele vorher schließen. Die PaimenOS-Dienste und die Kindersitzung starten neu.')) action({{ url_for('updates_install')|tojson }}, state.release.tag);
   });
   poll();

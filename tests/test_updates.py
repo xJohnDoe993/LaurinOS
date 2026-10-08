@@ -49,6 +49,37 @@ class VersionTests(unittest.TestCase):
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_repository_rename_accepts_canonical_and_previous_name(self):
+        self.assertEqual(updates.REPOSITORY, 'xJohnDoe993/PaimenOS')
+        for repository in updates.REPOSITORY_ALIASES:
+            payload = release_payload()
+            for asset in payload['assets']:
+                asset['browser_download_url'] = asset['browser_download_url'].replace(updates.REPOSITORY, repository)
+            release = source.parse_release(payload)
+            self.assertFalse(release['source_override'])
+            self.assertEqual(release['source_repository'], repository)
+
+    def test_source_override_accepts_only_matching_github_release_pair(self):
+        payload = release_payload()
+        for asset in payload['assets']:
+            asset['browser_download_url'] = asset['browser_download_url'].replace(updates.REPOSITORY, 'other/repo')
+        with self.assertRaises(updates.UpdateError):
+            source.parse_release(payload)
+        release = source.parse_release(payload, force_source=True)
+        self.assertTrue(release['source_override'])
+        self.assertEqual(release['source_repository'], 'other/repo')
+        for url in ['https://example.com/other/repo/releases/download/v0.62.0/PaimenOS-0.62.0.zip',
+                    payload['assets'][0]['browser_download_url'] + '?token=1',
+                    payload['assets'][0]['browser_download_url'].replace('v0.62.0', 'v0.63.0'),
+                    payload['assets'][0]['browser_download_url'].replace('other/repo', updates.REPOSITORY)]:
+            changed = copy.deepcopy(payload)
+            changed['assets'][0]['browser_download_url'] = url
+            with self.subTest(url=url), self.assertRaises(updates.UpdateError):
+                source.parse_release(changed, force_source=True)
+        payload['prerelease'] = True
+        with self.assertRaises(updates.UpdateError):
+            source.parse_release(payload, force_source=True)
+
     def test_stable_release_requires_matching_assets_from_fixed_repo(self):
         parsed = source.parse_release(release_payload())
         self.assertEqual(parsed['version'], '0.62.0')
@@ -110,6 +141,31 @@ class ManagerTests(unittest.TestCase):
         self.record_patch.start()
     def tearDown(self):
         self.record_patch.stop(); self.temp.cleanup()
+    def test_overridden_offer_requires_install_confirmation_and_persists_to_job(self):
+        payload = release_payload()
+        for asset in payload['assets']:
+            asset['browser_download_url'] = asset['browser_download_url'].replace(updates.REPOSITORY, 'other/repo')
+        with self.store.transaction() as state:
+            state['release'] = source.parse_release(payload, force_source=True)
+        with patch.object(service, 'job_active', return_value=False), patch.object(service.subprocess, 'run') as run:
+            with self.assertRaisesRegex(updates.UpdateError, 'bestätigen'):
+                self.manager.install('v0.62.0')
+            run.assert_not_called()
+            self.manager.install('v0.62.0', force_source=True)
+        self.assertTrue(self.store.read()['job']['force_source'])
+        service.UpdateManager(self.store)
+        self.assertTrue(self.store.read()['job']['force_source'])
+
+    def test_source_override_is_not_remembered_for_background_checks(self):
+        with patch.object(source, 'release_metadata', return_value=None) as network:
+            self.manager.check(force_source=True)
+            self.assertTrue(self.manager.check_lock.acquire(timeout=2)); self.manager.check_lock.release()
+            network.assert_called_once_with(force_source=True)
+            network.reset_mock()
+            with self.store.transaction() as state: state['last_attempt'] = 0
+            self.manager.check(automatic=True)
+            self.assertTrue(self.manager.check_lock.acquire(timeout=2)); self.manager.check_lock.release()
+            network.assert_called_once_with()
     def test_status_uses_cache_without_network_and_offline_check_preserves_offer(self):
         release = source.parse_release(release_payload())
         with self.store.transaction() as state: state.update(release=release, last_checked=123)
@@ -208,6 +264,14 @@ class WorkerTests(unittest.TestCase):
         if target is None: return self.checksum.encode()
         shutil.copyfile(self.archive, target)
     def apply(self): service.apply_job(self.store, 'job', self.base, self.root / 'cache')
+    def test_worker_rechecks_confirmed_source_and_still_rejects_tampered_archive(self):
+        with self.store.transaction() as state: state['job']['force_source'] = True
+        self.checksum = '0' * 64 + '  ' + self.archive.name
+        with patch.object(source, 'release_metadata', return_value=self.release) as metadata:
+            with self.assertRaises(updates.UpdateError): self.apply()
+            metadata.assert_called_once_with(self.release['tag'], force_source=True)
+        self.assertEqual((self.base / 'current').resolve(), self.old)
+
     def test_verified_release_stages_and_activates_then_records_success(self):
         data = self.root / 'home/kids/save'; data.parent.mkdir(parents=True); data.write_bytes(b'parent and save data')
         self.apply()
@@ -265,7 +329,9 @@ class SocketTests(unittest.TestCase):
         self.assertFalse(json.loads(handler.wfile.getvalue())['ok'])
         handler.server.manager.install.assert_not_called()
     def test_unknown_actions_and_extra_parameters_are_rejected(self):
-        for message in [{'action': 'shell', 'tag': 'rm'}, {'action': 'install', 'tag': 'v0.62.0', 'url': 'https://other.invalid'}]:
+        for message in [{'action': 'shell', 'tag': 'rm'}, {'action': 'install', 'tag': 'v0.62.0', 'url': 'https://other.invalid'},
+                        {'action': 'install', 'tag': 'v0.62.0', 'force_source': 'false'},
+                        {'action': 'install', 'tag': 'v0.62.0', 'force_source': 1}]:
             handler = service.UpdateHandler.__new__(service.UpdateHandler)
             handler.connection = Mock(); handler.server = Mock()
             handler.rfile = io.BytesIO((json.dumps(message) + '\n').encode()); handler.wfile = io.BytesIO()

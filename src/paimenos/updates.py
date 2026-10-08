@@ -3,9 +3,9 @@ import json
 import re
 import socket
 
-# This is the existing repository, independent of the product name. Change it
-# and the links in assets/parent-web/updates.html after a GitHub repository rename.
-REPOSITORY = 'xJohnDoe993/LaurinOS'
+# Canonical repository and its previous name before the GitHub rename.
+REPOSITORY = 'xJohnDoe993/PaimenOS'
+REPOSITORY_ALIASES = {REPOSITORY, 'xJohnDoe993/LaurinOS'}
 REPOSITORY_URL = 'https://github.com/' + REPOSITORY
 SOCKET_PATH = '/run/paimenos-updates/control.sock'
 
@@ -27,10 +27,12 @@ def update_available(installed, offered):
     # Never replace a newer installed component with an older release.
     return bool(keys) and max(keys) <= candidate and min(keys) < candidate
 
-def update_request(action='status', tag=None):
+def update_request(action='status', tag=None, force_source=False):
     message = {'action': action}
     if tag is not None:
         message['tag'] = tag
+    if force_source:
+        message['force_source'] = True
     try:
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
             connection.settimeout(3)
