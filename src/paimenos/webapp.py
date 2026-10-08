@@ -20,6 +20,7 @@ user_pref("browser.tabs.warnOnClose", false);
 user_pref("browser.tabs.warnOnCloseOtherTabs", false);
 user_pref("browser.cache.disk.enable", true);
 user_pref("browser.cache.disk.smart_size.enabled", true);
+user_pref("browser.cache.disk.index.update_start_delay_ms", 0);
 user_pref("browser.cache.memory.enable", true);
 user_pref("privacy.sanitize.sanitizeOnShutdown", false);
 user_pref("browser.aboutwelcome.enabled", false);

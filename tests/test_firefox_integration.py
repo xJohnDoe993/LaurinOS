@@ -104,7 +104,8 @@ class FirefoxIntegrationTests(unittest.TestCase):
                             for path in Path(folder).rglob(f'cache-{attempt}.log*'):
                                 lines = path.read_text(errors='replace').splitlines()
                                 print('\n'.join(line for line in lines if any(word in line for word in
-                                      ('Validating', 'validating', 'expiration time', 'CheckCache', 'no-cache', 'load flags')))[-20000:], flush=True)
+                                      ('Validating', 'validating', 'expiration time', 'CheckCache', 'no-cache', 'load flags',
+                                       'CacheIndex::ChangeState', 'CacheIndex::Shutdown', 'rcwn', 'Racing')))[-20000:], flush=True)
                                 for index, line in enumerate(lines):
                                     if '/asset.js' in line:
                                         print('\n'.join(lines[max(0,index-3):index+12]), flush=True)
