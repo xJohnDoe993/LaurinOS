@@ -78,7 +78,7 @@ jobs:
       - name: Testabhängigkeiten installieren
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends python3-flask python3-pyqt5 python3-pyqt5.qtmultimedia libqt5multimedia5-plugins python3-xlib libegl1 libopengl0 xvfb xauth ffmpeg gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-gl
+          sudo apt-get install -y --no-install-recommends python3-flask python3-pyqt5 python3-pyqt5.qtmultimedia qttranslations5-l10n libqt5multimedia5-plugins python3-xlib libegl1 libopengl0 xvfb xauth ffmpeg gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-gl
 
       - name: Echte Videowiedergabe und X11-Eingaben prüfen
         env:
