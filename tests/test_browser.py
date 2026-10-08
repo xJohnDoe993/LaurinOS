@@ -15,6 +15,25 @@ from paimenos import browser, webapp
 
 
 class BrowserTests(unittest.TestCase):
+    def test_existing_profiles_disable_restore_suggestion_without_removing_session_data(self):
+        pref = 'browser.startup.couldRestoreSession.count'
+        for managed in (False, True):
+            with self.subTest(managed=managed), tempfile.TemporaryDirectory() as folder:
+                profile = Path(folder)
+                old = f'user_pref("{pref}", 1);\n'
+                if managed:
+                    old = webapp.BEGIN + '\n' + old + webapp.END + '\n'
+                (profile / 'user.js').write_text(old)
+                (profile / 'prefs.js').write_text(f'user_pref("{pref}", 1);\n')
+                (profile / 'sessionstore.jsonlz4').write_bytes(b'existing session')
+                webapp.prepare_profile(folder, str(profile / 'missing-template.js'))
+                config = (profile / 'user.js').read_text()
+                self.assertIn(f'user_pref("{pref}", -1);', config)
+                self.assertGreater(config.rfind(f'user_pref("{pref}", -1);'),
+                                   config.rfind(f'user_pref("{pref}", 1);'))
+                self.assertEqual((profile / 'sessionstore.jsonlz4').read_bytes(), b'existing session')
+                self.assertEqual((profile / 'prefs.js').read_text(), f'user_pref("{pref}", 1);\n')
+
     def test_profile_preserves_site_data_and_skips_unchanged_writes(self):
         with tempfile.TemporaryDirectory() as folder:
             profile = Path(folder)
