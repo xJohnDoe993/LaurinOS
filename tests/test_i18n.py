@@ -24,9 +24,12 @@ class LocaleTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=ROOT.parent)
         self.root = Path(self.temp.name)
-        self.locale = self.root / 'locale'
-        self.other = self.root / 'locale.conf'
-        self.paths = patch.object(i18n, 'LOCALE_FILES', (self.locale, self.other))
+        self.locale = self.root / 'locale.conf'
+        self.other = self.root / 'default-locale'
+        # Keep the production priority so a reversed order fails these tests.
+        replacements = {Path('/etc/locale.conf'): self.locale,
+                        Path('/etc/default/locale'): self.other}
+        self.paths = patch.object(i18n, 'LOCALE_FILES', tuple(replacements[path] for path in i18n.LOCALE_FILES))
         self.paths.start()
         self.environment = patch.dict(os.environ, {'LANG': 'C.UTF-8'}, clear=True)
         self.environment.start()
@@ -37,6 +40,12 @@ class LocaleTests(unittest.TestCase):
     def set_locale(self, content):
         self.locale.write_text(content)
         i18n.configured_locale.cache_clear()
+    def bash_language(self):
+        source = (ROOT / 'installer/language.sh').read_text().replace('/etc/locale.conf', str(self.locale)).replace('/etc/default/locale', str(self.other))
+        wrapper = self.root / 'language.sh'
+        wrapper.write_text('set -euo pipefail\nREPO_DIR=' + repr(str(ROOT)) + '\n' + source + '\nprintf "%s\\n" "$PAIMENOS_LANGUAGE"\npaimenos_text "Auswahl: "\n')
+        result = subprocess.run(['bash', str(wrapper)], env=dict(os.environ), capture_output=True, text=True, check=True)
+        return result.stdout.splitlines()
     def test_english_system_wins_over_c_locale_in_services_and_sudo(self):
         for value, region in [('en_US.UTF-8', 'en-US'), ('en_GB.UTF-8', 'en-GB'), ('en_AU.UTF-8', 'en-AU')]:
             self.set_locale('LANG="' + value + '"\n')
@@ -63,6 +72,22 @@ class LocaleTests(unittest.TestCase):
         with patch.dict(os.environ, {'LANG': 'en_US.UTF-8'}):
             self.assertEqual(i18n.language(), 'en')
         self.assertEqual(i18n.language(), 'de')
+    def test_installed_locale_wins_over_stale_live_image_locale(self):
+        for installed, legacy, language, region in (
+                ('LANG=en_GB.UTF-8\n', 'LANG=de_DE.UTF-8\n', 'en', 'en-GB'),
+                ('LANG=de_DE.UTF-8\n', 'LANG=en_US.UTF-8\nLC_ALL=en_US.UTF-8\n', 'de', 'de-DE')):
+            with self.subTest(installed=installed), patch.dict(os.environ, {'LC_ALL': 'C.UTF-8'}):
+                self.other.write_text(legacy)
+                self.set_locale(installed)
+                self.assertEqual(i18n.language(), language)
+                self.assertEqual(i18n.regional_locale(), region)
+                self.assertEqual(i18n.application_environment()['LC_MESSAGES'], installed.split('=', 1)[1].strip())
+                self.assertEqual(self.bash_language(), [language, 'Selection: ' if language == 'en' else 'Auswahl: '])
+    def test_empty_modern_locale_file_falls_back_to_debian_12_locale(self):
+        self.other.write_text('LANG=en_AU.UTF-8\n')
+        self.set_locale('# No message locale configured here\nLANG=""\n')
+        self.assertEqual(i18n.language(), 'en')
+        self.assertEqual(self.bash_language(), ['en', 'Selection: '])
     def test_locale_file_is_data_and_never_executed(self):
         marker = self.root / 'must-not-exist'
         self.set_locale('LANG="$(touch ' + str(marker) + ')"\n')
@@ -72,11 +97,7 @@ class LocaleTests(unittest.TestCase):
         for content in ('LANG=en_US.UTF-8\n', "LANG='en_GB.UTF-8' # comment\n", 'LANG=de_DE.UTF-8\n',
                         'LANG=de_DE.UTF-8\nLC_MESSAGES=en_AU.UTF-8\n', 'LANG=en_GB.UTF-8\nLC_ALL=de_DE.UTF-8\n'):
             self.set_locale(content)
-            source = (ROOT / 'installer/language.sh').read_text().replace('/etc/default/locale', str(self.locale)).replace('/etc/locale.conf', str(self.other))
-            wrapper = self.root / 'language.sh'
-            wrapper.write_text('set -euo pipefail\nREPO_DIR=' + repr(str(ROOT)) + '\n' + source + '\nprintf "%s\\n" "$PAIMENOS_LANGUAGE"\npaimenos_text "Auswahl: "\n')
-            result = subprocess.run(['bash', str(wrapper)], env=dict(os.environ), capture_output=True, text=True, check=True)
-            lines = result.stdout.splitlines()
+            lines = self.bash_language()
             self.assertEqual(lines[0], i18n.language())
             self.assertEqual(lines[1], 'Selection: ' if i18n.language() == 'en' else 'Auswahl: ')
     def test_shell_translation_subset_is_current(self):
