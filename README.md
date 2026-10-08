@@ -47,7 +47,7 @@ Anschließend selbst neu starten. Weitere Hinweise und Rückkehr zu einem bisher
 
 ## Code aktualisieren
 
-Im Eltern-Webbackend unter **Updates** neue stabile Versionen prüfen und installieren. Ein Hinweis erscheint auf allen angemeldeten Backend-Seiten, sobald ein neueres Release verfügbar ist. Quelle ist das [bestehende GitHub-Repo](https://github.com/xJohnDoe993/LaurinOS/releases). Sein Repository-Name wird separat geändert; [Hinweise zur Umbenennung](docs/updating.md#repository-auf-github-umbenennen).
+Im Eltern-Webbackend unter **Updates** neue stabile Versionen prüfen und installieren. Ein Hinweis erscheint auf allen angemeldeten Backend-Seiten, sobald ein neueres Release verfügbar ist. Quelle ist das [bestehende GitHub-Repo](https://github.com/xJohnDoe993/PaimenOS/releases). Der vorherige Repository-Name wird als Alias akzeptiert; [Hinweise zur Update-Quelle](docs/updating.md#repository-auf-github-umbenennen).
 
 ZIP und SHA-256 lassen sich automatisch auf GitHub erzeugen: **Actions → PaimenOS Release vorbereiten → Run workflow**. Der Workflow erstellt einen Release-Entwurf mit beiden Dateien. Anleitung: [Automatischer Release-Build](docs/updating.md#automatischer-release-build-auf-github).
 

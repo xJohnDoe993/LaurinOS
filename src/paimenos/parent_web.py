@@ -199,7 +199,11 @@ def updates_action():
         return jsonify(ok=False, error='Bitte anmelden.'), 401
     action = 'install' if request.path.endswith('/install') else 'check'
     try:
-        return jsonify(update_request(action, request.form.get('tag') if action == 'install' else None))
+        force_source = request.form.get('force_source', '')
+        if force_source not in ('', '1'):
+            raise UpdateError('Ungültige Quellenbestätigung.')
+        tag = request.form.get('tag') if action == 'install' else None
+        return jsonify(update_request(action, tag, force_source=True) if force_source else update_request(action, tag))
     except UpdateError as exc:
         return jsonify(ok=False, error=str(exc)), 409
 

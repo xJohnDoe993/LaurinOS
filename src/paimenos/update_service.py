@@ -88,7 +88,7 @@ class UpdateManager:
                 'release': release, 'update_available': available, 'checking': state.get('checking', False),
                 'last_checked': state.get('last_checked'), 'check_error': state.get('check_error'), 'job': state.get('job')}
 
-    def check(self, automatic=False):
+    def check(self, automatic=False, force_source=False):
         if not self.check_lock.acquire(blocking=False):
             return
         started = False
@@ -99,15 +99,15 @@ class UpdateManager:
                 if elapsed < interval or state.get('job', {}).get('status') in BUSY:
                     return
                 state.update(checking=True, last_attempt=time.time(), check_error=None)
-            threading.Thread(target=self._check, daemon=True).start()
+            threading.Thread(target=self._check, args=(force_source,), daemon=True).start()
             started = True
         finally:
             if not started:
                 self.check_lock.release()
 
-    def _check(self):
+    def _check(self, force_source=False):
         try:
-            release = release_source.release_metadata()
+            release = release_source.release_metadata(force_source=True) if force_source else release_source.release_metadata()
             with self.store.transaction() as state:
                 state.update(release=release, last_checked=time.time(), check_error=None)
         except Exception as exc:
@@ -120,7 +120,7 @@ class UpdateManager:
             finally:
                 self.check_lock.release()
 
-    def install(self, tag):
+    def install(self, tag, force_source=False):
         job_id = secrets.token_hex(12)
         with self.store.transaction() as state:
             if state.get('job', {}).get('status') in BUSY:
@@ -128,9 +128,12 @@ class UpdateManager:
             release = state.get('release')
             if not release or release['tag'] != tag or not update_available(installed_record(self.base), release['version']):
                 raise UpdateError('Dieses Release wird nicht mehr angeboten. Bitte erneut prüfen.')
+            if release.get('source_override') and not force_source:
+                raise UpdateError('Abweichende Release-Quelle vor der Installation ausdrücklich bestätigen.')
             if job_active():
                 raise UpdateError('Ein Update-Auftrag läuft bereits.')
             state['job'] = {'id': job_id, 'status': 'queued', 'tag': tag, 'release': release,
+                            'force_source': bool(release.get('source_override') and force_source),
                             'message': 'Update wird vorbereitet.', 'progress': 0, 'updated_at': time.time()}
         # The worker has its own cgroup, so restarting this daemon cannot kill it.
         subprocess.run(['systemctl', 'reset-failed', JOB_UNIT], check=False, capture_output=True)
@@ -187,7 +190,8 @@ def apply_job(store, job_id, base=BASE, cache=CACHE_DIR):
         with maintenance_locks():
             deploy = load_deployer(base)
             update_job(store, job_id, status='running', message='Release wird auf GitHub geprüft.', progress=5)
-            release = release_source.release_metadata(expected['tag'])
+            release = (release_source.release_metadata(expected['tag'], force_source=True)
+                       if job.get('force_source') is True else release_source.release_metadata(expected['tag']))
             if release['archive'] != expected['archive'] or release['checksum'] != expected['checksum']:
                 raise UpdateError('Die Release-Dateien wurden verändert. Bitte erneut nach Updates suchen.')
             if not update_available(installed_record(base), release['version']):
@@ -246,14 +250,17 @@ class UpdateHandler(socketserver.StreamRequestHandler):
             if len(line) > 4096 or not line.endswith(b'\n'):
                 raise UpdateError('Ungültige Update-Anfrage.')
             message = json.loads(line)
-            if not isinstance(message, dict) or set(message) - {'action', 'tag'}:
+            if not isinstance(message, dict) or set(message) - {'action', 'tag', 'force_source'}:
                 raise UpdateError('Ungültige Update-Anfrage.')
+            if 'force_source' in message and type(message['force_source']) is not bool:
+                raise UpdateError('Ungültige Quellenbestätigung.')
+            force_source = message.get('force_source', False)
             action = message.get('action')
             manager = self.server.manager
             if action == 'check':
-                manager.check()
+                manager.check(force_source=True) if force_source else manager.check()
             elif action == 'install':
-                manager.install(message.get('tag'))
+                manager.install(message.get('tag'), force_source=True) if force_source else manager.install(message.get('tag'))
             elif action != 'status':
                 raise UpdateError('Unbekannte Update-Aktion.')
             result = manager.status()

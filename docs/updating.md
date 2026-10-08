@@ -17,7 +17,7 @@ Rückkehr zu einem bisherigen Theme stehen unter
 
 ## GitHub als Update-Quelle
 
-Die Quelle ist weiterhin das [vorhandene GitHub-Repo](https://github.com/xJohnDoe993/LaurinOS/releases); sein Name wird unabhängig vom Produktnamen geändert. `paimenos-updates.service` prüft beim Start und alle sechs Stunden das neueste veröffentlichte stabile Release. Entwürfe und Pre-Releases werden nicht angeboten. Tags müssen `vMAJOR.MINOR.PATCH` heißen, zum Beispiel `v0.64.0`; `VERSION` und Manifest enthalten `0.64.0`. Die Prüfung vergleicht Versionsnummern numerisch und installiert nichts automatisch.
+Die Quelle ist das [PaimenOS-Repo](https://github.com/xJohnDoe993/PaimenOS/releases). Der frühere Name `xJohnDoe993/LaurinOS` wird bei Release-Dateien als Alias akzeptiert. `paimenos-updates.service` prüft beim Start und alle sechs Stunden das neueste veröffentlichte stabile Release. Entwürfe und Pre-Releases werden nicht angeboten. Tags müssen `vMAJOR.MINOR.PATCH` heißen, zum Beispiel `v0.64.0`; `VERSION` und Manifest enthalten `0.64.0`. Die Prüfung vergleicht Versionsnummern numerisch und installiert nichts automatisch.
 
 Angemeldete Eltern sehen einen Hinweis auf allen Backend-Seiten und können unter **Updates** manuell prüfen, Release-Notizen lesen und ein Update starten. Offline bleiben die letzte Prüfung und der Fehler sichtbar. Download und Aktivierung laufen als eigener Dienst `paimenos-update-job.service`. Der Auftrag überlebt einen Neustart des Webbackends; nach Stromausfall wird er als unterbrochen gemeldet und nicht automatisch fortgesetzt.
 
@@ -35,9 +35,9 @@ GitHubs automatisch erzeugte „Source code“-Archive ersetzen diese Assets nic
 Der Workflow `.github/workflows/release.yml` heißt **PaimenOS Release vorbereiten**. Er prüft Quellstand, Tests und echte Videowiedergabe unter X11, baut ZIP/SHA-256 und lädt beide in einen Release-Entwurf. Die Veröffentlichung erfolgt anschließend auf GitHub.
 
 1. Änderungen in `main` zusammenführen. `VERSION`, `src/paimenos/__init__.py` und `pyproject.toml` müssen dieselbe Version enthalten, für diese Umbenennung `0.64.0`. Manifest mit `python3 tools/build-manifest.py` erzeugen und committen.
-2. [Actions](https://github.com/xJohnDoe993/LaurinOS/actions) öffnen: **PaimenOS Release vorbereiten → Run workflow**, Branch `main`, Tag `v0.64.0`.
+2. [Actions](https://github.com/xJohnDoe993/PaimenOS/actions) öffnen: **PaimenOS Release vorbereiten → Run workflow**, Branch `main`, Tag `v0.64.0`.
 3. Erfolgreichen Lauf abwarten. Der Workflow installiert Flask, Qt Multimedia sowie X11-/Video-Testabhängigkeiten und erstellt den Release-Entwurf.
-4. Unter [Releases](https://github.com/xJohnDoe993/LaurinOS/releases) prüfen, dass `PaimenOS-0.64.0.zip` und `PaimenOS-0.64.0.zip.sha256` vollständig hochgeladen wurden. In den Release-Notizen ausdrücklich die nötige Neuinstallation für LaurinOS-Geräte nennen.
+4. Unter [Releases](https://github.com/xJohnDoe993/PaimenOS/releases) prüfen, dass `PaimenOS-0.64.0.zip` und `PaimenOS-0.64.0.zip.sha256` vollständig hochgeladen wurden. In den Release-Notizen ausdrücklich die nötige Neuinstallation für LaurinOS-Geräte nennen.
 5. Die Dateien auf einem Testgerät mit frischem Debian installieren und die [Geräteprüfung](device-validation.md) durchführen. Danach **Publish release**, ohne **Pre-release**, als neuestes stabiles Release veröffentlichen.
 6. Spätere PaimenOS-Releases mit höherer Version werden im Elternbackend unter **Updates** angeboten.
 
@@ -54,17 +54,21 @@ Es ist kein zusätzlicher Token nötig: Der Workflow verwendet `GITHUB_TOKEN` mi
 
 ## Repository auf GitHub umbenennen
 
-Der Produktname ist bereits PaimenOS. Das Repository heißt momentan weiterhin `xJohnDoe993/LaurinOS`. Der verfügbare GitHub-Connector kann den Repository-Namen nicht ändern.
+Das bestehende Repository heißt jetzt `xJohnDoe993/PaimenOS`. Der Updater verwendet diese Adresse und akzeptiert zusätzlich Release-Dateien unter dem früheren Namen `xJohnDoe993/LaurinOS`. Damit führt die Umbenennung nicht mehr zur Meldung „Release-Datei stammt nicht aus dem festgelegten PaimenOS-Repo“.
 
-1. Auf GitHub im Repository **Settings → General → Repository name** den Namen auf `PaimenOS` ändern und **Rename** wählen.
-2. Danach `REPOSITORY` in `src/paimenos/updates.py` auf `xJohnDoe993/PaimenOS` setzen und die Repository-Links in `assets/parent-web/updates.html`, `README.md` und dieser Anleitung anpassen. Diese Änderung vor dem ersten stabilen PaimenOS-Release übernehmen, damit dessen Update-Quelle bereits die neue Adresse verwendet. Die Asset-Prüfung erwartet die genaue Adresse der konfigurierten Quelle.
-3. Beim eigenen Git-Checkout das Remote aktualisieren:
+Bei einem eigenen Git-Checkout das Remote aktualisieren:
 
-   ```bash
-   git remote set-url origin https://github.com/xJohnDoe993/PaimenOS.git
-   ```
+```bash
+git remote set-url origin https://github.com/xJohnDoe993/PaimenOS.git
+```
 
-Bis die tatsächliche Repository-Umbenennung erfolgt ist, bleiben die vorhandenen Links und die bisherige Quelle gültig. Es wird kein neues leeres Repository benötigt.
+### Abweichende Release-Quelle ausdrücklich zulassen
+
+Unter **Updates** vor **Nach Updates suchen** die Option **Abweichende Release-Quelle zulassen** auswählen. Sie erlaubt eine abweichende GitHub-Repository-Adresse für die ZIP-/SHA-Dateien, die die festgelegte Release-API anbietet. Die tatsächliche Quelle wird angezeigt und vor der Installation nochmals bestätigt. Es gibt keine freie URL-Eingabe und keine dauerhafte Abschaltung der Quellenprüfung; automatische Prüfungen verwenden den Standard. Die Zustimmung wird nur im jeweiligen Installationsauftrag gespeichert, damit auch dessen separater Worker die Quelle erneut prüfen kann.
+
+ZIP und Prüfsumme müssen aus demselben GitHub-Repository und zum selben Tag gehören. HTTPS, erlaubte Download-Hosts, Dateigrößen, SHA-256, Archivstruktur, Versionsprüfung und die Sperre gegen ältere Versionen bleiben aktiv. Die Option erzwingt keine Installation beschädigter Archive und kein Downgrade.
+
+Auf Geräten mit dem bisherigen Updater muss diese Codeänderung zuerst über das vorhandene lokale Deployment eingespielt werden; eine neue Option kann nicht rückwirkend im alten Backend erscheinen. Dafür ist keine Neuinstallation nötig: siehe **Auf dem Gerät aktualisieren** unten.
 
 ## Prüfung und Vertrauensmodell
 
