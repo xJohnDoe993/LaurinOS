@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Menü-Knopf im freigehaltenen Bereich der Firefox-Leiste."""
+from paimenos.i18n import t, setup_qt
 import os
 import signal
 import sys
@@ -25,10 +26,10 @@ class CloseButtonOverlay(QWidget):
                             Qt.X11BypassWindowManagerHint | Qt.WindowDoesNotAcceptFocus)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
-        self.button = QPushButton('⌂ Zum Menü', self)
+        self.button = QPushButton(t('⌂ Zum Menü'), self)
         self.button.setFocusPolicy(Qt.NoFocus)
-        self.button.setAccessibleName('Webapp schließen und zum Kinder-Menü zurückkehren')
-        self.button.setToolTip('Zurück zu deinen Apps und Spielen')
+        self.button.setAccessibleName(t('Webapp schließen und zum Kinder-Menü zurückkehren'))
+        self.button.setToolTip(t('Zurück zu deinen Apps und Spielen'))
         self.button.setStyleSheet('''QPushButton {
             background:#ffb347;color:#172234;font-family:"DejaVu Sans";
             font-size:18px;font-weight:bold;border-radius:10px;
@@ -61,7 +62,7 @@ class CloseButtonOverlay(QWidget):
             pass
         except OSError as exc:
             self.button.setEnabled(True)
-            self.button.setToolTip('Schließen fehlgeschlagen: ' + str(exc))
+            self.button.setToolTip(t('Schließen fehlgeschlagen: ') + str(exc))
             return
         QApplication.quit()
 
@@ -107,17 +108,18 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == '--browser':
         from paimenos.browser import run_browser
         if len(sys.argv) != 5:
-            raise SystemExit('Aufruf: close_overlay --browser PROFIL VORLAGE URL')
+            raise SystemExit(t('Aufruf: close_overlay --browser PROFIL VORLAGE URL'))
         try:
             raise SystemExit(run_browser(*sys.argv[2:]))
         except OSError as exc:
-            print('Webapp konnte nicht gestartet werden: ' + str(exc), file=sys.stderr, flush=True)
+            print(t('Webapp konnte nicht gestartet werden: ') + str(exc), file=sys.stderr, flush=True)
             raise SystemExit(1)
     app = QApplication(sys.argv)
+    setup_qt(app)
     if len(sys.argv) > 1:
         pid = int(sys.argv[1])
         if pid <= 1:
-            raise ValueError('Ungültiger Webapp-Prozess.')
+            raise ValueError(t('Ungültiger Webapp-Prozess.'))
         overlay = CloseButtonOverlay(pid, int(sys.argv[2]) if len(sys.argv) > 2 else None)
         overlay.update_overlay()
         sys.exit(app.exec_())

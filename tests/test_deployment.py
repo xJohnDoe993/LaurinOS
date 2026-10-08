@@ -60,6 +60,28 @@ class DeploymentTests(unittest.TestCase):
         self.assertIn('Controller fix', (release / 'app/paimenos/controller.py').read_text())
         self.assertEqual(data.read_text(), '{"pin":"6789","bonus_minutes":9}')
         self.assertEqual((self.base / 'previous').resolve(), old)
+    def test_english_runtime_requires_full_update_from_api_two(self):
+        old = self.initial()
+        legacy = old.with_name('0.64.1-runtime-api2')
+        old.rename(legacy)
+        (self.base / 'current').unlink()
+        (self.base / 'current').symlink_to(legacy)
+        old = legacy
+        record = json.loads((old / 'installed.json').read_text())
+        record['runtime_api'] = 2
+        (old / 'installed.json').write_text(json.dumps(record))
+        (old / 'app/paimenos/i18n.py').unlink()
+        shutil.rmtree(old / 'assets/i18n')
+        with self.assertRaisesRegex(ValueError, 'Paket-API'):
+            deploy.stage_release(self.source, self.base, ['desktop'])
+        self.assertEqual((self.base / 'current').resolve(), old)
+        release, _ = deploy.stage_release(self.source, self.base)
+        deploy.activate(self.base, release, live=False)
+        script = ('import sys,os; sys.path.insert(0,sys.argv[1]); '
+                  'os.environ["PAIMENOS_LANGUAGE"]="en"; '
+                  'from paimenos.i18n import t; assert t("Ausschalten")=="Shut down"')
+        subprocess.run([sys.executable, '-I', '-c', script, str(release / 'app')], check=True)
+        self.assertEqual((self.base / 'previous').resolve(), old)
     def test_invalid_python_does_not_switch_current(self):
         old = self.initial()
         (self.source / 'src/paimenos/controller.py').write_text('def broken(:\n')

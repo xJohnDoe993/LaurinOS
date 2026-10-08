@@ -1,5 +1,7 @@
 # PaimenOS
 
+[English](README.en.md) · [Deutsch/Englisch und Standard-Webapps](docs/localization.md)
+
 <img src="assets/branding/paimenos-logo.png" alt="PaimenOS" width="240">
 
 PaimenOS macht einen Debian-Laptop zum Kinder-PC mit Kachelmenü, lokalen und webbasierten Eltern-Einstellungen, Bildschirmzeit, Kamera-/USB-Medien, Controller-Steuerung und auswählbaren Emulatoren.

@@ -5,7 +5,7 @@ import json
 
 ROOT = Path(__file__).resolve().parents[1]
 groups = {
-    'shared': ['__init__', 'paths', 'state', 'diagnostics', 'images', 'media_files', 'categories', 'fullscreen', 'webapp', 'osd_state'],
+    'shared': ['__init__', 'i18n', 'paths', 'state', 'diagnostics', 'images', 'media_files', 'categories', 'fullscreen', 'webapp', 'osd_state'],
     'desktop': ['menu', 'video', 'parent_ui', 'status_overlay', 'close_overlay', 'browser', 'lockscreen', 'timer', 'media'],
     'controller': ['controller', 'controller_profiles', 'input_devices'],
     'network': ['wifi', 'bluetooth', 'wifi_ui', 'bluetooth_ui', 'network_status'],
@@ -16,7 +16,7 @@ groups = {
     'tools': [], 'services': [],
 }
 components = {key: {'files': ['src/paimenos/' + name + '.py' for name in names]} for key, names in groups.items()}
-components['shared']['files'] += ['run.py', 'assets/webapp.css']
+components['shared']['files'] += ['run.py', 'assets/webapp.css', 'assets/i18n/en.json']
 components['shared']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'assets/branding').glob('*.png'))
 components['backend']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'assets/parent-web').glob('*.html'))
 components['emulators']['files'] += ['data/emulator-catalog.json']
@@ -25,6 +25,6 @@ components['tools']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT /
 components['tools']['files'].append('data/update-packages.json')
 components['tools']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'assets/plymouth/paimenos').glob('*') if p.is_file())
 components['services']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'systemd').rglob('*') if p.is_file())
-manifest = {'schema': 1, 'runtime_api': 2, 'version': (ROOT / 'VERSION').read_text().strip(), 'components': components}
+manifest = {'schema': 1, 'runtime_api': 3, 'version': (ROOT / 'VERSION').read_text().strip(), 'components': components}
 (ROOT / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')
 print('manifest.json aktualisiert.')

@@ -1,4 +1,5 @@
 """WLAN für beide Elternbereiche; NetworkManager-Zugriff im lokalen Dienst."""
+from paimenos.i18n import t
 import concurrent.futures
 import grp
 import json
@@ -37,49 +38,49 @@ def friendly_error(error):
         return str(error)
     name = getattr(error, 'get_dbus_name', lambda: '')().rsplit('.', 1)[-1]
     return {
-        'ServiceUnknown': 'Der Netzwerkdienst ist nicht verfügbar.',
-        'NameHasNoOwner': 'Der Netzwerkdienst ist nicht verfügbar.',
-        'NoReply': 'Der Netzwerkdienst antwortet nicht. Bitte erneut versuchen.',
+        'ServiceUnknown': t('Der Netzwerkdienst ist nicht verfügbar.'),
+        'NameHasNoOwner': t('Der Netzwerkdienst ist nicht verfügbar.'),
+        'NoReply': t('Der Netzwerkdienst antwortet nicht. Bitte erneut versuchen.'),
         'NotAllowed': 'NetworkManager hat diesen WLAN-Vorgang abgelehnt.',
-        'PermissionDenied': 'WLAN-Berechtigung fehlt. Bitte PaimenOS-Setup aktualisieren.',
-        'UnknownConnection': 'Das gespeicherte Netzwerk ist nicht mehr vorhanden.',
-        'InvalidConnection': 'Diese Verbindung benötigt erweiterte Einstellungen am Laptop.',
-        'ConnectionNotAvailable': 'Netzwerk momentan nicht erreichbar. Bitte erneut suchen.',
-        'UnknownObject': 'Gerät oder Netzwerk nicht mehr vorhanden. Bitte erneut suchen.',
-    }.get(name, 'WLAN-Vorgang fehlgeschlagen. Netzwerk, Passwort und Hardware-Schalter prüfen.')
+        'PermissionDenied': t('WLAN-Berechtigung fehlt. Bitte PaimenOS-Setup aktualisieren.'),
+        'UnknownConnection': t('Das gespeicherte Netzwerk ist nicht mehr vorhanden.'),
+        'InvalidConnection': t('Diese Verbindung benötigt erweiterte Einstellungen am Laptop.'),
+        'ConnectionNotAvailable': t('Netzwerk momentan nicht erreichbar. Bitte erneut suchen.'),
+        'UnknownObject': t('Gerät oder Netzwerk nicht mehr vorhanden. Bitte erneut suchen.'),
+    }.get(name, t('WLAN-Vorgang fehlgeschlagen. Netzwerk, Passwort und Hardware-Schalter prüfen.'))
 
 
 def adapter_problem(adapter):
     if not adapter['managed']:
-        message = 'Dieser Adapter wird nicht vom Netzwerkdienst verwaltet.'
+        message = t('Dieser Adapter wird nicht vom Netzwerkdienst verwaltet.')
     elif adapter['firmware_missing']:
-        message = 'Die WLAN-Firmware fehlt.'
+        message = t('Die WLAN-Firmware fehlt.')
     elif adapter['plugin_missing']:
-        message = 'Das WLAN-Modul von NetworkManager fehlt.'
+        message = t('Das WLAN-Modul von NetworkManager fehlt.')
     elif 40 <= adapter['state'] <= 90:
-        message = 'NetworkManager baut eine Verbindung auf. Die Suche ist währenddessen gesperrt.'
+        message = t('NetworkManager baut eine Verbindung auf. Die Suche ist währenddessen gesperrt.')
     elif adapter['state'] == 110:
-        message = 'Die WLAN-Verbindung wird gerade getrennt.'
+        message = t('Die WLAN-Verbindung wird gerade getrennt.')
     elif adapter['state'] not in (30, 100):
         message = {
-            2: 'NetworkManager hat den Adapter übernommen; WLAN ist noch nicht betriebsbereit.',
-            7: 'Für die WLAN-Anmeldung fehlen Zugangsdaten.',
-            8: 'Der WLAN-Anmeldedienst (Supplicant) wurde getrennt.',
-            9: 'Die WLAN-Anmeldung konnte nicht konfiguriert werden.',
-            10: 'Der WLAN-Anmeldedienst (Supplicant) ist fehlgeschlagen.',
-            11: 'Die WLAN-Anmeldung hat zu lange gedauert.',
-            35: 'Die WLAN-Firmware fehlt.',
-            42: 'Der WLAN-Anmeldedienst wird bereitgestellt.',
-        }.get(adapter['reason'], 'Der WLAN-Adapter ist noch nicht betriebsbereit. Netzwerkdienst und WLAN-Anmeldedienst prüfen.')
+            2: t('NetworkManager hat den Adapter übernommen; WLAN ist noch nicht betriebsbereit.'),
+            7: t('Für die WLAN-Anmeldung fehlen Zugangsdaten.'),
+            8: t('Der WLAN-Anmeldedienst (Supplicant) wurde getrennt.'),
+            9: t('Die WLAN-Anmeldung konnte nicht konfiguriert werden.'),
+            10: t('Der WLAN-Anmeldedienst (Supplicant) ist fehlgeschlagen.'),
+            11: t('Die WLAN-Anmeldung hat zu lange gedauert.'),
+            35: t('Die WLAN-Firmware fehlt.'),
+            42: t('Der WLAN-Anmeldedienst wird bereitgestellt.'),
+        }.get(adapter['reason'], t('Der WLAN-Adapter ist noch nicht betriebsbereit. Netzwerkdienst und WLAN-Anmeldedienst prüfen.'))
     else:
         return ''
-    return message + f' (Zustand {adapter["state"]}, Grund {adapter["reason"]})'
+    return message + t(' (Zustand {value0}, Grund {value1})', value0=adapter['state'], value1=adapter['reason'])
 
 
 def wifi_request(action='status', **values):
     payload = json.dumps(dict(values, action=action), ensure_ascii=False).encode() + b'\n'
     if len(payload) > 4096:
-        raise WifiError('WLAN-Anfrage ist zu groß.')
+        raise WifiError(t('WLAN-Anfrage ist zu groß.'))
     try:
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
             connection.settimeout(20)
@@ -88,16 +89,16 @@ def wifi_request(action='status', **values):
             with connection.makefile('rb') as stream:
                 raw = stream.readline(MAX_MESSAGE + 1)
         if not raw.endswith(b'\n') or len(raw) > MAX_MESSAGE:
-            raise ValueError('Antwort')
+            raise ValueError(t('Antwort'))
         result = json.loads(raw)
         if not isinstance(result, dict):
-            raise ValueError('Antwort')
+            raise ValueError(t('Antwort'))
     except (OSError, ValueError) as exc:
-        raise WifiError('WLAN-Verwaltung nicht erreichbar. Bitte das aktualisierte Setup installieren.', True) from exc
+        raise WifiError(t('WLAN-Verwaltung nicht erreichbar. Bitte das aktualisierte Setup installieren.'), True) from exc
     if not result.get('ok'):
-        raise WifiError(result.get('error', 'WLAN-Vorgang fehlgeschlagen.'))
+        raise WifiError(result.get('error', t('WLAN-Vorgang fehlgeschlagen.')))
     if not isinstance(result.get('state'), dict):
-        raise WifiError('Ungültige Antwort der WLAN-Verwaltung.', True)
+        raise WifiError(t('Ungültige Antwort der WLAN-Verwaltung.'), True)
     return result['state']
 
 
@@ -112,12 +113,12 @@ def security(props):
     if flags & 0x400:
         return 'sae', 'WPA3'
     if flags & (0x200 | 0x2000):
-        return 'enterprise', 'Schul- / Firmennetz'
+        return 'enterprise', t('Schul- / Firmennetz')
     if flags & (0x800 | 0x1000):
-        return 'owe', 'Verschlüsselt ohne Passwort'
+        return 'owe', t('Verschlüsselt ohne Passwort')
     if int(props.get('Flags', 0)) & 1:
-        return 'wep', 'WEP · erweiterte Einstellungen'
-    return 'open', 'Offen · ohne Verschlüsselung'
+        return 'wep', t('WEP · erweiterte Einstellungen')
+    return 'open', t('Offen · ohne Verschlüsselung')
 
 
 def profile_security(settings):
@@ -134,15 +135,15 @@ def compatible(key, other):
 
 def validate_password(password, key):
     if not isinstance(password, str) or '\x00' in password:
-        raise ValueError('Ungültiges WLAN-Passwort.')
+        raise ValueError(t('Ungültiges WLAN-Passwort.'))
     if key == 'wpa-psk':
         if not (8 <= len(password) <= 63 or re.fullmatch(r'[0-9a-fA-F]{64}', password)):
-            raise ValueError('WPA2-Passwort: 8 bis 63 Zeichen oder 64 Hexadezimalzeichen eingeben.')
+            raise ValueError(t('WPA2-Passwort: 8 bis 63 Zeichen oder 64 Hexadezimalzeichen eingeben.'))
     elif key == 'sae':
         if not 1 <= len(password.encode('utf-8')) <= 63:
-            raise ValueError('WPA3-Passwort: 1 bis 63 Bytes eingeben.')
+            raise ValueError(t('WPA3-Passwort: 1 bis 63 Bytes eingeben.'))
     elif key not in ('open', 'owe'):
-        raise ValueError('Dieses Netzwerk benötigt die erweiterten Einstellungen am Laptop.')
+        raise ValueError(t('Dieses Netzwerk benötigt die erweiterten Einstellungen am Laptop.'))
 
 
 class WifiController:
@@ -179,7 +180,7 @@ class WifiController:
                 except Exception:
                     pass  # Hotplug / Verbindungswechsel zwischen den beiden Abfragen.
             connected = int(props.get('State', 0)) == 100
-            adapter = dict(path=str(device), name=str(props.get('Interface', 'WLAN')),
+            adapter = dict(path=str(device), name=str(props.get('Interface', t('WLAN'))),
                            managed=bool(props.get('Managed', True)), state=int(props.get('State', 0)),
                            reason=int(props.get('StateReason', (0, 0))[1]), active=active,
                            profile=active_profile, connected=connected, last_scan=int(wireless.get('LastScan', -1)),
@@ -238,11 +239,11 @@ class WifiController:
             adapter = next((a for a in state['adapters'] if a['path'] == self.scan['adapter']), None)
             if adapter and adapter['last_scan'] > self.scan['last_scan']:
                 self.scan = None
-                self.message = 'Netzwerkliste aktualisiert.'
+                self.message = t('Netzwerkliste aktualisiert.')
             elif not adapter or not adapter['ready'] or now >= self.scan['deadline']:
                 self.scan = None
                 self.message = ''
-                self.error = adapter['problem'] if adapter and adapter['problem'] else 'Die WLAN-Suche wurde nicht abgeschlossen. Die angezeigte Liste kann veraltet sein.'
+                self.error = adapter['problem'] if adapter and adapter['problem'] else t('Die WLAN-Suche wurde nicht abgeschlossen. Die angezeigte Liste kann veraltet sein.')
         if not self.operation:
             return
         op = self.operation
@@ -256,12 +257,12 @@ class WifiController:
                 try:
                     self.driver.save(op['created'])
                 except Exception:
-                    self.error = 'Verbunden, aber Netzwerk konnte nicht dauerhaft gespeichert werden.'
-            self.message = 'Mit „' + op['name'] + '“ verbunden.'
+                    self.error = t('Verbunden, aber Netzwerk konnte nicht dauerhaft gespeichert werden.')
+            self.message = t('Mit „') + op['name'] + t('“ verbunden.')
             self.operation = None
         elif active_state == 4 or not adapter or adapter['state'] == 120 or now >= op['deadline']:
             reason = adapter['reason'] if adapter else 36
-            self.error = 'Keine Verbindung. Passwort prüfen; bei geändertem Passwort das gespeicherte Netzwerk vergessen und erneut verbinden.' if reason in (7, 8, 9, 10, 11) else 'Verbindung fehlgeschlagen. Netzwerk, Passwort und Signalstärke prüfen.'
+            self.error = t('Keine Verbindung. Passwort prüfen; bei geändertem Passwort das gespeicherte Netzwerk vergessen und erneut verbinden.') if reason in (7, 8, 9, 10, 11) else t('Verbindung fehlgeschlagen. Netzwerk, Passwort und Signalstärke prüfen.')
             self.cleanup_operation()
 
     def cleanup_operation(self):
@@ -276,7 +277,7 @@ class WifiController:
             try:
                 self.driver.delete(op['created'])
             except Exception:
-                self.error = 'Temporäres Netzwerk konnte nicht entfernt werden. Bitte unter gespeicherten Netzwerken vergessen.'
+                self.error = t('Temporäres Netzwerk konnte nicht entfernt werden. Bitte unter gespeicherten Netzwerken vergessen.')
 
     def snapshot(self):
         try:
@@ -291,52 +292,52 @@ class WifiController:
 
     def handle(self, data):
         if not isinstance(data, dict) or not isinstance(data.get('action'), str):
-            raise ValueError('Ungültige WLAN-Anfrage.')
+            raise ValueError(t('Ungültige WLAN-Anfrage.'))
         action = data['action']
         if action == 'status':
             return self.snapshot()
         allowed = {'power_on', 'power_off', 'scan', 'connect', 'hidden', 'disconnect', 'forget', 'autoconnect', 'cancel'}
         if action not in allowed:
-            raise ValueError('Unbekannte WLAN-Aktion.')
+            raise ValueError(t('Unbekannte WLAN-Aktion.'))
         state = self.snapshot()
         if not state['available']:
-            raise WifiError('Der Netzwerkdienst ist nicht verfügbar.', True)
+            raise WifiError(t('Der Netzwerkdienst ist nicht verfügbar.'), True)
         if action == 'cancel':
-            self.cleanup_operation(); self.message = 'Verbindungsaufbau abgebrochen.'; self.error = ''
+            self.cleanup_operation(); self.message = t('Verbindungsaufbau abgebrochen.'); self.error = ''
             return self.snapshot()
         if self.operation:
-            raise ValueError('Es wird gerade eine Verbindung aufgebaut. Bitte warten oder abbrechen.')
+            raise ValueError(t('Es wird gerade eine Verbindung aufgebaut. Bitte warten oder abbrechen.'))
         self.message, self.error = '', ''
         if action in ('power_on', 'power_off'):
             self.driver.power(action == 'power_on')
             self.scan = None
-            self.message = 'WLAN eingeschaltet.' if action == 'power_on' else 'WLAN ausgeschaltet.'
+            self.message = t('WLAN eingeschaltet.') if action == 'power_on' else t('WLAN ausgeschaltet.')
             return self.snapshot()
         if action in ('forget', 'autoconnect'):
             profile = next((p for p in state['saved'] if p['path'] == data.get('profile')), None)
             if not profile:
-                raise ValueError('Gespeichertes WLAN nicht mehr vorhanden.')
+                raise ValueError(t('Gespeichertes WLAN nicht mehr vorhanden.'))
             if action == 'forget':
                 if profile['connected']:
-                    raise ValueError('Bitte dieses Netzwerk zuerst trennen, dann vergessen.')
-                self.driver.delete(profile['path']); self.message = 'Netzwerk vergessen.'
+                    raise ValueError(t('Bitte dieses Netzwerk zuerst trennen, dann vergessen.'))
+                self.driver.delete(profile['path']); self.message = t('Netzwerk vergessen.')
             else:
                 enabled = data.get('enabled')
                 if enabled not in ('0', '1'):
-                    raise ValueError('Ungültige Einstellung.')
+                    raise ValueError(t('Ungültige Einstellung.'))
                 self.driver.autoconnect(profile['path'], enabled == '1')
-                self.message = 'Automatische Verbindung gespeichert.'
+                self.message = t('Automatische Verbindung gespeichert.')
             return self.snapshot()
         adapter = next((a for a in state['adapters'] if a['path'] == data.get('adapter')), None)
         if not adapter or not adapter['managed']:
-            raise ValueError('Kein verwalteter WLAN-Adapter ausgewählt.')
+            raise ValueError(t('Kein verwalteter WLAN-Adapter ausgewählt.'))
         device = adapter['path']
         if action == 'disconnect':
             # Device.Disconnect verhindert sofortiges automatisches Wiederverbinden.
-            self.driver.disconnect(device); self.message = 'WLAN-Verbindung getrennt.'
+            self.driver.disconnect(device); self.message = t('WLAN-Verbindung getrennt.')
             return self.snapshot()
         if not state['powered'] or not state['hardware']:
-            raise ValueError('WLAN ist ausgeschaltet oder durch Flugmodus / Hardware-Schalter blockiert.')
+            raise ValueError(t('WLAN ist ausgeschaltet oder durch Flugmodus / Hardware-Schalter blockiert.'))
         if not adapter['ready']:
             raise ValueError(adapter['problem'])
         if action == 'scan':
@@ -352,16 +353,16 @@ class WifiController:
                 text = str(exc).lower()
                 if 'already scanning' in text:
                     self.scan = dict(adapter=device, last_scan=adapter['last_scan'], deadline=self.clock()+20)
-                    self.message = 'NetworkManager sucht bereits. Die laufende Suche wird übernommen.'
+                    self.message = t('NetworkManager sucht bereits. Die laufende Suche wird übernommen.')
                     return self.snapshot()
                 if 'immediately following previous scan' in text:
-                    self.message = 'NetworkManager hat gerade gesucht. Die vorhandene Netzwerkliste wird angezeigt. Eine neue Suche ist nach einigen Sekunden möglich.'
+                    self.message = t('NetworkManager hat gerade gesucht. Die vorhandene Netzwerkliste wird angezeigt. Eine neue Suche ist nach einigen Sekunden möglich.')
                     return self.snapshot()
                 current = next((a for a in self.read()['adapters'] if a['path'] == device), adapter)
-                reason = current['problem'] or f'NetworkManager lehnt die Suche ab (Zustand {current["state"]}, Grund {current["reason"]}). Bitte die WLAN-Diagnose prüfen.'
+                reason = current['problem'] or t('NetworkManager lehnt die Suche ab (Zustand {value0}, Grund {value1}). Bitte die WLAN-Diagnose prüfen.', value0=current['state'], value1=current['reason'])
                 raise WifiError(reason) from exc
             self.scan = dict(adapter=device, last_scan=adapter['last_scan'], deadline=self.clock()+20)
-            self.message = 'Netzwerke werden gesucht …'
+            self.message = t('Netzwerke werden gesucht …')
             return self.snapshot()
         profile = None
         network = None
@@ -369,11 +370,11 @@ class WifiController:
             if data.get('profile'):
                 profile = next((p for p in state['saved'] if p['path'] == data['profile'] and device in p['available']), None)
                 if not profile:
-                    raise ValueError('Gespeichertes Netzwerk hier nicht erreichbar. Bitte erneut suchen.')
+                    raise ValueError(t('Gespeichertes Netzwerk hier nicht erreichbar. Bitte erneut suchen.'))
             else:
                 network = next((n for n in state['networks'] if n['path'] == data.get('network') and n['adapter'] == device), None)
                 if not network:
-                    raise ValueError('Netzwerk nicht mehr gefunden. Bitte erneut suchen.')
+                    raise ValueError(t('Netzwerk nicht mehr gefunden. Bitte erneut suchen.'))
                 if network['profile']:
                     profile = next(p for p in state['saved'] if p['path'] == network['profile'])
         if profile:
@@ -383,12 +384,12 @@ class WifiController:
             if action == 'hidden':
                 name = data.get('ssid', '')
                 if not isinstance(name, str) or not 1 <= len(name.encode('utf-8')) <= 32 or '\x00' in name:
-                    raise ValueError('Netzwerkname muss 1 bis 32 Bytes lang sein.')
+                    raise ValueError(t('Netzwerkname muss 1 bis 32 Bytes lang sein.'))
                 raw, key, access_point = name.encode('utf-8'), data.get('security'), '/'
                 if key not in ('open', 'wpa-psk', 'sae'):
-                    raise ValueError('Ungültige WLAN-Sicherheit.')
+                    raise ValueError(t('Ungültige WLAN-Sicherheit.'))
                 if any(p['ssid'] == raw.hex() and compatible(key, p['key']) for p in state['saved']):
-                    raise ValueError('Dieses WLAN ist bereits gespeichert. Dort verbinden oder zuerst vergessen.')
+                    raise ValueError(t('Dieses WLAN ist bereits gespeichert. Dort verbinden oder zuerst vergessen.'))
             else:
                 raw, key, access_point = bytes.fromhex(network['ssid']), network['key'], network['path']
                 name = network['name']
@@ -404,7 +405,7 @@ class WifiController:
             created, active = self.driver.add_activate(settings, device, access_point)
         self.operation = dict(adapter=device, name=name, active=str(active), created=str(created), deadline=self.clock()+65)
         self.scan = None
-        self.message = 'Verbindung zu „' + name + '“ wird aufgebaut …'
+        self.message = t('Verbindung zu „') + name + t('“ wird aufgebaut …')
         return self.snapshot()
 
 
@@ -485,7 +486,7 @@ def run_daemon():
             return future.result(timeout=18)
         except concurrent.futures.TimeoutError:
             future.cancel()
-            return dict(ok=False, error='WLAN-Dienst beschäftigt. Bitte erneut versuchen.')
+            return dict(ok=False, error=t('WLAN-Dienst beschäftigt. Bitte erneut versuchen.'))
 
     kids_uid = __import__('pwd').getpwnam('kids').pw_uid
     slots = threading.BoundedSemaphore(8)

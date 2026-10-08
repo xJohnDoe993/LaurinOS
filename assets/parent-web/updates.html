@@ -1,50 +1,50 @@
-<div class="pagehead"><div class="eyebrow">PaimenOS aktuell halten</div><h1>Updates</h1><p class="muted">Neue stabile Versionen aus dem PaimenOS-Repo auf GitHub. Die Versionsprüfung läuft automatisch alle sechs Stunden.</p></div>
+<div class="pagehead"><div class="eyebrow">{{ t('PaimenOS aktuell halten') }}</div><h1>Updates</h1><p class="muted">{{ t('Neue stabile Versionen aus dem PaimenOS-Repo auf GitHub. Die Versionsprüfung läuft automatisch alle sechs Stunden.') }}</p></div>
 <div id="update-error" class="flash error" role="alert" hidden></div>
 <section class="panel">
-  <div class="row"><h2>Code-Version</h2><span id="update-label" class="badge on">Status wird geladen …</span></div>
-  <p>Installiert: <strong id="current-version">…</strong><span id="mixed-versions" class="hint"></span></p>
+  <div class="row"><h2>{{ t('Code-Version') }}</h2><span id="update-label" class="badge on">{{ t('Status wird geladen …') }}</span></div>
+  <p>{{ t('Installiert:') }} <strong id="current-version">…</strong><span id="mixed-versions" class="hint"></span></p>
   <p id="latest-version" class="muted"></p><p id="last-checked" class="hint"></p>
-  <div class="actions"><button id="check-update" class="secondary" disabled>Nach Updates suchen</button><button id="install-update" disabled hidden>Update installieren</button><a class="btn secondary" href="https://github.com/xJohnDoe993/PaimenOS/releases" target="_blank" rel="noopener noreferrer">GitHub-Releases</a></div>
-  <p><label><input type="checkbox" id="force-source"> Abweichende Release-Quelle zulassen</label></p>
-  <p class="hint">Gilt für diese Prüfung und Installation. ZIP und Prüfsumme müssen aus demselben GitHub-Repository stammen; alle Datei- und Versionsprüfungen bleiben aktiv.</p>
+  <div class="actions"><button id="check-update" class="secondary" disabled>{{ t('Nach Updates suchen') }}</button><button id="install-update" disabled hidden>{{ t('Update installieren') }}</button><a class="btn secondary" href="https://github.com/xJohnDoe993/PaimenOS/releases" target="_blank" rel="noopener noreferrer">{{ t('GitHub-Releases') }}</a></div>
+  <p><label><input type="checkbox" id="force-source"> {{ t('Abweichende Release-Quelle zulassen') }}</label></p>
+  <p class="hint">{{ t('Gilt für diese Prüfung und Installation. ZIP und Prüfsumme müssen aus demselben GitHub-Repository stammen; alle Datei- und Versionsprüfungen bleiben aktiv.') }}</p>
   <p id="source-repository" class="hint"></p>
-  <p class="hint">Manuelle Prüfungen sind höchstens einmal pro Minute möglich.</p>
+  <p class="hint">{{ t('Manuelle Prüfungen sind höchstens einmal pro Minute möglich.') }}</p>
 </section>
-<section id="update-progress" class="panel" aria-live="polite" hidden><h2>Update-Auftrag</h2><p id="job-message"></p><div class="bar" role="progressbar" aria-label="Update-Fortschritt" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="job-bar" style="width:0%"></i></div><p id="job-version" class="hint"></p></section>
-<section id="release-notes" class="panel" hidden><h2 id="release-title">Neues Release</h2><pre id="release-body"></pre></section>
-<section class="panel"><h2>Vor dem Update</h2><p>Apps und Spiele schließen und den Laptop am Strom lassen. Benötigte Debian-Pakete werden bei Bedarf automatisch nachinstalliert; dafür ist eine Internetverbindung nötig. Die PaimenOS-Dienste und eine aktive Kindersitzung starten während des Updates neu; das Backend kann kurz nicht erreichbar sein.</p><p class="muted">Eltern-Einstellungen, Apps, eigene Bilder, ROMs und Spielstände bleiben erhalten. Schlägt die Paket-Nachinstallation fehl, bleibt die bisherige PaimenOS-Version aktiv. Bereits installierte Debian-Pakete bleiben beim Zurücksetzen der PaimenOS-Version erhalten. Weitere Änderungen an der Systemkonfiguration können eigene Einrichtungsschritte erfordern.</p></section>
-<noscript><div class="flash error">Bitte JavaScript aktivieren, um Updates zu prüfen und zu installieren.</div></noscript>
+<section id="update-progress" class="panel" aria-live="polite" hidden><h2>{{ t('Update-Auftrag') }}</h2><p id="job-message"></p><div class="bar" role="progressbar" aria-label="{{ t('Update-Fortschritt') }}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="job-bar" style="width:0%"></i></div><p id="job-version" class="hint"></p></section>
+<section id="release-notes" class="panel" hidden><h2 id="release-title">{{ t('Neues Release') }}</h2><pre id="release-body"></pre></section>
+<section class="panel"><h2>{{ t('Vor dem Update') }}</h2><p>{{ t('Apps und Spiele schließen und den Laptop am Strom lassen. Benötigte Debian-Pakete werden bei Bedarf automatisch nachinstalliert; dafür ist eine Internetverbindung nötig. Die PaimenOS-Dienste und eine aktive Kindersitzung starten während des Updates neu; das Backend kann kurz nicht erreichbar sein.') }}</p><p class="muted">{{ t('Eltern-Einstellungen, Apps, eigene Bilder, ROMs und Spielstände bleiben erhalten. Schlägt die Paket-Nachinstallation fehl, bleibt die bisherige PaimenOS-Version aktiv. Bereits installierte Debian-Pakete bleiben beim Zurücksetzen der PaimenOS-Version erhalten. Weitere Änderungen an der Systemkonfiguration können eigene Einrichtungsschritte erfordern.') }}</p></section>
+<noscript><div class="flash error">{{ t('Bitte JavaScript aktivieren, um Updates zu prüfen und zu installieren.') }}</div></noscript>
 <script>
 (() => {
   const check = document.getElementById('check-update'), install = document.getElementById('install-update');
   const error = document.getElementById('update-error'), forceSource = document.getElementById('force-source');
   let state = null, sending = false, timer;
-  const date = value => value ? new Date(value * 1000).toLocaleString('de-DE') : 'Noch keine erfolgreiche Prüfung';
+  const date = value => value ? new Date(value * 1000).toLocaleString({{ regional_locale()|tojson }}) : PaimenTranslate('Noch keine erfolgreiche Prüfung');
   function display(next) {
     state = next;
     const job = state.job, busy = job && ['queued','running'].includes(job.status);
     document.getElementById('current-version').textContent = state.current_version;
-    document.getElementById('mixed-versions').textContent = state.component_versions.length > 1 ? ' · Unterschiedliche Komponenten: ' + state.component_versions.join(', ') : '';
-    document.getElementById('latest-version').textContent = state.release ? 'Veröffentlicht: ' + state.release.version : 'Kein geeignetes stabiles Release gefunden.';
-    document.getElementById('last-checked').textContent = 'Letzte erfolgreiche Prüfung: ' + date(state.last_checked);
-    document.getElementById('update-label').textContent = busy ? 'Update läuft' : state.checking ? 'Prüfung läuft' : state.check_error ? 'Prüfung fehlgeschlagen' : state.update_available ? 'Update verfügbar' : state.last_checked ? 'Kein neueres Update' : 'Noch nicht geprüft';
+    document.getElementById('mixed-versions').textContent = state.component_versions.length > 1 ? PaimenTranslate(' · Unterschiedliche Komponenten: ') + state.component_versions.join(', ') : '';
+    document.getElementById('latest-version').textContent = state.release ? PaimenTranslate('Veröffentlicht: ') + state.release.version : PaimenTranslate('Kein geeignetes stabiles Release gefunden.');
+    document.getElementById('last-checked').textContent = PaimenTranslate('Letzte erfolgreiche Prüfung: ') + date(state.last_checked);
+    document.getElementById('update-label').textContent = busy ? PaimenTranslate('Update läuft') : state.checking ? PaimenTranslate('Prüfung läuft') : state.check_error ? PaimenTranslate('Prüfung fehlgeschlagen') : state.update_available ? PaimenTranslate('Update verfügbar') : state.last_checked ? PaimenTranslate('Kein neueres Update') : PaimenTranslate('Noch nicht geprüft');
     error.hidden = !state.check_error;
     error.textContent = state.check_error || '';
-    document.getElementById('source-repository').textContent = state.release ? 'Release-Quelle: ' + (state.release.source_repository || 'xJohnDoe993/PaimenOS') + (state.release.source_override ? ' · abweichende Quelle' : '') : '';
+    document.getElementById('source-repository').textContent = state.release ? PaimenTranslate('Release-Quelle: ') + (state.release.source_repository || 'xJohnDoe993/PaimenOS') + (state.release.source_override ? PaimenTranslate(' · abweichende Quelle') : '') : '';
     forceSource.disabled = sending || busy || state.checking;
     check.disabled = sending || busy || state.checking;
     install.hidden = !state.update_available;
     install.disabled = sending || busy || state.checking;
-    install.textContent = state.release ? 'Version ' + state.release.version + ' installieren' : 'Update installieren';
+    install.textContent = state.release ? 'Version ' + state.release.version + PaimenTranslate(' installieren') : PaimenTranslate('Update installieren');
     document.getElementById('release-notes').hidden = !state.release;
     if (state.release) {
       document.getElementById('release-title').textContent = state.release.title;
-      document.getElementById('release-body').textContent = state.release.notes || 'Keine Release-Notizen vorhanden.';
+      document.getElementById('release-body').textContent = state.release.notes || PaimenTranslate('Keine Release-Notizen vorhanden.');
     }
     document.getElementById('update-progress').hidden = !job;
     if (job) {
       document.getElementById('job-message').textContent = job.message;
-      document.getElementById('job-version').textContent = 'Auftrag für ' + job.tag + ' · ' + date(job.updated_at);
+      document.getElementById('job-version').textContent = PaimenTranslate('Auftrag für ') + job.tag + ' · ' + date(job.updated_at);
       const percent = Math.max(0, Math.min(100, job.progress || 0));
       document.getElementById('job-bar').style.width = percent + '%';
       document.getElementById('job-bar').parentElement.setAttribute('aria-valuenow', percent);
@@ -53,16 +53,16 @@
   }
   async function readResponse(response) {
     if (response.status === 401) { location.href = {{ url_for('login', next='/updates')|tojson }}; return null; }
-    if (response.status === 400) throw new Error('Formular abgelaufen. Bitte Seite neu laden.');
-    if (!response.headers.get('Content-Type')?.includes('application/json')) throw new Error('Backend-Verbindung wird wiederhergestellt …');
+    if (response.status === 400) throw new Error(PaimenTranslate('Formular abgelaufen. Bitte Seite neu laden.'));
+    if (!response.headers.get('Content-Type')?.includes('application/json')) throw new Error(PaimenTranslate('Backend-Verbindung wird wiederhergestellt …'));
     const payload = await response.json();
-    if (!response.ok || !payload.ok) throw new Error(payload.error || 'Update-Anfrage fehlgeschlagen. Bitte Seite neu laden.');
+    if (!response.ok || !payload.ok) throw new Error(payload.error || PaimenTranslate('Update-Anfrage fehlgeschlagen. Bitte Seite neu laden.'));
     return payload;
   }
   async function poll() {
     try { const next = await readResponse(await fetch({{ url_for('updates_status')|tojson }}, {cache:'no-store'})); if (next) display(next); }
     catch (exc) {
-      error.hidden = false; error.textContent = exc.message || 'Verbindung wird wiederhergestellt …';
+      error.hidden = false; error.textContent = exc.message || PaimenTranslate('Verbindung wird wiederhergestellt …');
       check.disabled = true; install.disabled = true;
       clearTimeout(timer); timer = setTimeout(poll, 3000);
     }
@@ -79,10 +79,10 @@
   check.addEventListener('click', () => action({{ url_for('updates_check')|tojson }}));
   install.addEventListener('click', () => {
     if (state?.release?.source_override) {
-      if (!forceSource.checked) { error.hidden = false; error.textContent = 'Abweichende Release-Quelle vor der Installation ausdrücklich zulassen.'; return; }
-      if (!confirm('Update aus ' + state.release.source_repository + ' dennoch installieren? Dieses Repository liefert den ausführbaren PaimenOS-Code.')) return;
+      if (!forceSource.checked) { error.hidden = false; error.textContent = PaimenTranslate('Abweichende Release-Quelle vor der Installation ausdrücklich zulassen.'); return; }
+      if (!confirm(PaimenTranslate('Update aus ') + state.release.source_repository + PaimenTranslate(' dennoch installieren? Dieses Repository liefert den ausführbaren PaimenOS-Code.'))) return;
     }
-    if (state && state.update_available && confirm('Version ' + state.release.version + ' installieren? Benötigte Debian-Pakete werden bei Bedarf nachinstalliert. Apps und Spiele vorher schließen. Die PaimenOS-Dienste und die Kindersitzung starten neu.')) action({{ url_for('updates_install')|tojson }}, state.release.tag);
+    if (state && state.update_available && confirm('Version ' + state.release.version + PaimenTranslate(' installieren? Benötigte Debian-Pakete werden bei Bedarf nachinstalliert. Apps und Spiele vorher schließen. Die PaimenOS-Dienste und die Kindersitzung starten neu.'))) action({{ url_for('updates_install')|tojson }}, state.release.tag);
   });
   poll();
 })();

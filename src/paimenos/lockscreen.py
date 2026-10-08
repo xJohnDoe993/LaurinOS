@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from paimenos.i18n import t, setup_qt
 from paimenos.paths import CONFIG_DIR
 import sys, os, json, subprocess
 from paimenos.state import read_settings, update_settings, remaining_seconds
@@ -17,7 +18,7 @@ def load_settings():
 class LockScreen(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Zeit abgelaufen")
+        self.setWindowTitle(t('Zeit abgelaufen'))
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         
         self.settings = load_settings()
@@ -53,12 +54,12 @@ class LockScreen(QWidget):
         icon_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(icon_label)
 
-        title_label = QLabel("Die Bildschirmzeit ist für heute abgelaufen!", self)
+        title_label = QLabel(t('Die Bildschirmzeit ist für heute abgelaufen!'), self)
         title_label.setFont(QFont("DejaVu Sans", 32, QFont.Bold))
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
 
-        sub_label = QLabel("Rufe deine Eltern, wenn du noch etwas Zeit brauchst.", self)
+        sub_label = QLabel(t('Rufe deine Eltern, wenn du noch etwas Zeit brauchst.'), self)
         sub_label.setFont(QFont("DejaVu Sans", 20))
         sub_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(sub_label)
@@ -68,14 +69,14 @@ class LockScreen(QWidget):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        add_time_btn = QPushButton("➕ Zeit hinzufügen (Eltern)", self)
+        add_time_btn = QPushButton(t('➕ Zeit hinzufügen (Eltern)'), self)
         add_time_btn.setCursor(Qt.PointingHandCursor)
         add_time_btn.clicked.connect(self.add_time_dialog)
         btn_layout.addWidget(add_time_btn)
 
         btn_layout.addSpacing(30)
 
-        shutdown_btn = QPushButton("⏻ Herunterfahren", self)
+        shutdown_btn = QPushButton(t('⏻ Herunterfahren'), self)
         shutdown_btn.setObjectName("shutdownBtn")
         shutdown_btn.setCursor(Qt.PointingHandCursor)
         shutdown_btn.clicked.connect(self.shutdown)
@@ -114,7 +115,7 @@ class LockScreen(QWidget):
         self.refresh_timer.stop()
 
         pin, ok_pin = QInputDialog.getText(
-            self, "🔒 Eltern-PIN", "Bitte Eltern-PIN eingeben:", QLineEdit.Password
+            self, t('🔒 Eltern-PIN'), t('Bitte Eltern-PIN eingeben:'), QLineEdit.Password
         )
 
         self.settings = load_settings()
@@ -122,7 +123,7 @@ class LockScreen(QWidget):
 
         if ok_pin and pin == correct_pin:
             minutes, ok_time = QInputDialog.getInt(
-                self, "⏱ Zeit hinzufügen", "Wie viele Minuten möchtest du hinzufügen?", 15, 5, 180, 5
+                self, t('⏱ Zeit hinzufügen'), t('Wie viele Minuten möchtest du hinzufügen?'), 15, 5, 180, 5
             )
             if ok_time and minutes > 0:
                 def add_bonus(data):
@@ -130,11 +131,11 @@ class LockScreen(QWidget):
                     data["bonus_minutes"] = max(0, (required + 59) // 60 - data["daily_limit_minutes"])
                 self.settings = update_settings(add_bonus)
 
-                QMessageBox.information(self, "Erfolg", f"Es wurden {minutes} Minuten für heute hinzugefügt!")
+                QMessageBox.information(self, t('Erfolg'), t('Es wurden {value0} Minuten für heute hinzugefügt!', value0=minutes))
                 QApplication.quit()
                 return
         elif ok_pin:
-            QMessageBox.warning(self, "Falsch", "Falscher PIN!")
+            QMessageBox.warning(self, t('Falsch'), t('Falscher PIN!'))
 
         self.auto_shutdown_timer.start(600000)
         self.refresh_timer.start(1000)
@@ -144,6 +145,7 @@ class LockScreen(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    setup_qt(app)
     window = LockScreen()
     window.showFullScreen()
     sys.exit(app.exec_())

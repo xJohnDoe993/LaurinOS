@@ -1,11 +1,12 @@
 {
   "schema": 1,
-  "runtime_api": 2,
+  "runtime_api": 3,
   "version": "0.64.1",
   "components": {
     "shared": {
       "files": [
         "src/paimenos/__init__.py",
+        "src/paimenos/i18n.py",
         "src/paimenos/paths.py",
         "src/paimenos/state.py",
         "src/paimenos/diagnostics.py",
@@ -17,6 +18,7 @@
         "src/paimenos/osd_state.py",
         "run.py",
         "assets/webapp.css",
+        "assets/i18n/en.json",
         "assets/branding/paimenos-logo.png"
       ]
     },
@@ -70,16 +72,21 @@
         "assets/parent-web/bonus-buttons.html",
         "assets/parent-web/controllers-page.html",
         "assets/parent-web/dashboard-footer.html",
+        "assets/parent-web/dashboard-head.html",
         "assets/parent-web/dashboard-summary.html",
+        "assets/parent-web/data-error.html",
         "assets/parent-web/diagnostics.html",
         "assets/parent-web/emulator-diagnostics.html",
         "assets/parent-web/emulators.html",
+        "assets/parent-web/http-error.html",
         "assets/parent-web/login.html",
         "assets/parent-web/settings.html",
         "assets/parent-web/stats.html",
         "assets/parent-web/time-bonus-form.html",
+        "assets/parent-web/time-head.html",
         "assets/parent-web/time-limit-form.html",
         "assets/parent-web/updates.html",
+        "assets/parent-web/upload-error.html",
         "assets/parent-web/wifi-page.html"
       ]
     },
@@ -112,6 +119,7 @@
     },
     "tools": {
       "files": [
+        "tools/build-shell-translations.py",
         "tools/configure-debian-components.py",
         "tools/configure-dns.py",
         "tools/configure-flatpak-app.py",
@@ -121,6 +129,7 @@
         "tools/initialize-settings.py",
         "tools/install-paimenos-plymouth.py",
         "tools/install-update-packages.py",
+        "tools/language.py",
         "tools/merge-apps.py",
         "tools/migrate-flatpak-data.py",
         "tools/native-app-entry.py",

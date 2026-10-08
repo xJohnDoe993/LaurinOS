@@ -174,7 +174,7 @@ class PackageDeploymentTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Manifest/API'):
             deploy.stage_release(self.source, self.base)
         self.assertFalse((self.base / 'current').exists())
-        manifest['runtime_api'] = 2
+        manifest['runtime_api'] = deploy.API
         manifest_path.write_text(json.dumps(manifest))
         previous = self.initial()
         receipt = previous / 'installed.json'

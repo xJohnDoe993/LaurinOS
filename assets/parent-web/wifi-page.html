@@ -1,4 +1,4 @@
-<div class="pagehead"><div class="eyebrow">Verbinden & verwalten</div><h1>WLAN & Internet</h1><p class="muted">Netzwerk auswählen und verbinden. Gespeicherte Netzwerke verbinden sich auf Wunsch automatisch.</p></div>
+<div class="pagehead"><div class="eyebrow">{{ t('Verbinden & verwalten') }}</div><h1>{{ t('WLAN & Internet') }}</h1><p class="muted">{{ t('Netzwerk auswählen und verbinden. Gespeicherte Netzwerke verbinden sich auf Wunsch automatisch.') }}</p></div>
 <style>
 #wifi-saved h3,#wifi-found h3,#wifi-status,#wifi-notice{overflow-wrap:anywhere}
 .wifi-signal{display:flex;align-items:flex-end;gap:3px;height:32px;min-width:40px}
@@ -7,14 +7,14 @@
 #wifi-dialog::backdrop{background:#070d19bb}#wifi-dialog h2{overflow-wrap:anywhere}
 .wifi-check{display:flex;align-items:center;gap:8px;margin:14px 0}.wifi-check input{width:auto}
 </style>
-<section class="panel"><div class="row"><div><h2>WLAN am Laptop</h2><p id="wifi-status" class="muted" role="status">WLAN-Verwaltung wird geladen …</p></div><div class="actions"><label class="small" for="wifi-adapter">Adapter</label><select id="wifi-adapter" style="width:auto;max-width:100%"></select><button id="wifi-power" class="secondary" disabled>WLAN einschalten</button><button id="wifi-scan" disabled>Netzwerke suchen</button></div></div><p class="hint">Beim Wechsel oder Trennen des WLANs kann diese Seite die Verbindung verlieren. Danach den Web-Elternbereich unter der neuen Adresse wieder öffnen. Die aktuelle Adresse steht am Laptop im Elternbereich.</p></section>
+<section class="panel"><div class="row"><div><h2>{{ t('WLAN am Laptop') }}</h2><p id="wifi-status" class="muted" role="status">{{ t('WLAN-Verwaltung wird geladen …') }}</p></div><div class="actions"><label class="small" for="wifi-adapter">Adapter</label><select id="wifi-adapter" style="width:auto;max-width:100%"></select><button id="wifi-power" class="secondary" disabled>{{ t('WLAN einschalten') }}</button><button id="wifi-scan" disabled>{{ t('Netzwerke suchen') }}</button></div></div><p class="hint">{{ t('Beim Wechsel oder Trennen des WLANs kann diese Seite die Verbindung verlieren. Danach den Web-Elternbereich unter der neuen Adresse wieder öffnen. Die aktuelle Adresse steht am Laptop im Elternbereich.') }}</p></section>
 <div id="wifi-notice" class="flash" role="status" aria-live="polite" hidden></div>
-<section id="wifi-operation" class="panel" hidden><div class="row"><p id="wifi-operation-text"></p><button id="wifi-cancel" class="secondary">Verbindungsaufbau abbrechen</button></div></section>
-<section><h2>Gespeicherte Netzwerke</h2><p class="muted">Das Passwort bleibt auf dem Laptop gespeichert. Mit „Vergessen“ wird die gespeicherte Verbindung entfernt.</p><div id="wifi-saved" class="grid"></div></section>
-<section style="margin-top:28px"><div class="row"><h2>Netzwerke in der Nähe</h2><button id="wifi-hidden" class="secondary" disabled>Verstecktes Netzwerk</button></div><div id="wifi-found" class="grid"></div></section>
-<p class="hint" style="margin-top:24px">Schul- und Firmennetze mit Benutzername oder Zertifikat sowie VPN lassen sich am Laptop über „Erweiterte Einstellungen“ einrichten.</p>
-<dialog id="wifi-dialog" aria-labelledby="wifi-dialog-title"><form id="wifi-form"><h2 id="wifi-dialog-title">WLAN verbinden</h2><div id="wifi-hidden-fields"><label for="wifi-ssid">Netzwerkname (SSID)</label><input id="wifi-ssid" maxlength="32" autocomplete="off"><label for="wifi-security">Sicherheit</label><select id="wifi-security"><option value="wpa-psk">WPA / WPA2</option><option value="sae">WPA3</option><option value="open">Offen · ohne Passwort</option></select></div><div id="wifi-password-fields"><label for="wifi-password">WLAN-Passwort</label><input id="wifi-password" type="password" maxlength="64" autocomplete="off"><label class="wifi-check"><input id="wifi-show" type="checkbox">Passwort anzeigen</label></div><p id="wifi-dialog-error" class="hint" role="alert"></p><p class="hint">Das Netzwerk wird nach erfolgreicher Verbindung gespeichert.</p><div class="actions"><button type="button" id="wifi-close" class="secondary">Abbrechen</button><button>Verbinden</button></div></form></dialog>
-<noscript><p class="flash error">Für die WLAN-Verwaltung bitte JavaScript im Browser aktivieren.</p></noscript>
+<section id="wifi-operation" class="panel" hidden><div class="row"><p id="wifi-operation-text"></p><button id="wifi-cancel" class="secondary">{{ t('Verbindungsaufbau abbrechen') }}</button></div></section>
+<section><h2>{{ t('Gespeicherte Netzwerke') }}</h2><p class="muted">{{ t('Das Passwort bleibt auf dem Laptop gespeichert. Mit „Vergessen“ wird die gespeicherte Verbindung entfernt.') }}</p><div id="wifi-saved" class="grid"></div></section>
+<section style="margin-top:28px"><div class="row"><h2>{{ t('Netzwerke in der Nähe') }}</h2><button id="wifi-hidden" class="secondary" disabled>{{ t('Verstecktes Netzwerk') }}</button></div><div id="wifi-found" class="grid"></div></section>
+<p class="hint" style="margin-top:24px">{{ t('Schul- und Firmennetze mit Benutzername oder Zertifikat sowie VPN lassen sich am Laptop über „Erweiterte Einstellungen“ einrichten.') }}</p>
+<dialog id="wifi-dialog" aria-labelledby="wifi-dialog-title"><form id="wifi-form"><h2 id="wifi-dialog-title">{{ t('WLAN verbinden') }}</h2><div id="wifi-hidden-fields"><label for="wifi-ssid">{{ t('Netzwerkname (SSID)') }}</label><input id="wifi-ssid" maxlength="32" autocomplete="off"><label for="wifi-security">{{ t('Sicherheit') }}</label><select id="wifi-security"><option value="wpa-psk">WPA / WPA2</option><option value="sae">WPA3</option><option value="open">{{ t('Offen · ohne Passwort') }}</option></select></div><div id="wifi-password-fields"><label for="wifi-password">{{ t('WLAN-Passwort') }}</label><input id="wifi-password" type="password" maxlength="64" autocomplete="off"><label class="wifi-check"><input id="wifi-show" type="checkbox">{{ t('Passwort anzeigen') }}</label></div><p id="wifi-dialog-error" class="hint" role="alert"></p><p class="hint">{{ t('Das Netzwerk wird nach erfolgreicher Verbindung gespeichert.') }}</p><div class="actions"><button type="button" id="wifi-close" class="secondary">{{ t('Abbrechen') }}</button><button>{{ t('Verbinden') }}</button></div></form></dialog>
+<noscript><p class="flash error">{{ t('Für die WLAN-Verwaltung bitte JavaScript im Browser aktivieren.') }}</p></noscript>
 <script>
 (() => {
   const statusUrl = {{ url_for('wifi_status')|tojson }}, actionUrl = {{ url_for('wifi_action')|tojson }}, csrf = {{ csrf_token()|tojson }};
@@ -25,9 +25,9 @@
   function notice(text, error = false) { $('wifi-notice').hidden = !text; $('wifi-notice').textContent = text; $('wifi-notice').className = error ? 'flash error' : 'flash'; }
   async function fetchData(url, options = {}) {
     const response = await fetch(url, {credentials:'same-origin',cache:'no-store',...options});
-    if (response.status === 401 || response.redirected) { stopped = true; throw new Error('Eltern-Sitzung abgelaufen. Bitte neu anmelden.'); }
-    let data; try { data = await response.json(); } catch { throw new Error('WLAN-Anfrage nicht möglich. Verbindung zum Laptop prüfen.'); }
-    if (!response.ok) throw new Error(data.error || 'WLAN-Anfrage fehlgeschlagen.'); return data;
+    if (response.status === 401 || response.redirected) { stopped = true; throw new Error(PaimenTranslate('Eltern-Sitzung abgelaufen. Bitte neu anmelden.')); }
+    let data; try { data = await response.json(); } catch { throw new Error(PaimenTranslate('WLAN-Anfrage nicht möglich. Verbindung zum Laptop prüfen.')); }
+    if (!response.ok) throw new Error(data.error || PaimenTranslate('WLAN-Anfrage fehlgeschlagen.')); return data;
   }
   async function act(action, values = {}) {
     if (sending) return;
@@ -38,7 +38,7 @@
     } catch (error) { notice(error.message, true); }
     finally { sending = false; if (state) render(state, false); }
   }
-  function switchAllowed() { return !state.adapters.some(a => a.connected) || confirm('WLAN wechseln? Die Verbindung zu dieser Seite kann abbrechen. Danach unter der neuen Adresse des Laptops wieder öffnen.'); }
+  function switchAllowed() { return !state.adapters.some(a => a.connected) || confirm(PaimenTranslate('WLAN wechseln? Die Verbindung zu dieser Seite kann abbrechen. Danach unter der neuen Adresse des Laptops wieder öffnen.')); }
   function signal(strength) {
     const node = el('div', '', 'wifi-signal'); node.setAttribute('aria-hidden','true');
     [7,14,21,28].forEach((height,i) => { const bar = el('i'); bar.style.height = height+'px'; if (strength >= i*25+1) bar.style.background = 'var(--accent)'; node.append(bar); }); return node;
@@ -46,7 +46,7 @@
   function control(text, fn, cls = 'secondary') { const b = el('button', text, cls); b.disabled = sending || !!state.operation; b.addEventListener('click',fn); return b; }
   function openCredentials(network = null) {
     target = network; targetAdapter = $('wifi-adapter').value;
-    $('wifi-dialog-title').textContent = network ? network.name : 'Verstecktes Netzwerk';
+    $('wifi-dialog-title').textContent = network ? network.name : PaimenTranslate('Verstecktes Netzwerk');
     $('wifi-hidden-fields').hidden = !!network; $('wifi-ssid').value = ''; $('wifi-security').value = 'wpa-psk';
     $('wifi-password').value = ''; $('wifi-show').checked = false; $('wifi-password').type = 'password'; $('wifi-dialog-error').textContent = '';
     updatePassword(); $('wifi-dialog').showModal(); (network ? $('wifi-password') : $('wifi-ssid')).focus();
@@ -55,28 +55,28 @@
   function connect(network) {
     if (!switchAllowed()) return;
     if (network.profile) { act('connect',{adapter:network.adapter,profile:network.profile}); return; }
-    if (!network.supported) { notice('Dieses Netzwerk bitte am Laptop über „Erweiterte Einstellungen“ einrichten.'); return; }
+    if (!network.supported) { notice(PaimenTranslate('Dieses Netzwerk bitte am Laptop über „Erweiterte Einstellungen“ einrichten.')); return; }
     if (['open','owe'].includes(network.key)) act('connect',{adapter:network.adapter,network:network.path}); else openCredentials(network);
   }
   function card(item, saved, adapter, ready) {
     const box = el('article','','card'), row = el('div','','row');
     const matching = saved ? state.networks.find(n => n.adapter === adapter && n.profile === item.path) : item;
     const connected = saved ? item.adapters.includes(adapter) : item.connected;
-    row.append(signal(matching?.strength || 0),el('span',connected ? 'Verbunden' : saved ? 'Gespeichert' : 'Gefunden','badge '+(connected ? 'on':'off')));
+    row.append(signal(matching?.strength || 0),el('span',connected ? PaimenTranslate('Verbunden') : saved ? PaimenTranslate('Gespeichert') : PaimenTranslate('Gefunden'),'badge '+(connected ? 'on':'off')));
     box.append(row,el('h3',item.name));
-    box.append(el('p',matching ? matching.strength+'% Signal · '+matching.security : 'Momentan nicht in Reichweite','muted small'));
+    box.append(el('p',matching ? matching.strength+'% Signal · '+matching.security : PaimenTranslate('Momentan nicht in Reichweite'),'muted small'));
     const actions = el('div','','actions');
-    const b = control(connected ? 'Trennen' : 'Verbinden',() => {
-      if (connected) { if (confirm('WLAN-Verbindung trennen? Internet und Zugriff auf diese Seite über das WLAN werden unterbrochen.')) act('disconnect',{adapter}); }
+    const b = control(connected ? PaimenTranslate('Trennen') : PaimenTranslate('Verbinden'),() => {
+      if (connected) { if (confirm(PaimenTranslate('WLAN-Verbindung trennen? Internet und Zugriff auf diese Seite über das WLAN werden unterbrochen.'))) act('disconnect',{adapter}); }
       else if (saved) { if (switchAllowed()) act('connect',{adapter,profile:item.path}); } else connect(item);
     },connected ? 'secondary':'');
     b.disabled ||= !ready || saved && !item.available.includes(adapter) || !saved && !item.supported;
-    if (!saved && !item.supported) b.textContent = 'Am Laptop einrichten'; actions.append(b);
+    if (!saved && !item.supported) b.textContent = PaimenTranslate('Am Laptop einrichten'); actions.append(b);
     if (saved) {
-      const remove = control('Vergessen',() => { if (confirm('„'+item.name+'“ vergessen? Beim nächsten Verbinden ist das WLAN-Passwort erneut nötig.')) act('forget',{profile:item.path}); },'danger');
+      const remove = control(PaimenTranslate('Vergessen'),() => { if (confirm('„'+item.name+PaimenTranslate('“ vergessen? Beim nächsten Verbinden ist das WLAN-Passwort erneut nötig.'))) act('forget',{profile:item.path}); },'danger');
       remove.disabled ||= item.connected; actions.append(remove);
       const checkLabel = el('label','','wifi-check'), check = document.createElement('input'); check.type='checkbox'; check.checked=item.autoconnect; check.disabled=sending || !!state.operation;
-      check.addEventListener('change',() => act('autoconnect',{profile:item.path,enabled:check.checked ? '1':'0'})); checkLabel.append(check,el('span','Automatisch verbinden')); box.append(checkLabel);
+      check.addEventListener('change',() => act('autoconnect',{profile:item.path,enabled:check.checked ? '1':'0'})); checkLabel.append(check,el('span',PaimenTranslate('Automatisch verbinden'))); box.append(checkLabel);
     }
     box.append(actions); return box;
   }
@@ -92,23 +92,23 @@
     const ready = !!adapter && adapter.ready && data.powered && data.hardware;
     select.disabled = busy || !!data.scan || !adapter;
     $('wifi-power').disabled = busy || !data.available || !adapter;
-    $('wifi-power').textContent = data.powered ? 'WLAN ausschalten':'WLAN einschalten';
-    $('wifi-scan').disabled = busy || !ready || !!data.scan; $('wifi-scan').textContent=data.scan ? 'Suche läuft …':'Netzwerke suchen';
+    $('wifi-power').textContent = data.powered ? PaimenTranslate('WLAN ausschalten'):PaimenTranslate('WLAN einschalten');
+    $('wifi-scan').disabled = busy || !ready || !!data.scan; $('wifi-scan').textContent=data.scan ? PaimenTranslate('Suche läuft …'):PaimenTranslate('Netzwerke suchen');
     $('wifi-hidden').disabled=busy || !ready;
-    let status = !data.available ? 'Netzwerkdienst nicht verfügbar.' : !adapter ? 'Kein WLAN-Adapter gefunden.' : !data.hardware ? 'WLAN durch Flugmodus / Hardware-Schalter blockiert.' : !data.powered ? 'WLAN ist ausgeschaltet.' : !adapter.managed ? 'Dieser Adapter wird nicht vom Netzwerkdienst verwaltet.' : adapter.connected ? 'Verbunden mit „'+adapter.network+'“'+(adapter.addresses.length ? ' · '+adapter.addresses.join(', ') : '') : 'WLAN eingeschaltet · Netzwerk auswählen oder suchen.';
-    if (adapter?.connected && data.connectivity === 2) status += ' · Anmeldung im Browser erforderlich.';
+    let status = !data.available ? PaimenTranslate('Netzwerkdienst nicht verfügbar.') : !adapter ? PaimenTranslate('Kein WLAN-Adapter gefunden.') : !data.hardware ? PaimenTranslate('WLAN durch Flugmodus / Hardware-Schalter blockiert.') : !data.powered ? PaimenTranslate('WLAN ist ausgeschaltet.') : !adapter.managed ? PaimenTranslate('Dieser Adapter wird nicht vom Netzwerkdienst verwaltet.') : adapter.connected ? PaimenTranslate('Verbunden mit „')+adapter.network+'“'+(adapter.addresses.length ? ' · '+adapter.addresses.join(', ') : '') : PaimenTranslate('WLAN eingeschaltet · Netzwerk auswählen oder suchen.');
+    if (adapter?.connected && data.connectivity === 2) status += PaimenTranslate(' · Anmeldung im Browser erforderlich.');
     if (adapter?.managed && data.powered && data.hardware && adapter.problem) status = adapter.problem;
-    if (adapter?.connected && data.connectivity === 3) status += ' · Internet momentan eingeschränkt.';
+    if (adapter?.connected && data.connectivity === 3) status += PaimenTranslate(' · Internet momentan eingeschränkt.');
     $('wifi-status').textContent=status;
-    $('wifi-operation').hidden=!data.operation; if (data.operation) $('wifi-operation-text').textContent='Verbindung zu „'+data.operation.name+'“ wird aufgebaut …';
+    $('wifi-operation').hidden=!data.operation; if (data.operation) $('wifi-operation-text').textContent=PaimenTranslate('Verbindung zu „')+data.operation.name+PaimenTranslate('“ wird aufgebaut …');
     $('wifi-cancel').disabled=sending;
     const key=JSON.stringify([select.value,data.networks,data.saved,busy,ready]);
     if (key !== signature) {
       signature=key; clear($('wifi-saved')); clear($('wifi-found'));
       data.saved.forEach(p => $('wifi-saved').append(card(p,true,select.value,ready)));
       data.networks.filter(n => n.adapter===select.value && !n.profile).forEach(n => $('wifi-found').append(card(n,false,select.value,ready)));
-      if (!$('wifi-saved').children.length) $('wifi-saved').append(el('p','Noch keine Netzwerke gespeichert.','empty'));
-      if (!$('wifi-found').children.length) $('wifi-found').append(el('p',data.scan ? 'Netzwerke werden gesucht …':'Keine weiteren Netzwerke gefunden. „Netzwerke suchen“ aktualisiert die Liste.','empty'));
+      if (!$('wifi-saved').children.length) $('wifi-saved').append(el('p',PaimenTranslate('Noch keine Netzwerke gespeichert.'),'empty'));
+      if (!$('wifi-found').children.length) $('wifi-found').append(el('p',data.scan ? PaimenTranslate('Netzwerke werden gesucht …'):PaimenTranslate('Keine weiteren Netzwerke gefunden. „Netzwerke suchen“ aktualisiert die Liste.'),'empty'));
     }
     if (updateNotice) notice(data.error || data.message,!!data.error);
   }
@@ -120,7 +120,7 @@
     finally {polling=false;}
   }
   $('wifi-adapter').addEventListener('change',() => {if(state) render(state);});
-  $('wifi-power').addEventListener('click',() => {if (state.powered && !confirm('WLAN ausschalten? Internet und Zugriff auf diese Seite über WLAN werden unterbrochen. Zum Einschalten gegebenenfalls den Elternbereich am Laptop öffnen.')) return; act(state.powered ? 'power_off':'power_on');});
+  $('wifi-power').addEventListener('click',() => {if (state.powered && !confirm(PaimenTranslate('WLAN ausschalten? Internet und Zugriff auf diese Seite über WLAN werden unterbrochen. Zum Einschalten gegebenenfalls den Elternbereich am Laptop öffnen.'))) return; act(state.powered ? 'power_off':'power_on');});
   $('wifi-scan').addEventListener('click',() => act('scan',{adapter:$('wifi-adapter').value}));
   $('wifi-cancel').addEventListener('click',() => act('cancel'));
   $('wifi-hidden').addEventListener('click',() => {if(switchAllowed()) openCredentials();});
@@ -131,9 +131,9 @@
   $('wifi-form').addEventListener('submit',event => {
     event.preventDefault(); const key=target ? target.key : $('wifi-security').value, password=$('wifi-password').value;
     let error='';
-    if (!target && !(new TextEncoder().encode($('wifi-ssid').value).length >= 1 && new TextEncoder().encode($('wifi-ssid').value).length <= 32)) error='Netzwerkname muss 1 bis 32 Bytes lang sein.';
-    else if (key==='wpa-psk' && !((password.length>=8 && password.length<=63) || /^[0-9a-fA-F]{64}$/.test(password))) error='WPA2-Passwort: 8 bis 63 Zeichen oder 64 Hexadezimalzeichen eingeben.';
-    else if (key==='sae' && !(new TextEncoder().encode(password).length>=1 && new TextEncoder().encode(password).length<=63)) error='WPA3-Passwort: 1 bis 63 Bytes eingeben.';
+    if (!target && !(new TextEncoder().encode($('wifi-ssid').value).length >= 1 && new TextEncoder().encode($('wifi-ssid').value).length <= 32)) error=PaimenTranslate('Netzwerkname muss 1 bis 32 Bytes lang sein.');
+    else if (key==='wpa-psk' && !((password.length>=8 && password.length<=63) || /^[0-9a-fA-F]{64}$/.test(password))) error=PaimenTranslate('WPA2-Passwort: 8 bis 63 Zeichen oder 64 Hexadezimalzeichen eingeben.');
+    else if (key==='sae' && !(new TextEncoder().encode(password).length>=1 && new TextEncoder().encode(password).length<=63)) error=PaimenTranslate('WPA3-Passwort: 1 bis 63 Bytes eingeben.');
     if(error) {$('wifi-dialog-error').textContent=error; return;}
     const values=target ? {adapter:target.adapter,network:target.path,password} : {adapter:targetAdapter,ssid:$('wifi-ssid').value,security:key,password};
     const action=target ? 'connect':'hidden'; $('wifi-dialog').close(); act(action,values);

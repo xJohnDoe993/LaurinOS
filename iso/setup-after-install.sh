@@ -6,13 +6,15 @@ SOURCE=/opt/paimenos-source
 PENDING=/var/lib/paimenos/setup-pending
 SUCCESS=/etc/paimenos-laptop.installed
 [[ -f $PENDING ]] || exit 0
+REPO_DIR="$SOURCE"
+source "$SOURCE/installer/language.sh"
 # Never install/update a pre-existing finished system automatically.
 if [[ ! -f $SUCCESS ]]; then
-    printf '\nWillkommen bei PaimenOS!\nDie Debian-Grundinstallation ist abgeschlossen.\n'
-    printf 'Für Programme und Emulatoren ist jetzt eine Internetverbindung erforderlich.\n'
+    printf "$(paimenos_text '\nWillkommen bei PaimenOS!\nDie Debian-Grundinstallation ist abgeschlossen.\n')"
+    printf "$(paimenos_text 'Für Programme und Emulatoren ist jetzt eine Internetverbindung erforderlich.\n')"
     while :; do
-        printf '\n1) WLAN/Netzwerk einrichten\n2) PaimenOS-Setup starten\n3) Neu starten\n'
-        read -r -p 'Auswahl [2]: ' choice
+        printf "$(paimenos_text '\n1) WLAN/Netzwerk einrichten\n2) PaimenOS-Setup starten\n3) Neu starten\n')"
+        read -r -p "$(paimenos_text 'Auswahl [2]: ')" choice
         case "$choice" in
             1) nmtui || true; continue ;;
             3) systemctl reboot; exit 0 ;;
@@ -20,7 +22,7 @@ if [[ ! -f $SUCCESS ]]; then
             *) continue ;;
         esac
         if ! /usr/bin/python3 "$SOURCE/iso/prepare-apt.py"; then
-            printf 'Paketquellen konnten nicht vorbereitet werden. Bitte prüfen und erneut versuchen.\n'
+            printf "$(paimenos_text 'Paketquellen konnten nicht vorbereitet werden. Bitte prüfen und erneut versuchen.\n')"
             continue
         fi
         args=()
@@ -29,15 +31,15 @@ if [[ ! -f $SUCCESS ]]; then
         if PAIMENOS_REBOOT=0 bash "$SOURCE/install.sh" "${args[@]}"; then
             [[ -f $SUCCESS ]] && break
         fi
-        printf '\nSetup noch nicht abgeschlossen. Netzwerk prüfen und erneut starten.\n'
-        printf 'Vorhandene Einstellungen werden beim Fortsetzen beibehalten.\n'
+        printf "$(paimenos_text '\nSetup noch nicht abgeschlossen. Netzwerk prüfen und erneut starten.\n')"
+        printf "$(paimenos_text 'Vorhandene Einstellungen werden beim Fortsetzen beibehalten.\n')"
     done
 fi
 rm -f "$PENDING"
 systemctl disable paimenos-setup.service
-printf '\nPaimenOS ist eingerichtet. Der nächste Neustart öffnet die Kinderoberfläche.\n'
-read -r -p 'Jetzt neu starten? [J/n]: ' answer
+printf "$(paimenos_text '\nPaimenOS ist eingerichtet. Der nächste Neustart öffnet die Kinderoberfläche.\n')"
+read -r -p "$(paimenos_text 'Jetzt neu starten? [J/n]: ')" answer
 case "$answer" in
-    n|N) printf 'Neustart später mit sudo reboot.\n' ;;
+    n|N) printf "$(paimenos_text 'Neustart später mit sudo reboot.\n')" ;;
     *) systemctl reboot ;;
 esac

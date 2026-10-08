@@ -1,4 +1,5 @@
 """Gamepads im Kinder-Menü lesen, ohne Eingaben von Spielen abzufangen."""
+from paimenos.i18n import t
 import select
 import sys
 import time
@@ -84,17 +85,17 @@ def controller_mapping(caps):
 
 def controller_diagnosis():
     """Auch nicht lesbare Event-Geräte sichtbar machen; keine Tastatureingaben lesen."""
-    lines = ['PaimenOS Controller-Diagnose',
-             'Benutzer-ID: ' + str(os.getuid()) + ' · Gruppen-IDs: ' + str(os.getgroups())]
+    lines = [t('PaimenOS Controller-Diagnose'),
+             t('Benutzer-ID: ') + str(os.getuid()) + t(' · Gruppen-IDs: ') + str(os.getgroups())]
     if evdev is None:
-        return '\n'.join(lines + ['FEHLER: python3-evdev ist nicht installiert.'])
+        return '\n'.join(lines + [t('FEHLER: python3-evdev ist nicht installiert.')])
     paths = sorted(glob.glob('/dev/input/event*'))
     readable = set(readable_devices())
-    lines.append(f'Event-Geräte: {len(paths)} · lesbar: {len(readable)}')
+    lines.append(t('Event-Geräte: {value0} · lesbar: {value1}', value0=len(paths), value1=len(readable)))
     found = 0
     for path in paths:
         if path not in readable:
-            lines.append(path + ': kein Lesezugriff')
+            lines.append(path + t(': kein Lesezugriff'))
             continue
         if not possible_gamepad(path):
             continue
@@ -107,17 +108,17 @@ def controller_diagnosis():
                 continue
             found += 1
             lines += ['', path + ': ' + device.name,
-                      'Menü-Erkennung: ' + ('Ja' if mapping else 'Nein'),
-                      'Tastencodes: ' + str(caps.get(E.EV_KEY, [])),
-                      'Menü-Tasten: ' + str(mapping),
-                      'Achsen: ' + str(device.capabilities().get(E.EV_ABS, []))]
+                      t('Menü-Erkennung: ') + (t('Ja') if mapping else t('Nein')),
+                      t('Tastencodes: ') + str(caps.get(E.EV_KEY, [])),
+                      t('Menü-Tasten: ') + str(mapping),
+                      t('Achsen: ') + str(device.capabilities().get(E.EV_ABS, []))]
         except OSError as exc:
             lines.append(path + ': ' + str(exc))
         finally:
             if device is not None:
                 device.close()
     if not found:
-        lines.append('Kein lesbarer Controller gefunden. Bluetooth-Verbindung, Betriebsmodus und input-Gruppe prüfen.')
+        lines.append(t('Kein lesbarer Controller gefunden. Bluetooth-Verbindung, Betriebsmodus und input-Gruppe prüfen.'))
     return '\n'.join(lines)
 
 
@@ -325,7 +326,7 @@ class ControllerInput:
         self.failed = False
         self.rejected = {}
         if evdev is None:
-            print('Controller-Menü: python3-evdev fehlt.', file=sys.stderr)
+            print(t('Controller-Menü: python3-evdev fehlt.'), file=sys.stderr)
 
     def safely(self, operation):
         if self.failed:
@@ -341,7 +342,7 @@ class ControllerInput:
                     state.device.close()
                 except Exception:
                     pass
-            message = 'Controller-Steuerung deaktiviert: ' + type(exc).__name__ + ': ' + str(exc)
+            message = t('Controller-Steuerung deaktiviert: ') + type(exc).__name__ + ': ' + str(exc)
             print(message, file=sys.stderr)
             log_event('controller', message)
             self.available_changed.emit(0)
@@ -400,15 +401,15 @@ class ControllerInput:
                     continue
                 self.devices[path] = GamepadState(device, buttons, bindings, input_clock(device))
                 self.warned.discard(path)
-                print('Controller-Menü: erkannt: ' + device.name, file=sys.stderr)
-                log_event('controller', 'Erkannt: ' + device.name + ' · ' + path + ' · Tasten: ' + str(buttons))
+                print(t('Controller-Menü: erkannt: ') + device.name, file=sys.stderr)
+                log_event('controller', t('Erkannt: ') + device.name + ' · ' + path + t(' · Tasten: ') + str(buttons))
                 self.available_changed.emit(len(self.devices))
             except OSError as exc:
                 if device is not None:
                     device.close()
                 if path not in self.warned:
-                    print('Controller-Menü: Gerät nicht lesbar: ' + str(exc), file=sys.stderr)
-                    log_event('controller', 'Gerät nicht lesbar: ' + str(exc))
+                    print(t('Controller-Menü: Gerät nicht lesbar: ') + str(exc), file=sys.stderr)
+                    log_event('controller', t('Gerät nicht lesbar: ') + str(exc))
                     self.warned.add(path)
 
     def remove(self, path):
@@ -461,8 +462,8 @@ class ControllerInput:
                                 state.actions(True, now)
                             if now - state.last_lag_log >= 10:
                                 state.last_lag_log = now
-                                log_event('controller', 'Veraltete Eingaben verworfen: ' +
-                                          state.device.name + ' · Alter ' + f'{age:.2f}' + ' s')
+                                log_event('controller', t('Veraltete Eingaben verworfen: ') +
+                                          state.device.name + t(' · Alter ') + f'{age:.2f}' + ' s')
                 if select.select([state.device.fd], [], [], 0)[0]:
                     # Noch nicht am aktuellen Ende: keine veraltete Aktion anzeigen.
                     state.cancel()

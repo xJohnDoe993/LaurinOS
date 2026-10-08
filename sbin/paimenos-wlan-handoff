@@ -1,27 +1,37 @@
 #!/bin/bash
 # Preserve Debian's WLAN profile while handing this adapter to NetworkManager.
 set -euo pipefail
-export LC_ALL=C
-if [[ "$EUID" -ne 0 ]]; then echo "Bitte mit sudo ausführen." >&2; exit 1; fi
+paimenos_text() {
+    /usr/bin/python3 -I /usr/local/lib/paimenos/current/tools/language.py "$@"
+}
+# Preserve language before using C for machine-readable NetworkManager output.
+PAIMENOS_LANGUAGE=${PAIMENOS_LANGUAGE:-$(paimenos_text --language)}
+export PAIMENOS_LANGUAGE LC_ALL=C
+if [[ "$EUID" -ne 0 ]]; then echo "$(paimenos_text 'Bitte mit sudo ausführen.')" >&2; exit 1; fi
 if (( $# != 1 )) || [[ ! "$1" =~ ^[a-zA-Z0-9_-]{1,15}$ ]]; then
-    echo "Bitte genau einen gültigen WLAN-Adapter angeben." >&2; exit 1
+    echo "$(paimenos_text 'Bitte genau einen gültigen WLAN-Adapter angeben.')" >&2; exit 1
 fi
 WIFI_DEVICE=$1
 for command in nmcli systemctl ss awk python3 ifquery ifdown ifup timeout getent ip; do
-    command -v "$command" >/dev/null 2>&1 || { echo "Benötigtes Programm fehlt: $command" >&2; exit 1; }
+    command -v "$command" >/dev/null 2>&1 || { echo "$(paimenos_text 'Benötigtes Programm fehlt: {value0}' "$command")" >&2; exit 1; }
 done
 [[ "$(nmcli -g GENERAL.TYPE device show "$WIFI_DEVICE")" == wifi ]] || {
-    echo "Kein WLAN-Adapter: $WIFI_DEVICE" >&2; exit 1;
+    echo "$(paimenos_text 'Kein WLAN-Adapter: {value0}' "$WIFI_DEVICE")" >&2; exit 1;
 }
 SOCKET_DIR=/run/wpa_supplicant
 SOCKET_PATH="$SOCKET_DIR/$WIFI_DEVICE"
 if [[ -L "$SOCKET_DIR" || -L "$SOCKET_PATH" ]]; then
-    echo "Unerwarteter Symlink am WPA-Socket. Übergabe abgebrochen." >&2; exit 1
+    echo "$(paimenos_text 'Unerwarteter Symlink am WPA-Socket. Übergabe abgebrochen.')" >&2; exit 1
 fi
 IFUP_UNIT="ifup@$WIFI_DEVICE.service"
 BACKUP=$(mktemp -d /var/backups/paimenos-wlan-ifupdown.XXXXXX)
 chmod 0700 "$BACKUP"
 install -m 0600 /usr/local/lib/paimenos/current/tools/wifi-handoff.py "$BACKUP/handoff.py"
+# Keep this recovery helper independent of later code updates.
+for module in __init__ paths i18n; do
+    install -D -m 0600 "/usr/local/lib/paimenos/current/app/paimenos/${module}.py" "$BACKUP/app/paimenos/${module}.py"
+done
+install -D -m 0600 /usr/local/lib/paimenos/current/assets/i18n/en.json "$BACKUP/assets/i18n/en.json"
 # Refuse unsupported configurations before touching the running connection.
 python3 -I "$BACKUP/handoff.py" prepare "$WIFI_DEVICE" "$BACKUP"
 python3 -I "$BACKUP/handoff.py" profile "$WIFI_DEVICE" "$BACKUP"
@@ -30,12 +40,12 @@ PROFILE="/etc/NetworkManager/system-connections/paimenos-debian-$PROFILE_UUID.nm
 POLICY="/etc/NetworkManager/conf.d/99-paimenos-handoff-$WIFI_DEVICE.conf"
 [[ ! -e "$PROFILE" && ! -L "$PROFILE" ]] || exit 1
 if [[ -L "$POLICY" || ( -e "$POLICY" && ! -f "$POLICY" ) ]]; then
-    echo "Unerwartetes Ziel für die WLAN-Verwaltungsregel." >&2; exit 1
+    echo "$(paimenos_text 'Unerwartetes Ziel für die WLAN-Verwaltungsregel.')" >&2; exit 1
 fi
 if [[ -f "$POLICY" ]]; then cp -a -- "$POLICY" "$BACKUP/policy.conf"; fi
 cp -a -- /etc/resolv.conf "$BACKUP/resolv.conf"
 timeout 15 getent ahostsv4 deb.debian.org >/dev/null || {
-    echo "DNS ist vor der WLAN-Übergabe bereits gestört; bestehende Verbindung beibehalten." >&2; exit 1;
+    echo "$(paimenos_text 'DNS ist vor der WLAN-Übergabe bereits gestört; bestehende Verbindung beibehalten.')" >&2; exit 1;
 }
 IFUP_WAS_ACTIVE=false
 IFUP_SERVICE_WAS_ACTIVE=false
@@ -81,9 +91,9 @@ finish() {
             fi
             cp -a --remove-destination -- "$BACKUP/resolv.conf" /etc/resolv.conf || rollback_failed=true
             if timeout 15 getent ahostsv4 deb.debian.org >/dev/null && [[ "$rollback_failed" != true ]]; then
-                echo "Übergabe fehlgeschlagen; bisherige Debian-WLAN-Verwaltung und DNS wiederhergestellt." >&2
+                echo "$(paimenos_text 'Übergabe fehlgeschlagen; bisherige Debian-WLAN-Verwaltung und DNS wiederhergestellt.')" >&2
             else
-                echo "FEHLER: Rückkehr zur Debian-Konfiguration nicht vollständig bestätigt; Verbindung/DNS prüfen. Sicherung: $BACKUP" >&2
+                echo "$(paimenos_text 'FEHLER: Rückkehr zur Debian-Konfiguration nicht vollständig bestätigt; Verbindung/DNS prüfen. Sicherung: {value0}' "$BACKUP")" >&2
                 code=1
             fi
         fi
@@ -99,7 +109,7 @@ install -o root -g root -m 0600 "$BACKUP/profile.nmconnection" "$PROFILE"
 # Loading validates credentials/profile syntax while Debian WLAN is still up.
 nmcli --wait 10 connection load "$PROFILE"
 nmcli -g connection.uuid connection show uuid "$PROFILE_UUID" >/dev/null
-echo "WLAN $WIFI_DEVICE wird mit dem bisherigen Profil übernommen; kurze Wiederverbindung."
+echo "$(paimenos_text 'WLAN {value0} wird mit dem bisherigen Profil übernommen; kurze Wiederverbindung.' "$WIFI_DEVICE")"
 HANDOFF_STARTED=true
 nmcli --wait 10 device set "$WIFI_DEVICE" managed no
 if [[ "$IFUP_SERVICE_WAS_ACTIVE" == true ]]; then systemctl stop "$IFUP_UNIT"; fi
@@ -120,10 +130,10 @@ for attempt in {1..16}; do
     sleep 0.25
 done
 if [[ -n "$OWNERS" ]]; then
-    echo "WLAN-Socket weiterhin belegt; sichere Übergabe nicht möglich." >&2; exit 1
+    echo "$(paimenos_text 'WLAN-Socket weiterhin belegt; sichere Übergabe nicht möglich.')" >&2; exit 1
 fi
 if [[ -e "$SOCKET_PATH" && ! -S "$SOCKET_PATH" ]]; then
-    echo "WPA-Pfad ist kein Socket; Übergabe abgebrochen." >&2; exit 1
+    echo "$(paimenos_text 'WPA-Pfad ist kein Socket; Übergabe abgebrochen.')" >&2; exit 1
 fi
 if [[ -S "$SOCKET_PATH" ]]; then rm -- "$SOCKET_PATH"; fi
 install -d -o root -g root -m 0755 /etc/NetworkManager/conf.d
@@ -138,7 +148,7 @@ state=$(nmcli -g GENERAL.STATE device show "$WIFI_DEVICE")
 if [[ "${state%% *}" != 100 ]] || [[ -z "$(nmcli -g IP4.ADDRESS device show "$WIFI_DEVICE")" ]] ||
     [[ -z "$(ip -4 route show default dev "$WIFI_DEVICE")" ]] ||
     ! timeout 15 getent ahostsv4 deb.debian.org >/dev/null; then
-    echo "Wiederverbindung/IP/DNS nicht erfolgreich; Debian-Konfiguration wird wiederhergestellt." >&2; exit 1
+    echo "$(paimenos_text 'Wiederverbindung/IP/DNS nicht erfolgreich; Debian-Konfiguration wird wiederhergestellt.')" >&2; exit 1
 fi
 # Disable competing autostarts only after actual reconnection and DNS success.
 previous=$(systemctl is-enabled "$IFUP_UNIT" 2>/dev/null || true)
@@ -155,4 +165,4 @@ for unit in "wpa_supplicant@$WIFI_DEVICE.service" "wpa_supplicant-nl80211@$WIFI_
     fi
 done
 SUCCESS=true
-echo "WLAN verbunden, IP-Adresse und DNS geprüft. Profil bleibt nach Neustart erhalten. Sicherung: $BACKUP"
+echo "$(paimenos_text 'WLAN verbunden, IP-Adresse und DNS geprüft. Profil bleibt nach Neustart erhalten. Sicherung: {value0}' "$BACKUP")"

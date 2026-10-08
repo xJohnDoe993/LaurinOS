@@ -1,0 +1,47 @@
+[
+  {
+    "id": "pbs-kids",
+    "title": "PBS KIDS Games",
+    "type": "webapp",
+    "enabled": true,
+    "url": "https://pbskids.org/games/",
+    "profile": "pbs-kids",
+    "icon_file": "pbs-kids.svg"
+  },
+  {
+    "id": "learnenglish-kids",
+    "title": "LearnEnglish Kids",
+    "type": "webapp",
+    "enabled": true,
+    "url": "https://learnenglishkids.britishcouncil.org/",
+    "profile": "learnenglish-kids",
+    "icon_file": "learnenglish-kids.svg"
+  },
+  {
+    "id": "nasa-space-place",
+    "title": "NASA Space Place",
+    "type": "webapp",
+    "enabled": true,
+    "url": "https://spaceplace.nasa.gov/",
+    "profile": "nasa-space-place",
+    "icon_file": "nasa-space-place.svg"
+  },
+  {
+    "id": "blockly-games",
+    "title": "Blockly Games",
+    "type": "webapp",
+    "enabled": true,
+    "url": "https://blockly.games/?lang=en",
+    "profile": "blockly-games",
+    "icon_file": "blockly-games.svg"
+  },
+  {
+    "id": "scratch-web",
+    "title": "Scratch – Create",
+    "type": "webapp",
+    "enabled": true,
+    "url": "https://scratch.mit.edu/projects/editor/?locale=en",
+    "profile": "scratch-web",
+    "icon_file": "scratch-web.svg"
+  }
+]

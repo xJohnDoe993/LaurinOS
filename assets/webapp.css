@@ -53,8 +53,8 @@
   -moz-context-properties: fill !important;
   fill: currentColor !important;
 }
-#back-button::after { content: "Zurück"; }
-#forward-button::after { content: "Weiter"; }
+#back-button::after { content: var(--paimenos-back-label, "Zurück"); }
+#forward-button::after { content: var(--paimenos-forward-label, "Weiter"); }
 #back-button .toolbarbutton-text, #forward-button .toolbarbutton-text {
   display: none !important;
 }

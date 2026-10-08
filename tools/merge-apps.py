@@ -1,3 +1,8 @@
+from pathlib import Path as _Path
+import sys as _sys
+_release = _Path(__file__).resolve().parents[1]
+_sys.path.insert(0, str(_release / ('app' if (_release / 'app').is_dir() else 'src')))
+from paimenos.i18n import t
 import json, os, shlex, sys
 path = sys.argv[1]
 with open(path + ".new", encoding="utf-8") as handle:
@@ -7,7 +12,7 @@ if os.path.exists(path):
     with open(path, encoding="utf-8") as handle:
         old = json.load(handle)
     if not isinstance(old, list) or not all(isinstance(item, dict) for item in old):
-        raise ValueError("Ungültige Apps-Datei; Sicherung bleibt erhalten.")
+        raise ValueError(t('Ungültige Apps-Datei; Sicherung bleibt erhalten.'))
 existing = {item.get("id"): item for item in old}
 merged = []
 for item in generated:

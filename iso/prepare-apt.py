@@ -1,5 +1,10 @@
 #!/usr/bin/python3
 """Disable installation-media sources and fill missing Debian online components."""
+from pathlib import Path as _Path
+import sys as _sys
+_release = _Path(__file__).resolve().parents[1]
+_sys.path.insert(0, str(_release / ('app' if (_release / 'app').is_dir() else 'src')))
+from paimenos.i18n import t
 import importlib.util
 import os
 from pathlib import Path
@@ -45,7 +50,7 @@ def configure(root=Path('/')):
             if suite in existing:
                 existing[suite].update(areas)
             if uri in signing and signing[uri] != key:
-                raise ValueError('Widersprüchliche Signed-By-Angaben: ' + uri)
+                raise ValueError(t('Widersprüchliche Signed-By-Angaben: ') + uri)
             signing[uri] = key
     blocks = []
     for suite in suites:
@@ -64,5 +69,5 @@ def configure(root=Path('/')):
 
 if __name__ == '__main__':
     if os.geteuid() != 0:
-        raise SystemExit('Bitte mit sudo starten.')
+        raise SystemExit(t('Bitte mit sudo starten.'))
     configure()

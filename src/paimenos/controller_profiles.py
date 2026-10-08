@@ -1,4 +1,5 @@
 """Manuelle Gamepad-Profile und Eingabelernen für das Eltern-Webbackend."""
+from paimenos.i18n import t
 from contextlib import contextmanager
 from paimenos.input_devices import possible_gamepad
 from pathlib import Path
@@ -25,26 +26,26 @@ OFFICIAL = Path('/usr/local/share/paimenos/retroarch-autoconfig')
 # Linux input-event-codes.h; Qt ist für den Webdienst nicht erforderlich.
 EV_KEY, EV_ABS, EV_SYN, SYN_DROPPED = 1, 3, 0, 3
 CONTROLS = [
-    ('up', 'Steuerkreuz: oben', True), ('down', 'Steuerkreuz: unten', True),
-    ('left', 'Steuerkreuz: links', True), ('right', 'Steuerkreuz: rechts', True),
-    ('b', 'Untere Aktionstaste · B / Kreuz · Menü öffnen', True),
-    ('a', 'Rechte Aktionstaste · A / Kreis · Zurück', True),
-    ('y', 'Linke Aktionstaste · Y / Quadrat', False),
-    ('x', 'Obere Aktionstaste · X / Dreieck', False),
-    ('start', 'Start / Options · Farbe und Eltern', True),
+    ('up', t('Steuerkreuz: oben'), True), ('down', t('Steuerkreuz: unten'), True),
+    ('left', t('Steuerkreuz: links'), True), ('right', t('Steuerkreuz: rechts'), True),
+    ('b', t('Untere Aktionstaste · B / Kreuz · Menü öffnen'), True),
+    ('a', t('Rechte Aktionstaste · A / Kreis · Zurück'), True),
+    ('y', t('Linke Aktionstaste · Y / Quadrat'), False),
+    ('x', t('Obere Aktionstaste · X / Dreieck'), False),
+    ('start', t('Start / Options · Farbe und Eltern'), True),
     ('select', 'Select / Back / Share', False),
-    ('l', 'Linke Schultertaste · L / L1 · vorige Kategorie', False),
-    ('r', 'Rechte Schultertaste · R / R1 · nächste Kategorie', False),
-    ('l2', 'Linker Trigger · L2', False), ('r2', 'Rechter Trigger · R2', False),
-    ('l3', 'Linken Stick drücken · L3', False), ('r3', 'Rechten Stick drücken · R3', False),
-    ('l_x_minus', 'Linker Analogstick: links', False),
-    ('l_x_plus', 'Linker Analogstick: rechts', False),
-    ('l_y_minus', 'Linker Analogstick: oben', False),
-    ('l_y_plus', 'Linker Analogstick: unten', False),
-    ('r_x_minus', 'Rechter Analogstick: links', False),
-    ('r_x_plus', 'Rechter Analogstick: rechts', False),
-    ('r_y_minus', 'Rechter Analogstick: oben', False),
-    ('r_y_plus', 'Rechter Analogstick: unten', False),
+    ('l', t('Linke Schultertaste · L / L1 · vorige Kategorie'), False),
+    ('r', t('Rechte Schultertaste · R / R1 · nächste Kategorie'), False),
+    ('l2', t('Linker Trigger · L2'), False), ('r2', t('Rechter Trigger · R2'), False),
+    ('l3', t('Linken Stick drücken · L3'), False), ('r3', t('Rechten Stick drücken · R3'), False),
+    ('l_x_minus', t('Linker Analogstick: links'), False),
+    ('l_x_plus', t('Linker Analogstick: rechts'), False),
+    ('l_y_minus', t('Linker Analogstick: oben'), False),
+    ('l_y_plus', t('Linker Analogstick: unten'), False),
+    ('r_x_minus', t('Rechter Analogstick: links'), False),
+    ('r_x_plus', t('Rechter Analogstick: rechts'), False),
+    ('r_y_minus', t('Rechter Analogstick: oben'), False),
+    ('r_y_plus', t('Rechter Analogstick: unten'), False),
 ]
 CONTROL_IDS = {key for key, _, _ in CONTROLS}
 REQUIRED = {key for key, _, required in CONTROLS if required}
@@ -95,9 +96,9 @@ def read_profiles():
     except FileNotFoundError:
         return {}
     except (OSError, ValueError) as exc:
-        raise ProfileError('Controller-Profile konnten nicht gelesen werden.') from exc
+        raise ProfileError(t('Controller-Profile konnten nicht gelesen werden.')) from exc
     if not isinstance(data, dict) or data.get('version') != 1 or not isinstance(data.get('profiles'), dict):
-        raise ProfileError('Controller-Profilformat ist ungültig.')
+        raise ProfileError(t('Controller-Profilformat ist ungültig.'))
     return data['profiles']
 
 
@@ -128,7 +129,7 @@ def calibration_active():
 
 def devices():
     if evdev is None:
-        raise ProfileError('python3-evdev fehlt. PaimenOS-Setup erneut ausführen.')
+        raise ProfileError(t('python3-evdev fehlt. PaimenOS-Setup erneut ausführen.'))
     profiles = read_profiles()
     result = []
     for path in sorted(glob.glob('/dev/input/event*')):
@@ -155,34 +156,34 @@ def status():
         {'id': key, 'name': value['name'], 'vendor': value['vendor'],
          'product': value['product'], 'count': len(value['bindings'])}
         for key, value in read_profiles().items()],
-        'controls': [{'id': key, 'label': label, 'required': required}
+        'controls': [{'id': key, 'label': t(label), 'required': required}
                      for key, label, required in CONTROLS]}
 
 
 def validate_bindings(info, bindings):
     if not REQUIRED.issubset(bindings):
-        raise ProfileError('Bitte Steuerkreuz, untere/rechte Aktionstaste und Start zuordnen.')
+        raise ProfileError(t('Bitte Steuerkreuz, untere/rechte Aktionstaste und Start zuordnen.'))
     seen = {}
     for control, binding in bindings.items():
         if control not in CONTROL_IDS or not isinstance(binding, dict):
-            raise ProfileError('Unbekannte Tastenbelegung.')
+            raise ProfileError(t('Unbekannte Tastenbelegung.'))
         kind, code = binding.get('type'), binding.get('code')
         if type(code) is not int:
-            raise ProfileError('Ungültiger Eingabecode.')
+            raise ProfileError(t('Ungültiger Eingabecode.'))
         if kind == 'key':
             if code not in info['keys'] or control.startswith(('l_x_', 'l_y_', 'r_x_', 'r_y_')):
-                raise ProfileError('Diese Eingabe passt nicht zum Controller.')
+                raise ProfileError(t('Diese Eingabe passt nicht zum Controller.'))
             signature = (kind, code)
         elif kind == 'axis':
             if str(code) not in info['axes'] or binding.get('sign') not in (-1, 1):
-                raise ProfileError('Ungültige Achsenbelegung.')
+                raise ProfileError(t('Ungültige Achsenbelegung.'))
             signature = (kind, code, binding['sign'])
         else:
-            raise ProfileError('Unbekannter Eingabetyp.')
+            raise ProfileError(t('Unbekannter Eingabetyp.'))
         # Ein Stick darf zusätzlich zum Steuerkreuz als Analogstick zugeordnet sein.
         if not control.startswith(('l_x_', 'l_y_', 'r_x_', 'r_y_')):
             if signature in seen:
-                raise ProfileError('Dieselbe Eingabe ist mehrfach zugeordnet: ' + seen[signature] + ' / ' + control)
+                raise ProfileError(t('Dieselbe Eingabe ist mehrfach zugeordnet: ') + seen[signature] + ' / ' + control)
             seen[signature] = control
 
 
@@ -208,16 +209,16 @@ def retroarch_profile(info):
         kind, code = binding['type'], binding['code']
         if kind == 'key':
             if code not in keys:
-                raise ProfileError('Dieser Controller hat mehr Tasten als RetroArch unterstützt.')
+                raise ProfileError(t('Dieser Controller hat mehr Tasten als RetroArch unterstützt.'))
             suffix, value = 'btn', str(keys[code])
         elif 16 <= code <= 23:
             if control.startswith(('l_x_', 'l_y_', 'r_x_', 'r_y_')):
-                raise ProfileError('Für Analogsticks bitte einen Stick verwenden, kein Steuerkreuz.')
+                raise ProfileError(t('Für Analogsticks bitte einen Stick verwenden, kein Steuerkreuz.'))
             direction = ('left' if binding['sign'] < 0 else 'right') if code % 2 == 0 else ('up' if binding['sign'] < 0 else 'down')
             suffix, value = 'btn', 'h' + str((code - 16) // 2) + direction
         else:
             if code not in axes:
-                raise ProfileError('Diese Achse wird von RetroArch nicht unterstützt.')
+                raise ProfileError(t('Diese Achse wird von RetroArch nicht unterstützt.'))
             suffix, value = 'axis', ('+' if binding['sign'] > 0 else '-') + str(axes[code])
         lines.append('input_' + control + '_' + suffix + ' = ' + quote(value))
     return '\n'.join(lines) + '\n'
@@ -241,7 +242,7 @@ def reset_profile(key):
     with profile_lock():
         profiles = read_profiles()
         if key not in profiles:
-            raise ProfileError('Dieses eigene Profil wurde nicht gefunden.')
+            raise ProfileError(t('Dieses eigene Profil wurde nicht gefunden.'))
         del profiles[key]
         atomic_json(ROOT / 'profiles.json', {'version': 1, 'profiles': profiles})
 
@@ -269,7 +270,7 @@ def effective_autoconfig():
                     shutil.copyfile(path, stage / 'udev' / path.name)
             for key, info in profiles.items():
                 if not re.fullmatch(r'[0-9a-f]{24}', key):
-                    raise ProfileError('Ungültige Controller-Profilkennung.')
+                    raise ProfileError(t('Ungültige Controller-Profilkennung.'))
                 (stage / 'udev' / ('paimenos-' + key + '.cfg')).write_text(retroarch_profile(info))
             if destination.exists():
                 shutil.rmtree(destination)
@@ -282,8 +283,8 @@ def effective_autoconfig():
 
 def binding_label(binding):
     if binding['type'] == 'key':
-        return 'Taste ' + str(binding['code'])
-    return 'Achse ' + str(binding['code']) + (' +' if binding['sign'] > 0 else ' −')
+        return t('Taste ') + str(binding['code'])
+    return t('Achse ') + str(binding['code']) + (' +' if binding['sign'] > 0 else ' −')
 
 
 def axis_value(info, value):
@@ -304,10 +305,10 @@ class Calibration:
     def checked(self, token, owner):
         state = self.current
         if not state or not secrets.compare_digest(state['token'], token) or state['owner'] != owner:
-            raise ProfileError('Konfiguration ist abgelaufen. Bitte erneut öffnen.')
+            raise ProfileError(t('Konfiguration ist abgelaufen. Bitte erneut öffnen.'))
         if time.monotonic() - state['touched'] > 120:
             self.finish(state)
-            raise ProfileError('Konfiguration ist abgelaufen. Bitte erneut öffnen.')
+            raise ProfileError(t('Konfiguration ist abgelaufen. Bitte erneut öffnen.'))
         self.touch(state)
         return state
 
@@ -321,13 +322,13 @@ class Calibration:
         with self.lock:
             if self.current:
                 if time.monotonic() - self.current['touched'] <= 120 and self.current['owner'] != owner:
-                    raise ProfileError('Ein anderer Elternbereich richtet gerade einen Controller ein.')
+                    raise ProfileError(t('Ein anderer Elternbereich richtet gerade einen Controller ein.'))
                 if self.read_lock.locked():
-                    raise ProfileError('Bitte zuerst die laufende Eingabe abbrechen.')
+                    raise ProfileError(t('Bitte zuerst die laufende Eingabe abbrechen.'))
                 self.finish(self.current)
             info = next((item for item in devices() if item['device'] == device_id), None)
             if info is None:
-                raise ProfileError('Controller ist nicht mehr verbunden. Liste aktualisieren.')
+                raise ProfileError(t('Controller ist nicht mehr verbunden. Liste aktualisieren.'))
             bindings = read_profiles().get(info['id'], {}).get('bindings', {})
             state = {'token': secrets.token_hex(24), 'owner': owner, 'info': info,
                      'bindings': dict(bindings), 'cancel': threading.Event()}
@@ -349,32 +350,32 @@ class Calibration:
                 return {'cancelled': True}
             elif action in ('save', 'skip', 'clear'):
                 if self.read_lock.locked():
-                    raise ProfileError('Bitte die laufende Eingabe zuerst beenden.')
+                    raise ProfileError(t('Bitte die laufende Eingabe zuerst beenden.'))
                 if action != 'save':
                     if control not in CONTROL_IDS or action == 'skip' and control in REQUIRED:
-                        raise ProfileError('Diese Pflichtbelegung kann nicht übersprungen werden.')
+                        raise ProfileError(t('Diese Pflichtbelegung kann nicht übersprungen werden.'))
                     state['bindings'].pop(control, None)
                 else:
                     save_profile(state['info'], state['bindings'])
                     self.finish(state)
                     return {'saved': True}
             elif action != 'heartbeat':
-                raise ProfileError('Unbekannte Controller-Aktion.')
+                raise ProfileError(t('Unbekannte Controller-Aktion.'))
             return self.snapshot(state)
 
     def capture(self, token, owner, control, timeout=10):
         if control not in CONTROL_IDS:
-            raise ProfileError('Unbekannte Controller-Taste.')
+            raise ProfileError(t('Unbekannte Controller-Taste.'))
         with self.lock:
             state = self.checked(token, owner)
             if not self.read_lock.acquire(blocking=False):
-                raise ProfileError('Es wird bereits eine Controller-Eingabe gelesen.')
+                raise ProfileError(t('Es wird bereits eine Controller-Eingabe gelesen.'))
             state['cancel'] = threading.Event()
         device = None
         try:
             device = evdev.InputDevice(state['info']['device'])
             if describe(device) != {k: v for k, v in state['info'].items() if k != 'configured'}:
-                raise ProfileError('Controller hat sich geändert. Konfiguration erneut öffnen.')
+                raise ProfileError(t('Controller hat sich geändert. Konfiguration erneut öffnen.'))
             # Bereits gedrückte Tasten und alte Ereignisse nicht als neue Zuordnung werten.
             list(device.read()) if select.select([device.fd], [], [], 0)[0] else None
             held = set(device.active_keys())
@@ -396,7 +397,7 @@ class Calibration:
                     continue
                 for event in events:
                     if event.type == EV_SYN and event.code == SYN_DROPPED:
-                        raise ProfileError('Eingaben gingen verloren. Alle Tasten loslassen und erneut versuchen.')
+                        raise ProfileError(t('Eingaben gingen verloren. Alle Tasten loslassen und erneut versuchen.'))
                     binding = None
                     if event.type == EV_KEY and event.code in state['info']['keys']:
                         if event.value == 0:
@@ -425,12 +426,12 @@ class Calibration:
                             candidate = dict(state['bindings'], **{control: binding})
                             for key, value in state['bindings'].items():
                                 if key != control and value == binding and not key.startswith(('l_x_', 'l_y_', 'r_x_', 'r_y_')) and not control.startswith(('l_x_', 'l_y_', 'r_x_', 'r_y_')):
-                                    raise ProfileError('Diese Eingabe ist bereits „' + dict((k, label) for k, label, _ in CONTROLS)[key] + '“ zugeordnet.')
+                                    raise ProfileError(t('Diese Eingabe ist bereits „') + dict((k, label) for k, label, _ in CONTROLS)[key] + t('“ zugeordnet.'))
                             state['bindings'] = candidate
                             return self.snapshot(state)
             return {'timeout': True}
         except OSError as exc:
-            raise ProfileError('Controller getrennt oder nicht lesbar. Wieder verbinden und erneut öffnen.') from exc
+            raise ProfileError(t('Controller getrennt oder nicht lesbar. Wieder verbinden und erneut öffnen.')) from exc
         finally:
             if device is not None:
                 device.close()

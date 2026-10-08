@@ -1,6 +1,7 @@
 """Exercise the post-install loop with a fake installer, without system changes."""
 from pathlib import Path
 import subprocess
+import shutil
 import tempfile
 import unittest
 
@@ -15,6 +16,11 @@ class SetupLoopTests(unittest.TestCase):
             current, calls = base / 'current', base / 'calls'
             pending.touch()
             (base / 'iso').mkdir()
+            shutil.copytree(ROOT / 'installer', base / 'installer')
+            shutil.copytree(ROOT / 'src', base / 'src')
+            shutil.copytree(ROOT / 'assets/i18n', base / 'assets/i18n')
+            (base / 'tools').mkdir()
+            shutil.copy2(ROOT / 'tools/language.py', base / 'tools/language.py')
             (base / 'iso/prepare-apt.py').write_text('# test double: no real APT changes\n')
             installer = base / 'install.sh'
             installer.write_text(f'''#!/bin/bash

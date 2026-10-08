@@ -1,5 +1,10 @@
 #!/usr/bin/python3
 """Keep working DNS during resolver installation and validate family DNS changes."""
+from pathlib import Path as _Path
+import sys as _sys
+_release = _Path(__file__).resolve().parents[1]
+_sys.path.insert(0, str(_release / ('app' if (_release / 'app').is_dir() else 'src')))
+from paimenos.i18n import t
 import argparse
 import ipaddress
 import json
@@ -62,7 +67,7 @@ class DNSSetup:
     def prepare(self):
         self.command('resolvectl', 'flush-caches')
         if not self.working():
-            raise ValueError('DNS funktioniert bereits vor der Paketinstallation nicht. Erst die Netzwerk-/DNS-Verbindung reparieren.')
+            raise ValueError(t('DNS funktioniert bereits vor der Paketinstallation nicht. Erst die Netzwerk-/DNS-Verbindung reparieren.'))
         # APT's resolved postinst may replace resolv.conf before the next module.
         state = {'resolv': self.snapshot(self.resolv), 'bootstrap': self.snapshot(self.bootstrap)}
         self.write(self.state, json.dumps(state), 0o600)
@@ -97,24 +102,24 @@ class DNSSetup:
             return
         self.restore(self.resolv, state['resolv'])
         if not self.working():
-            raise ValueError('DNS nach Paketinstallation weiterhin defekt. Netzwerkverbindung prüfen; das vorherige resolv.conf wurde wiederhergestellt.')
-        print('Hinweis: DNS-Übernahme durch das Paket fehlgeschlagen; vorherige Namensauflösung wiederhergestellt.')
+            raise ValueError(t('DNS nach Paketinstallation weiterhin defekt. Netzwerkverbindung prüfen; das vorherige resolv.conf wurde wiederhergestellt.'))
+        print(t('Hinweis: DNS-Übernahme durch das Paket fehlgeschlagen; vorherige Namensauflösung wiederhergestellt.'))
 
     def configure_family(self, source):
         if not self.working():
-            raise ValueError('DNS ist vor der Familien-DNS-Einrichtung bereits defekt. Erst die Verbindung reparieren.')
+            raise ValueError(t('DNS ist vor der Familien-DNS-Einrichtung bereits defekt. Erst die Verbindung reparieren.'))
         old = [(path, self.snapshot(path)) for path in (self.resolv, self.family, self.bootstrap)]
         try:
             self.write(self.family, source.read_text())
             self.bootstrap.unlink(missing_ok=True)
             if not self.command('systemctl', 'enable', 'systemd-resolved.service') or not self.command('systemctl', 'restart', 'systemd-resolved.service'):
-                raise ValueError('DNS-Dienst konnte nicht gestartet werden.')
+                raise ValueError(t('DNS-Dienst konnte nicht gestartet werden.'))
             stub = self.root / 'run/systemd/resolve/stub-resolv.conf'
             if not stub.is_file():
-                raise ValueError('Lokale DNS-Resolver-Datei fehlt.')
+                raise ValueError(t('Lokale DNS-Resolver-Datei fehlt.'))
             self.restore(self.resolv, {'link': '/run/systemd/resolve/stub-resolv.conf'})
             if not self.command('resolvectl', 'flush-caches') or not self.working():
-                raise ValueError('Namensauflösung mit der neuen DNS-Konfiguration fehlgeschlagen.')
+                raise ValueError(t('Namensauflösung mit der neuen DNS-Konfiguration fehlgeschlagen.'))
         except BaseException as exc:
             for path, record in old: self.restore(path, record)
             self.command('systemctl', 'restart', 'systemd-resolved.service')
@@ -122,8 +127,8 @@ class DNSSetup:
             if not isinstance(exc, Exception):
                 raise
             if not self.working():
-                raise ValueError('DNS-Einrichtung fehlgeschlagen; vorherige Dateien wiederhergestellt, Verbindung weiterhin gestört: ' + str(exc)) from exc
-            print('HINWEIS: Neue DNS-Konfiguration nicht nutzbar; funktionierende vorherige DNS-Konfiguration beibehalten. Familien-DNS wurde nicht aktiviert.')
+                raise ValueError(t('DNS-Einrichtung fehlgeschlagen; vorherige Dateien wiederhergestellt, Verbindung weiterhin gestört: ') + str(exc)) from exc
+            print(t('HINWEIS: Neue DNS-Konfiguration nicht nutzbar; funktionierende vorherige DNS-Konfiguration beibehalten. Familien-DNS wurde nicht aktiviert.'))
 
 
 def main():
@@ -131,7 +136,7 @@ def main():
     parser.add_argument('action', choices=['prepare', 'recover', 'family'])
     parser.add_argument('source', nargs='?', type=Path)
     args = parser.parse_args()
-    if os.geteuid() != 0: parser.error('Bitte mit sudo ausführen.')
+    if os.geteuid() != 0: parser.error(t('Bitte mit sudo ausführen.'))
     setup = DNSSetup()
     # live-build has no running resolver; preserve its build-time resolv.conf.
     if os.environ.get('PAIMENOS_IMAGE_BUILD') == '1':
@@ -140,17 +145,17 @@ def main():
         elif args.action == 'recover':
             setup.restore(setup.resolv, json.loads(setup.state.read_text())['resolv'])
         else:
-            if args.source is None: parser.error('DNS-Konfigurationsdatei fehlt.')
+            if args.source is None: parser.error(t('DNS-Konfigurationsdatei fehlt.'))
             setup.write(setup.family, args.source.read_text())
         return
     if args.action == 'prepare': setup.prepare()
     elif args.action == 'recover': setup.recover()
     else:
-        if args.source is None: parser.error('DNS-Konfigurationsdatei fehlt.')
+        if args.source is None: parser.error(t('DNS-Konfigurationsdatei fehlt.'))
         setup.configure_family(args.source)
 
 
 if __name__ == '__main__':
     try: main()
     except (OSError, ValueError) as exc:
-        raise SystemExit('FEHLER: ' + str(exc))
+        raise SystemExit(t('FEHLER: ') + str(exc))

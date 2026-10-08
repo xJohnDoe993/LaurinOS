@@ -1,4 +1,5 @@
-CATEGORIES = [('all', 'Alles'), ('webapps', 'Webapps'), ('games', 'Spiele'), ('productive', 'Produktiv')]
+from paimenos.i18n import t
+CATEGORIES = [('all', t('Alles')), ('webapps', 'Webapps'), ('games', t('Spiele')), ('productive', t('Produktiv'))]
 GAME_IDS = { 'gcompris', 'supertux', 'supertuxkart', 'minetest', 'luanti', 'hedgewars', 'frozen-bubble', 'pingus', 'secret-maryo-chronicles'}
 def app_category(item):
     if item.get('id') == 'poweroff':

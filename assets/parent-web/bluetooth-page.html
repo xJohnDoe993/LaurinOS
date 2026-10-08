@@ -1,12 +1,12 @@
-<div class="pagehead"><div class="eyebrow">Controller, Kopfhörer & mehr</div><h1>Bluetooth-Geräte</h1><p class="muted">Gerät einschalten und dessen Kopplungstaste gedrückt halten, bis die Anzeige blinkt. Dann suchen und das passende Gerät koppeln.</p><p class="hint">Nach dem Verbinden: Steuerkreuz oder linker Stick zum Wählen, Bestätigungstaste zum Öffnen. Start öffnet Farbe / Eltern, die rechte Taste geht zurück. Der Elternbereich bleibt PIN-geschützt.</p></div>
+<div class="pagehead"><div class="eyebrow">{{ t('Controller, Kopfhörer & mehr') }}</div><h1>{{ t('Bluetooth-Geräte') }}</h1><p class="muted">{{ t('Gerät einschalten und dessen Kopplungstaste gedrückt halten, bis die Anzeige blinkt. Dann suchen und das passende Gerät koppeln.') }}</p><p class="hint">{{ t('Nach dem Verbinden: Steuerkreuz oder linker Stick zum Wählen, Bestätigungstaste zum Öffnen. Start öffnet Farbe / Eltern, die rechte Taste geht zurück. Der Elternbereich bleibt PIN-geschützt.') }}</p></div>
 <style>#bt-saved h3,#bt-found h3,#bt-prompt-title,#bt-notice,#bt-operation-text{overflow-wrap:anywhere}</style>
-<section class="panel"><div class="row"><div><h2>Bluetooth am Laptop</h2><p id="bt-adapter-status" class="muted">Verbindung zur Bluetooth-Verwaltung wird hergestellt …</p></div><div class="actions"><label class="small" for="bt-adapter">Adapter</label><select id="bt-adapter" style="width:auto;max-width:100%" aria-label="Bluetooth-Adapter"></select><button id="bt-power" class="secondary" disabled>Bluetooth einschalten</button><button id="bt-scan" disabled>Geräte suchen</button></div></div><p class="hint">Die Suche endet nach 30 Sekunden. Der Laptop muss zum Koppeln eines Controllers nicht dauerhaft sichtbar sein.</p></section>
+<section class="panel"><div class="row"><div><h2>{{ t('Bluetooth am Laptop') }}</h2><p id="bt-adapter-status" class="muted">{{ t('Verbindung zur Bluetooth-Verwaltung wird hergestellt …') }}</p></div><div class="actions"><label class="small" for="bt-adapter">Adapter</label><select id="bt-adapter" style="width:auto;max-width:100%" aria-label="{{ t('Bluetooth-Adapter') }}"></select><button id="bt-power" class="secondary" disabled>{{ t('Bluetooth einschalten') }}</button><button id="bt-scan" disabled>{{ t('Geräte suchen') }}</button></div></div><p class="hint">{{ t('Die Suche endet nach 30 Sekunden. Der Laptop muss zum Koppeln eines Controllers nicht dauerhaft sichtbar sein.') }}</p></section>
 <div id="bt-notice" class="flash" role="status" aria-live="polite" hidden></div>
-<section id="bt-prompt" class="panel" aria-labelledby="bt-prompt-title" hidden><div class="eyebrow">Kopplung bestätigen</div><h2 id="bt-prompt-title">Bluetooth-Anfrage</h2><p id="bt-prompt-text"></p><p id="bt-code" class="metric" style="letter-spacing:5px"></p><div id="bt-input-wrap"><label for="bt-input">Code / PIN des Geräts</label><input id="bt-input" autocomplete="off" maxlength="16"></div><div class="actions"><button id="bt-accept">Bestätigen</button><button id="bt-reject" class="danger">Abbrechen</button></div><p class="hint">Nur bestätigen, wenn dies dein ausgewähltes Gerät ist. Die Anfrage läuft automatisch ab.</p></section>
-<section id="bt-operation" class="panel" hidden><div class="row"><p id="bt-operation-text" role="status"></p><button id="bt-cancel" class="secondary">Vorgang abbrechen</button></div></section>
-<section><h2>Gespeicherte Geräte</h2><p class="muted">Gekoppelte Geräte bleiben gespeichert. Einschalten und bei Bedarf erneut verbinden.</p><div id="bt-saved" class="grid"></div></section>
-<section style="margin-top:28px"><h2>Gefundene Geräte</h2><p class="muted">Bei mehreren gleichnamigen Geräten hilft die Bluetooth-Adresse beim Unterscheiden.</p><div id="bt-found" class="grid"></div></section>
-<noscript><p class="flash error">Für die Bluetooth-Verwaltung bitte JavaScript im Browser aktivieren.</p></noscript>
+<section id="bt-prompt" class="panel" aria-labelledby="bt-prompt-title" hidden><div class="eyebrow">{{ t('Kopplung bestätigen') }}</div><h2 id="bt-prompt-title">{{ t('Bluetooth-Anfrage') }}</h2><p id="bt-prompt-text"></p><p id="bt-code" class="metric" style="letter-spacing:5px"></p><div id="bt-input-wrap"><label for="bt-input">{{ t('Code / PIN des Geräts') }}</label><input id="bt-input" autocomplete="off" maxlength="16"></div><div class="actions"><button id="bt-accept">{{ t('Bestätigen') }}</button><button id="bt-reject" class="danger">{{ t('Abbrechen') }}</button></div><p class="hint">{{ t('Nur bestätigen, wenn dies dein ausgewähltes Gerät ist. Die Anfrage läuft automatisch ab.') }}</p></section>
+<section id="bt-operation" class="panel" hidden><div class="row"><p id="bt-operation-text" role="status"></p><button id="bt-cancel" class="secondary">{{ t('Vorgang abbrechen') }}</button></div></section>
+<section><h2>{{ t('Gespeicherte Geräte') }}</h2><p class="muted">{{ t('Gekoppelte Geräte bleiben gespeichert. Einschalten und bei Bedarf erneut verbinden.') }}</p><div id="bt-saved" class="grid"></div></section>
+<section style="margin-top:28px"><h2>{{ t('Gefundene Geräte') }}</h2><p class="muted">{{ t('Bei mehreren gleichnamigen Geräten hilft die Bluetooth-Adresse beim Unterscheiden.') }}</p><div id="bt-found" class="grid"></div></section>
+<noscript><p class="flash error">{{ t('Für die Bluetooth-Verwaltung bitte JavaScript im Browser aktivieren.') }}</p></noscript>
 <script>
 (() => {
   const statusUrl = {{ url_for('bluetooth_status')|tojson }};
@@ -23,12 +23,12 @@
     const response = await fetch(url, {credentials: 'same-origin', cache: 'no-store', ...options});
     if (response.status === 401 || response.redirected) {
       stopped = true;
-      throw new Error('Eltern-Sitzung abgelaufen. Bitte neu anmelden.');
+      throw new Error(PaimenTranslate('Eltern-Sitzung abgelaufen. Bitte neu anmelden.'));
     }
     let data;
     try { data = await response.json(); }
-    catch { throw new Error('Anfrage nicht möglich. Bitte Seite neu laden.'); }
-    if (!response.ok) throw new Error(data.error || 'Bluetooth-Anfrage fehlgeschlagen.');
+    catch { throw new Error(PaimenTranslate('Anfrage nicht möglich. Bitte Seite neu laden.')); }
+    if (!response.ok) throw new Error(data.error || PaimenTranslate('Bluetooth-Anfrage fehlgeschlagen.'));
     return data;
   }
   async function act(action, values = {}) {
@@ -72,7 +72,7 @@
     const button = element('button', text, className);
     button.disabled = sending || !!state.operation;
     button.addEventListener('click', () => {
-      if (action === 'remove' && !confirm('„' + device.name + '“ entfernen? Danach muss das Gerät erneut gekoppelt werden.')) return;
+      if (action === 'remove' && !confirm('„' + device.name + PaimenTranslate('“ entfernen? Danach muss das Gerät erneut gekoppelt werden.'))) return;
       act(action, {device: device.path});
     });
     return button;
@@ -81,13 +81,13 @@
     const card = element('article', '', 'card');
     const row = element('div', '', 'row');
     row.append(deviceIcon(device.icon),
-      element('span', device.connected ? 'Verbunden' : device.paired ? 'Gekoppelt' : 'Gefunden', 'badge ' + (device.connected ? 'on' : 'off')));
+      element('span', device.connected ? PaimenTranslate('Verbunden') : device.paired ? PaimenTranslate('Gekoppelt') : PaimenTranslate('Gefunden'), 'badge ' + (device.connected ? 'on' : 'off')));
     card.append(row, element('h3', device.name), element('div', device.address, 'muted small'));
     const actions = element('div', '', 'actions');
-    if (!device.paired) actions.append(actionButton('Koppeln & verbinden', 'pair', device, ''));
+    if (!device.paired) actions.append(actionButton(PaimenTranslate('Koppeln & verbinden'), 'pair', device, ''));
     else {
-      actions.append(actionButton(device.connected ? 'Trennen' : 'Verbinden', device.connected ? 'disconnect' : 'connect', device, device.connected ? 'secondary' : ''));
-      actions.append(actionButton('Entfernen', 'remove', device, 'danger'));
+      actions.append(actionButton(device.connected ? PaimenTranslate('Trennen') : PaimenTranslate('Verbinden'), device.connected ? 'disconnect' : 'connect', device, device.connected ? 'secondary' : ''));
+      actions.append(actionButton(PaimenTranslate('Entfernen'), 'remove', device, 'danger'));
     }
     card.append(actions);
     return card;
@@ -111,19 +111,19 @@
     select.disabled = busy || !adapter || !!data.scan;
     $('bt-power').disabled = busy || !adapter;
     $('bt-scan').disabled = busy || !adapter;
-    $('bt-power').textContent = adapter?.powered ? 'Bluetooth ausschalten' : 'Bluetooth einschalten';
-    $('bt-scan').textContent = data.scan ? 'Suche beenden' : 'Geräte suchen';
-    $('bt-adapter-status').textContent = !data.available ? 'Bluetooth-Dienst nicht verfügbar.' :
-      !adapter ? 'Kein Bluetooth-Adapter gefunden. Bei Bedarf USB-Bluetooth-Adapter anschließen.' :
-      !adapter.powered ? 'Bluetooth ist ausgeschaltet.' : data.scan ? 'Suche läuft … Gerät in den Kopplungsmodus versetzen.' : 'Bluetooth ist eingeschaltet.';
+    $('bt-power').textContent = adapter?.powered ? PaimenTranslate('Bluetooth ausschalten') : PaimenTranslate('Bluetooth einschalten');
+    $('bt-scan').textContent = data.scan ? PaimenTranslate('Suche beenden') : PaimenTranslate('Geräte suchen');
+    $('bt-adapter-status').textContent = !data.available ? PaimenTranslate('Bluetooth-Dienst nicht verfügbar.') :
+      !adapter ? PaimenTranslate('Kein Bluetooth-Adapter gefunden. Bei Bedarf USB-Bluetooth-Adapter anschließen.') :
+      !adapter.powered ? PaimenTranslate('Bluetooth ist ausgeschaltet.') : data.scan ? PaimenTranslate('Suche läuft … Gerät in den Kopplungsmodus versetzen.') : PaimenTranslate('Bluetooth ist eingeschaltet.');
     const deviceKey = JSON.stringify([select.value, data.devices, busy]);
     if (deviceKey !== deviceSignature) {
       deviceSignature = deviceKey;
       ['bt-saved', 'bt-found'].forEach(id => clear($(id)));
       data.devices.filter(device => device.adapter === select.value).forEach(device =>
         $(device.paired ? 'bt-saved' : 'bt-found').append(deviceCard(device)));
-      if (!$('bt-saved').children.length) $('bt-saved').append(element('p', 'Noch keine Geräte gekoppelt.', 'empty'));
-      if (!$('bt-found').children.length) $('bt-found').append(element('p', data.scan ? 'Geräte werden gesucht …' : '„Geräte suchen“ starten und Kopplungsmodus am Gerät aktivieren.', 'empty'));
+      if (!$('bt-saved').children.length) $('bt-saved').append(element('p', PaimenTranslate('Noch keine Geräte gekoppelt.'), 'empty'));
+      if (!$('bt-found').children.length) $('bt-found').append(element('p', data.scan ? PaimenTranslate('Geräte werden gesucht …') : PaimenTranslate('„Geräte suchen“ starten und Kopplungsmodus am Gerät aktivieren.'), 'empty'));
     }
     const prompt = data.prompt;
     $('bt-prompt').hidden = !prompt;
@@ -135,9 +135,9 @@
       $('bt-accept').disabled = sending;
       $('bt-reject').disabled = sending;
       $('bt-code').textContent = prompt.code;
-      $('bt-prompt-text').textContent = input ? 'PIN bzw. Code des Bluetooth-Geräts eingeben (laut dessen Anleitung).' :
-        prompt.kind === 'confirm' ? 'Stimmt dieser Code mit der Anzeige auf dem anderen Gerät überein?' :
-        prompt.kind === 'display' ? 'Diesen Code auf der Bluetooth-Tastatur eingeben und mit Enter bestätigen.' : 'Kopplung mit diesem Gerät erlauben?';
+      $('bt-prompt-text').textContent = input ? PaimenTranslate('PIN bzw. Code des Bluetooth-Geräts eingeben (laut dessen Anleitung).') :
+        prompt.kind === 'confirm' ? PaimenTranslate('Stimmt dieser Code mit der Anzeige auf dem anderen Gerät überein?') :
+        prompt.kind === 'display' ? PaimenTranslate('Diesen Code auf der Bluetooth-Tastatur eingeben und mit Enter bestätigen.') : PaimenTranslate('Kopplung mit diesem Gerät erlauben?');
       if (promptId !== prompt.id) {
         promptId = prompt.id;
         $('bt-input').value = '';
@@ -149,7 +149,7 @@
     } else { promptId = ''; }
     $('bt-operation').hidden = !data.operation || !!prompt;
     if (data.operation) $('bt-operation-text').textContent = data.operation.name +
-      ({'pair':' wird gekoppelt …','connect':' wird verbunden …','scan':' sucht Geräte …','power_on':' wird eingeschaltet …','power_off':' wird ausgeschaltet …','disconnect':' wird getrennt …','remove':' wird entfernt …'}[data.operation.action] || ' wird eingerichtet …');
+      ({'pair':PaimenTranslate(' wird gekoppelt …'),'connect':PaimenTranslate(' wird verbunden …'),'scan':PaimenTranslate(' sucht Geräte …'),'power_on':PaimenTranslate(' wird eingeschaltet …'),'power_off':PaimenTranslate(' wird ausgeschaltet …'),'disconnect':PaimenTranslate(' wird getrennt …'),'remove':PaimenTranslate(' wird entfernt …')}[data.operation.action] || PaimenTranslate(' wird eingerichtet …'));
     $('bt-cancel').disabled = sending;
     if (updateNotice) notice(data.error || data.message, !!data.error);
   }
@@ -165,7 +165,7 @@
   $('bt-power').addEventListener('click', () => {
     const adapter = state.adapters.find(a => a.path === $('bt-adapter').value);
     if (adapter?.powered && state.devices.some(d => d.adapter === adapter.path && d.connected) &&
-        !confirm('Bluetooth ausschalten? Verbundene Controller und Kopfhörer werden getrennt.')) return;
+        !confirm(PaimenTranslate('Bluetooth ausschalten? Verbundene Controller und Kopfhörer werden getrennt.'))) return;
     act(adapter?.powered ? 'power_off' : 'power_on', {adapter: $('bt-adapter').value});
   });
   $('bt-scan').addEventListener('click', () => act(state.scan ? 'stop_scan' : 'scan', {adapter: $('bt-adapter').value}));

@@ -4,37 +4,37 @@
 # ---------------------------------------------------------------------------
 echo
 echo "============================================================"
-echo " NATIVE APP- & SPIELE-AUSWAHL"
+echo "$(paimenos_text ' NATIVE APP- & SPIELE-AUSWAHL')"
 echo "============================================================"
 echo
-echo "Wähle die Programme, die installiert/aktualisiert werden sollen:"
-echo "Eingabe-Beispiel: 1 2 6 7 (oder '13' für keine weiteren)"
+echo "$(paimenos_text 'Wähle die Programme, die installiert/aktualisiert werden sollen:')"
+echo "$(paimenos_text 'Eingabe-Beispiel: 1 2 6 7 (oder '"'"'13'"'"' für keine weiteren)')"
 echo
 echo "  1) Scratch          2) Tux Paint        3) LibreOffice"
 echo "  4) GIMP             5) Geany            6) Luanti / Minetest"
 echo "  7) SuperTuxKart     8) SuperTux         9) GCompris"
 echo " 10) Tux Math        11) VLC             12) Terminal"
-echo " 13) Überspringen / Keine"
+echo "$(paimenos_text ' 13) Überspringen / Keine')"
 echo
 
 APP_SELECTION="${PAIMENOS_APPS:-}"
-if [[ -z "$APP_SELECTION" ]]; then read -r -p "Auswahl: " APP_SELECTION; fi
+if [[ -z "$APP_SELECTION" ]]; then read -r -p "$(paimenos_text 'Auswahl: ')" APP_SELECTION; fi
 
 APP_SOURCE="${PAIMENOS_APP_SOURCE:-}"
 if [[ -z "$APP_SOURCE" ]]; then
-    echo "Paketquelle: 1 = stabile Flathub-Apps (empfohlen), 2 = nur Debian-Pakete"
-    echo "Flathub: Luanti, GCompris, SuperTuxKart, GIMP und LibreOffice."
-    echo "Zusätzliche Laufzeitpakete benötigen beim ersten Mal mehr Download und Speicher."
-    read -r -p "Paketquelle [1]: " SOURCE_SELECTION
+    echo "$(paimenos_text 'Paketquelle: 1 = stabile Flathub-Apps (empfohlen), 2 = nur Debian-Pakete')"
+    echo "$(paimenos_text 'Flathub: Luanti, GCompris, SuperTuxKart, GIMP und LibreOffice.')"
+    echo "$(paimenos_text 'Zusätzliche Laufzeitpakete benötigen beim ersten Mal mehr Download und Speicher.')"
+    read -r -p "$(paimenos_text 'Paketquelle [1]: ')" SOURCE_SELECTION
     case "$SOURCE_SELECTION" in
         ''|1) APP_SOURCE=flathub ;;
         2) APP_SOURCE=debian ;;
-        *) echo "Ungültige Paketquelle." >&2; exit 1 ;;
+        *) echo "$(paimenos_text 'Ungültige Paketquelle.')" >&2; exit 1 ;;
     esac
 fi
 case "$APP_SOURCE" in
     flathub|debian) ;;
-    *) echo "PAIMENOS_APP_SOURCE muss flathub oder debian sein." >&2; exit 1 ;;
+    *) echo "$(paimenos_text 'PAIMENOS_APP_SOURCE muss flathub oder debian sein.')" >&2; exit 1 ;;
 esac
 
 INSTALL_PKGS=()
@@ -57,11 +57,11 @@ prepare_flatpak() {
     if [[ "$FLATPAK_READY" == no ]]; then return 1; fi
     FLATPAK_READY=no
     if ! apt-get install -y --no-install-recommends flatpak xdg-desktop-portal xdg-desktop-portal-gtk; then
-        echo "  ! Flatpak konnte nicht eingerichtet werden; verwende Debian-Pakete." >&2
+        echo "$(paimenos_text '  ! Flatpak konnte nicht eingerichtet werden; verwende Debian-Pakete.')" >&2
         return 1
     fi
     if ! flatpak remote-add --system --if-not-exists "$FLATPAK_REMOTE" https://dl.flathub.org/repo/flathub.flatpakrepo; then
-        echo "  ! Flathub ist nicht erreichbar; verwende Debian-Pakete." >&2
+        echo "$(paimenos_text '  ! Flathub ist nicht erreichbar; verwende Debian-Pakete.')" >&2
         return 1
     fi
     mkdir -p "${KIDS_HOME}/.config/xdg-desktop-portal"
@@ -73,18 +73,18 @@ prepare_flatpak() {
 install_flatpak_app() {
     local id="$1" app_id="$2" title="$3"
     if ! prepare_flatpak; then return 1; fi
-    echo "  + ${title}: stabile Flathub-Version installieren/aktualisieren ..."
+    echo "$(paimenos_text '  + {value0}: stabile Flathub-Version installieren/aktualisieren ...' "${title}")"
     if ! flatpak install --system --noninteractive -y --or-update "$FLATPAK_REMOTE" "${app_id}//stable"; then
         if ! flatpak info --system "${app_id}//stable" >/dev/null 2>&1; then
-            echo "  ! ${title}: Flatpak fehlgeschlagen (z. B. Architektur/Netzwerk); verwende Debian-Paket." >&2
+            echo "$(paimenos_text '  ! {value0}: Flatpak fehlgeschlagen (z. B. Architektur/Netzwerk); verwende Debian-Paket.' "${title}")" >&2
             return 1
         fi
-        echo "  ! ${title}: Update fehlgeschlagen; die bereits installierte Flatpak-Version bleibt nutzbar." >&2
+        echo "$(paimenos_text '  ! {value0}: Update fehlgeschlagen; die bereits installierte Flatpak-Version bleibt nutzbar.' "${title}")" >&2
     fi
     # Kein Shell-Parsing der App-Parameter. exec hält die Prozessüberwachung intakt.
     /usr/bin/python3 "${REPO_DIR}/tools/configure-flatpak-app.py" "$id" "$app_id" || return 1
     if ! runuser -u "$KIDS_USER" -- /usr/bin/python3 /usr/local/lib/paimenos/current/tools/migrate-flatpak-data.py "$KIDS_HOME" "$app_id"; then
-        echo "  ! ${title}: Datenkopie fehlgeschlagen. Originaldaten bleiben erhalten; siehe Setup-Ausgabe." >&2
+        echo "$(paimenos_text '  ! {value0}: Datenkopie fehlgeschlagen. Originaldaten bleiben erhalten; siehe Setup-Ausgabe.' "${title}")" >&2
     fi
     touch "$MANAGED_FLATPAKS"
     if ! grep -Fxq "$app_id" "$MANAGED_FLATPAKS"; then
@@ -120,7 +120,7 @@ select_native_app() {
         app_id=''
         # install aktualisiert auch ein schon vorhandenes Debian-Paket.
         INSTALL_PKGS+=("${pkg}")
-        echo "  + ${title}: Debian-Paket installieren/aktualisieren"
+        echo "$(paimenos_text '  + {value0}: Debian-Paket installieren/aktualisieren' "${title}")"
     fi
     SELECTED_NATIVE_APPS+="${id}|${pkg}|${title}|${icon_theme}|${command}|${source}|${app_id}|${icon_file}"$'\n'
 }
@@ -149,7 +149,7 @@ fi
 
 if ((${#INSTALL_PKGS[@]})); then
     mapfile -t INSTALL_PKGS <<< "$(printf '%s\n' "${INSTALL_PKGS[@]}" | awk 'NF && !seen[$0]++')"
-    echo "Ausgewählte Debian-Apps installieren/aktualisieren ..."
+    echo "$(paimenos_text 'Ausgewählte Debian-Apps installieren/aktualisieren ...')"
     apt-get install -y "${INSTALL_PKGS[@]}"
 fi
 
@@ -172,9 +172,9 @@ while IFS='|' read -r id pkg title icon_theme command source app_id icon_file; d
     if resolved_command=$(resolve_native_command "${command}"); then
         APP_ENTRIES+="$(/usr/bin/python3 "${REPO_DIR}/tools/native-app-entry.py" "$id" "$title" "$icon_theme" "$resolved_command" "$source" "$app_id" "$icon_file" "$pkg"
 )"
-        echo "  ✓ Menü: ${title} (${source})"
+        echo "$(paimenos_text '  ✓ Menü: {value0} ({value1})' "${title}" "${source}")"
     else
-        echo "  ! ${title}: Startprogramm '${command}' nicht gefunden – nicht ins Menü aufgenommen." >&2
+        echo "$(paimenos_text '  ! {value0}: Startprogramm '"'"'{value1}'"'"' nicht gefunden – nicht ins Menü aufgenommen.' "${title}" "${command}")" >&2
     fi
 done <<< "${SELECTED_NATIVE_APPS}"
 

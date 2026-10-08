@@ -1,4 +1,5 @@
 """Lokaler Elternbereich mit denselben Verwaltungsfunktionen wie im Web."""
+from paimenos.i18n import t
 import os
 import shlex
 import shutil
@@ -85,7 +86,7 @@ class AppEditor(QDialog):
         self.item = item or {}
         self.busy = False
         self.icon_path = ''
-        self.setWindowTitle('App bearbeiten' if item else 'App hinzufügen')
+        self.setWindowTitle(t('App bearbeiten') if item else t('App hinzufügen'))
         self.resize(690, 590)
         self.setStyleSheet(STYLE)
         layout = QVBoxLayout(self)
@@ -97,52 +98,52 @@ class AppEditor(QDialog):
         self.title_input = QLineEdit(self.item.get('title', ''))
         self.title_input.setMaxLength(80)
         self.target_input = QLineEdit(target)
-        self.target_input.setPlaceholderText('https://… oder /usr/bin/vlc')
+        self.target_input.setPlaceholderText(t('https://… oder /usr/bin/vlc'))
         self.arguments_input = QLineEdit(arguments)
-        self.arguments_input.setPlaceholderText('Zum Beispiel: --fullscreen "/home/kids/Mein Video.mp4"')
+        self.arguments_input.setPlaceholderText(t('Zum Beispiel: --fullscreen "/home/kids/Mein Video.mp4"'))
         self.category_input = QComboBox()
-        for text, value in [('Automatisch', 'auto'), ('Webapps', 'webapps'), ('Spiele', 'games'), ('Produktiv', 'productive')]:
+        for text, value in [(t('Automatisch'), 'auto'), ('Webapps', 'webapps'), (t('Spiele'), 'games'), (t('Produktiv'), 'productive')]:
             self.category_input.addItem(text, value)
         self.category_input.setCurrentIndex(max(0, self.category_input.findData(self.item.get('category', 'auto'))))
-        form.addRow('Kategorie', self.category_input)
-        form.addRow('Name', self.title_input)
-        form.addRow('Webadresse / Programm', self.target_input)
-        form.addRow('Programmparameter', self.arguments_input)
+        form.addRow(t('Kategorie'), self.category_input)
+        form.addRow(t('Name'), self.title_input)
+        form.addRow(t('Webadresse / Programm'), self.target_input)
+        form.addRow(t('Programmparameter'), self.arguments_input)
         self.icon_input = QLineEdit(self.item.get('icon_url', ''))
         self.icon_input.setPlaceholderText('Optional: https://…/logo.png')
-        form.addRow('Bildadresse', self.icon_input)
+        form.addRow(t('Bildadresse'), self.icon_input)
         layout.addLayout(form)
         file_row = QHBoxLayout()
-        self.file_label = label('Keine neue Bilddatei gewählt', True)
-        self.choose_button = button('Bilddatei wählen …', self.choose_icon, secondary=True)
-        self.clear_button = button('Auswahl entfernen', self.clear_icon, secondary=True)
+        self.file_label = label(t('Keine neue Bilddatei gewählt'), True)
+        self.choose_button = button(t('Bilddatei wählen …'), self.choose_icon, secondary=True)
+        self.clear_button = button(t('Auswahl entfernen'), self.clear_icon, secondary=True)
         file_row.addWidget(self.file_label, 1)
         file_row.addWidget(self.choose_button); file_row.addWidget(self.clear_button)
         layout.addLayout(file_row)
-        self.reset_input = QCheckBox('Eigenes Bild entfernen / Standardsymbol verwenden')
+        self.reset_input = QCheckBox(t('Eigenes Bild entfernen / Standardsymbol verwenden'))
         self.reset_input.toggled.connect(self.reset_changed)
         layout.addWidget(self.reset_input)
-        layout.addWidget(label('HTTP/HTTPS öffnet eine Webapp. Ein Programmpfad oder Programmname startet eine bereits installierte Anwendung als kids. Parameter mit Leerzeichen in Anführungszeichen setzen. Ohne neue Bildauswahl bleibt das vorhandene Bild erhalten. PNG, JPEG, GIF oder WebP bis 4 MB.', True))
+        layout.addWidget(label(t('HTTP/HTTPS öffnet eine Webapp. Ein Programmpfad oder Programmname startet eine bereits installierte Anwendung als kids. Parameter mit Leerzeichen in Anführungszeichen setzen. Ohne neue Bildauswahl bleibt das vorhandene Bild erhalten. PNG, JPEG, GIF oder WebP bis 4 MB.'), True))
         if self.item.get('type') == 'camera' or self.item.get('emulator'):
             self.target_input.setEnabled(False)
             self.arguments_input.setEnabled(False)
-            layout.addWidget(label('Bei Kamera und Emulator-Spielen lassen sich Name und Bild ändern; der Start bleibt festgelegt.', True))
+            layout.addWidget(label(t('Bei Kamera und Emulator-Spielen lassen sich Name und Bild ändern; der Start bleibt festgelegt.'), True))
         self.message = label(''); layout.addWidget(self.message)
         row = QHBoxLayout()
-        self.save_button = button('App speichern', self.save)
-        self.cancel_button = button('Abbrechen', self.reject, secondary=True)
+        self.save_button = button(t('App speichern'), self.save)
+        self.cancel_button = button(t('Abbrechen'), self.reject, secondary=True)
         row.addWidget(self.save_button); row.addWidget(self.cancel_button)
         layout.addLayout(row)
         self.signals = TaskSignals(self)
         self.signals.completed.connect(self.completed)
 
     def choose_icon(self):
-        path, _ = QFileDialog.getOpenFileName(self, 'Kachelbild auswählen', os.path.expanduser('~'),
-                                             'Bilder (*.png *.jpg *.jpeg *.gif *.webp)')
+        path, _ = QFileDialog.getOpenFileName(self, t('Kachelbild auswählen'), os.path.expanduser('~'),
+                                             t('Bilder (*.png *.jpg *.jpeg *.gif *.webp)'))
         if path:
             try:
                 if os.path.getsize(path) > parents.MAX_ICON_BYTES:
-                    raise ValueError('Das Bild ist größer als 4 MB.')
+                    raise ValueError(t('Das Bild ist größer als 4 MB.'))
             except (OSError, ValueError) as exc:
                 self.message.setText(str(exc)); return
             self.icon_path = path
@@ -151,7 +152,7 @@ class AppEditor(QDialog):
 
     def clear_icon(self):
         self.icon_path = ''
-        self.file_label.setText('Keine neue Bilddatei gewählt')
+        self.file_label.setText(t('Keine neue Bilddatei gewählt'))
 
     def reset_changed(self, reset):
         if reset:
@@ -182,7 +183,7 @@ class AppEditor(QDialog):
                     values['icon_data'] = handle.read(parents.MAX_ICON_BYTES + 1)
             return parents.save_app(**values)
         self.set_busy(True)
-        self.message.setText('App wird gespeichert …')
+        self.message.setText(t('App wird gespeichert …'))
         submit_task(operation, 'app', self.signals)
 
     def completed(self, token, value, error):
@@ -206,7 +207,7 @@ class AppEditor(QDialog):
 class ParentDiagnostics(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle('Geräte-Diagnose')
+        self.setWindowTitle(t('Geräte-Diagnose'))
         self.resize(760, 540)
         self.setStyleSheet(STYLE)
         layout = QVBoxLayout(self)
@@ -214,10 +215,10 @@ class ParentDiagnostics(QDialog):
         self.text.setReadOnly(True)
         layout.addWidget(self.text)
         row = QHBoxLayout()
-        self.refresh_button = button('Aktualisieren', self.refresh, secondary=True)
-        self.export_button = button('Bericht speichern', self.export)
+        self.refresh_button = button(t('Aktualisieren'), self.refresh, secondary=True)
+        self.export_button = button(t('Bericht speichern'), self.export)
         row.addWidget(self.refresh_button); row.addWidget(self.export_button)
-        row.addWidget(button('Zurück', self.reject, secondary=True))
+        row.addWidget(button(t('Zurück'), self.reject, secondary=True))
         layout.addLayout(row)
         self.signals = TaskSignals(self)
         self.signals.completed.connect(self.completed)
@@ -226,7 +227,7 @@ class ParentDiagnostics(QDialog):
     def refresh(self):
         self.refresh_button.setEnabled(False)
         self.export_button.setEnabled(False)
-        self.text.setPlainText('Diagnose wird gesammelt …')
+        self.text.setPlainText(t('Diagnose wird gesammelt …'))
         submit_task(collect_diagnostics, 'diagnostics', self.signals)
 
     def completed(self, token, value, error):
@@ -235,19 +236,19 @@ class ParentDiagnostics(QDialog):
         self.text.setPlainText(error if error else diagnostics_text(value))
 
     def export(self):
-        path, _ = QFileDialog.getSaveFileName(self, 'Bericht speichern', os.path.expanduser('~/PaimenOS-Diagnose.txt'), 'Textdateien (*.txt)')
+        path, _ = QFileDialog.getSaveFileName(self, t('Bericht speichern'), os.path.expanduser('~/PaimenOS-Diagnose.txt'), t('Textdateien (*.txt)'))
         if path:
             try:
                 with open(path, 'w', encoding='utf-8') as handle:
                     handle.write(self.text.toPlainText())
             except OSError as exc:
-                QMessageBox.warning(self, 'Speichern', str(exc))
+                QMessageBox.warning(self, t('Speichern'), str(exc))
 
 
 class ParentDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle('PaimenOS · Elternbereich')
+        self.setWindowTitle(t('PaimenOS · Elternbereich'))
         self.setWindowIcon(QIcon(str(ASSETS_DIR / 'branding/paimenos-logo.png')))
         self.setStyleSheet(STYLE)
         self.resize(860, 650)
@@ -263,15 +264,15 @@ class ParentDialog(QDialog):
             80, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         logo.setAccessibleName('PaimenOS Logo')
         brand_row.addWidget(logo)
-        heading = label('Elternbereich'); heading.setObjectName('heading')
+        heading = label(t('Elternbereich')); heading.setObjectName('heading')
         brand_row.addWidget(heading, 1)
         layout.addLayout(brand_row)
-        layout.addWidget(label('Apps freigeben, Zeit verwalten und das Gerät einrichten.', True))
+        layout.addWidget(label(t('Apps freigeben, Zeit verwalten und das Gerät einrichten.'), True))
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs, 1)
-        self.status = label('Änderungen werden direkt auf diesem Gerät gespeichert.', True)
+        self.status = label(t('Änderungen werden direkt auf diesem Gerät gespeichert.'), True)
         row = QHBoxLayout(); row.addWidget(self.status, 1)
-        row.addWidget(button('Schließen', self.accept, secondary=True))
+        row.addWidget(button(t('Schließen'), self.accept, secondary=True))
         layout.addLayout(row)
         self.st = read_settings()
         self.limit_dirty = False
@@ -292,7 +293,7 @@ class ParentDialog(QDialog):
             operation()
         except (ValueError, OSError) as exc:
             self.status.setText(str(exc))
-            QMessageBox.warning(self, 'Änderung nicht gespeichert', str(exc))
+            QMessageBox.warning(self, t('Änderung nicht gespeichert'), str(exc))
             self.refresh()
             return False
         self.status.setText(message)
@@ -302,37 +303,37 @@ class ParentDialog(QDialog):
     def bonus_buttons(self, layout):
         row = QHBoxLayout()
         for minutes in (5, 15, 30):
-            row.addWidget(button(f'+{minutes} Min.', lambda checked=False, m=minutes: self.give_bonus(m), secondary=True))
+            row.addWidget(button(t('+{value0} Min.', value0=minutes), lambda checked=False, m=minutes: self.give_bonus(m), secondary=True))
         layout.addLayout(row)
 
     def give_bonus(self, minutes):
         try:
             added = parents.add_bonus(minutes)
         except (ValueError, OSError) as exc:
-            QMessageBox.warning(self, 'Bonuszeit', str(exc)); return
-        self.status.setText(f'{added} Minuten Bonus hinzugefügt.' if added else 'Die maximale Bonuszeit ist erreicht.')
+            QMessageBox.warning(self, t('Bonuszeit'), str(exc)); return
+        self.status.setText(t('{value0} Minuten Bonus hinzugefügt.', value0=added) if added else t('Die maximale Bonuszeit ist erreicht.'))
         self.refresh()
 
     def build_overview(self):
         page, layout = scroll_page()
-        self.tabs.addTab(page, 'Übersicht')
-        time_card = card(layout, 'Bildschirmzeit heute')
+        self.tabs.addTab(page, t('Übersicht'))
+        time_card = card(layout, t('Bildschirmzeit heute'))
         self.summary = label(''); self.summary.setObjectName('metric')
         self.summary_detail = label('', True)
         time_card.addWidget(self.summary); time_card.addWidget(self.summary_detail)
         self.progress = QProgressBar(); self.progress.setTextVisible(False)
         time_card.addWidget(self.progress)
         self.bonus_buttons(time_card)
-        time_card.addWidget(label('Bonuszeit wirkt nur bei einem gesetzten Tageslimit.', True))
-        apps_card = card(layout, 'Apps für den Kinderbereich')
+        time_card.addWidget(label(t('Bonuszeit wirkt nur bei einem gesetzten Tageslimit.'), True))
+        apps_card = card(layout, t('Apps für den Kinderbereich'))
         self.apps_summary = label(''); apps_card.addWidget(self.apps_summary)
-        apps_card.addWidget(button('Apps verwalten', lambda: self.tabs.setCurrentIndex(1), secondary=True))
-        tools = card(layout, 'Gerät & Hilfe')
+        apps_card.addWidget(button(t('Apps verwalten'), lambda: self.tabs.setCurrentIndex(1), secondary=True))
+        tools = card(layout, t('Gerät & Hilfe'))
         row = QHBoxLayout()
-        row.addWidget(button('WLAN / Netzwerke', self.open_wifi, secondary=True))
-        row.addWidget(button('Geräte-Diagnose', self.open_diagnostics, secondary=True))
+        row.addWidget(button(t('WLAN / Netzwerke'), self.open_wifi, secondary=True))
+        row.addWidget(button(t('Geräte-Diagnose'), self.open_diagnostics, secondary=True))
         tools.addLayout(row)
-        self.web_address = label('Web-Elternbereich: Adresse wird ermittelt …', True)
+        self.web_address = label(t('Web-Elternbereich: Adresse wird ermittelt …'), True)
         self.web_address.setTextInteractionFlags(Qt.TextSelectableByMouse)
         tools.addWidget(self.web_address)
         self.address_signals = TaskSignals(self)
@@ -358,29 +359,29 @@ class ParentDialog(QDialog):
             return []
 
     def address_completed(self, token, value, error):
-        self.web_address.setText('Web-Elternbereich im selben Netzwerk: ' + ' · '.join(value) if value and not error else 'Web-Elternbereich: http://localhost (auf diesem Gerät)')
+        self.web_address.setText(t('Web-Elternbereich im selben Netzwerk: ') + ' · '.join(value) if value and not error else t('Web-Elternbereich: http://localhost (auf diesem Gerät)'))
 
     def build_apps(self):
         page = QWidget(); layout = QVBoxLayout(page)
         self.tabs.addTab(page, 'Apps')
         row = QHBoxLayout()
-        self.search = QLineEdit(); self.search.setPlaceholderText('Name oder Startbefehl suchen …')
-        self.search.setAccessibleName('Apps durchsuchen'); self.search.textChanged.connect(self.filter_apps)
+        self.search = QLineEdit(); self.search.setPlaceholderText(t('Name oder Startbefehl suchen …'))
+        self.search.setAccessibleName(t('Apps durchsuchen')); self.search.textChanged.connect(self.filter_apps)
         self.type_filter = QComboBox()
-        for title, value in [('Alle Typen','all'),('Programme & Spiele','native'),('Webapps','webapp'),('Kamera, Bilder & Videos','camera')]:
+        for title, value in [(t('Alle Typen'),'all'),(t('Programme & Spiele'),'native'),('Webapps','webapp'),(t('Kamera, Bilder & Videos'),'camera')]:
             self.type_filter.addItem(title, value)
         self.type_filter.currentIndexChanged.connect(self.filter_apps)
         row.addWidget(self.search, 1); row.addWidget(self.type_filter)
         layout.addLayout(row)
         row = QHBoxLayout()
         row.addWidget(button('+ App', self.new_app))
-        row.addWidget(button('Alle freigeben', lambda: self.bulk(True), secondary=True))
-        row.addWidget(button('Alle sperren', lambda: self.bulk(False), danger=True))
+        row.addWidget(button(t('Alle freigeben'), lambda: self.bulk(True), secondary=True))
+        row.addWidget(button(t('Alle sperren'), lambda: self.bulk(False), danger=True))
         layout.addLayout(row)
         self.app_count = label('', True); layout.addWidget(self.app_count)
         self.apps_scroll = QScrollArea(); self.apps_scroll.setWidgetResizable(True)
         layout.addWidget(self.apps_scroll, 1)
-        layout.addWidget(label('Freigegebene Webapps erscheinen bei Internetverbindung; die Kamera bei angeschlossenem Medium.', True))
+        layout.addWidget(label(t('Freigegebene Webapps erscheinen bei Internetverbindung; die Kamera bei angeschlossenem Medium.'), True))
 
     def render_apps(self, items, st):
         scroll_position = self.apps_scroll.verticalScrollBar().value()
@@ -393,15 +394,15 @@ class ParentDialog(QDialog):
             row = QHBoxLayout()
             checkbox = QCheckBox(item.get('title', item['id']))
             checkbox.setChecked(parents.app_active(item, st))
-            checkbox.setToolTip('Freigabe im Kinderbereich')
+            checkbox.setToolTip(t('Freigabe im Kinderbereich'))
             checkbox.toggled.connect(lambda active, i=item['id']: self.set_active(i, active))
             row.addWidget(checkbox, 1)
             if parents.editable_app(item):
-                row.addWidget(button('Bearbeiten', lambda checked=False, i=dict(item): self.edit_app(i), secondary=True))
+                row.addWidget(button(t('Bearbeiten'), lambda checked=False, i=dict(item): self.edit_app(i), secondary=True))
             if parents.deletable_app(item):
-                row.addWidget(button('Löschen', lambda checked=False, i=dict(item): self.delete_app(i), danger=True))
+                row.addWidget(button(t('Löschen'), lambda checked=False, i=dict(item): self.delete_app(i), danger=True))
             inner.addLayout(row)
-            inner.addWidget(label(item.get('url', '') if item.get('type') == 'webapp' else 'Kamera, Bilder & Videos' if item.get('type') == 'camera' else item.get('command', 'Programm / Spiel'), True))
+            inner.addWidget(label(item.get('url', '') if item.get('type') == 'webapp' else t('Kamera, Bilder & Videos') if item.get('type') == 'camera' else item.get('command', t('Programm / Spiel')), True))
             if parents.app_source_label(item):
                 inner.addWidget(label(parents.app_source_label(item), True))
             layout.addWidget(widget)
@@ -420,15 +421,15 @@ class ParentDialog(QDialog):
             visible = query in (item.get('title','') + ' ' + item.get('url','') + ' ' + item.get('command','')).casefold() and (kind=='all' or item.get('type','native')==kind)
             widget.setVisible(visible)
             count += visible
-        self.app_count.setText(f'{count} Apps' if count else 'Keine passenden Apps gefunden.')
+        self.app_count.setText(f'{count} Apps' if count else t('Keine passenden Apps gefunden.'))
 
     def set_active(self, app_id, active):
-        self.perform(lambda: parents.set_apps_active([app_id], active), 'App-Freigabe gespeichert.')
+        self.perform(lambda: parents.set_apps_active([app_id], active), t('App-Freigabe gespeichert.'))
 
     def bulk(self, active):
-        if not active and QMessageBox.question(self, 'Alle Apps sperren?', 'Alle Apps für den Kinderbereich sperren?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No) != QMessageBox.Yes:
+        if not active and QMessageBox.question(self, t('Alle Apps sperren?'), t('Alle Apps für den Kinderbereich sperren?'), QMessageBox.Yes | QMessageBox.No, QMessageBox.No) != QMessageBox.Yes:
             return
-        self.perform(lambda: parents.set_apps_active([a['id'] for a in parents.managed_apps()], active), 'App-Freigaben gespeichert.')
+        self.perform(lambda: parents.set_apps_active([a['id'] for a in parents.managed_apps()], active), t('App-Freigaben gespeichert.'))
 
     def new_app(self):
         self.edit_app(None)
@@ -436,107 +437,107 @@ class ParentDialog(QDialog):
     def edit_app(self, item):
         editor = AppEditor(item, self)
         if editor.exec_() == QDialog.Accepted:
-            self.status.setText('App gespeichert.')
+            self.status.setText(t('App gespeichert.'))
             self.refresh()
         editor.deleteLater()
 
     def delete_app(self, item):
-        if QMessageBox.question(self, 'App löschen?', f'„{item["title"]}“ aus dem Kinder-Menü entfernen? Bei Emulator-Spielen werden auch die hochgeladenen ROM-Dateien entfernt; Spielstände bleiben erhalten. Installierte Programme und Browserprofile bleiben erhalten.', QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes:
-            self.perform(lambda: parents.delete_app(item['id']), 'App aus dem Menü entfernt.')
+        if QMessageBox.question(self, t('App löschen?'), t('„{value0}“ aus dem Kinder-Menü entfernen? Bei Emulator-Spielen werden auch die hochgeladenen ROM-Dateien entfernt; Spielstände bleiben erhalten. Installierte Programme und Browserprofile bleiben erhalten.', value0=item['title']), QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes:
+            self.perform(lambda: parents.delete_app(item['id']), t('App aus dem Menü entfernt.'))
 
     def build_time(self):
-        page, layout = scroll_page(); self.tabs.addTab(page, 'Bildschirmzeit')
-        settings = card(layout, 'Tageslimit')
-        settings.addWidget(label('Das Limit gilt jeden Tag. Verbrauch und Bonus werden um Mitternacht zurückgesetzt.', True))
+        page, layout = scroll_page(); self.tabs.addTab(page, t('Bildschirmzeit'))
+        settings = card(layout, t('Tageslimit'))
+        settings.addWidget(label(t('Das Limit gilt jeden Tag. Verbrauch und Bonus werden um Mitternacht zurückgesetzt.'), True))
         self.limit_spin = QSpinBox(); self.limit_spin.setRange(0, 600)
-        self.limit_spin.setSuffix(' Min.'); self.limit_spin.setSpecialValueText('Unbegrenzt')
+        self.limit_spin.setSuffix(t(' Min.')); self.limit_spin.setSpecialValueText(t('Unbegrenzt'))
         self.limit_spin.setValue(min(600, self.st['daily_limit_minutes']))
         self.limit_spin.valueChanged.connect(lambda: setattr(self, 'limit_dirty', True))
-        form = QFormLayout(); form.addRow('Minuten pro Tag', self.limit_spin); settings.addLayout(form)
+        form = QFormLayout(); form.addRow(t('Minuten pro Tag'), self.limit_spin); settings.addLayout(form)
         presets = QHBoxLayout()
         for minutes in (30, 60, 90, 120):
-            presets.addWidget(button(str(minutes) + ' Min.', lambda checked=False, m=minutes: self.limit_spin.setValue(m), secondary=True))
+            presets.addWidget(button(str(minutes) + t(' Min.'), lambda checked=False, m=minutes: self.limit_spin.setValue(m), secondary=True))
         settings.addLayout(presets)
-        settings.addWidget(button('Tageslimit speichern', self.save_time))
-        bonus_card = card(layout, 'Bonuszeit heute')
+        settings.addWidget(button(t('Tageslimit speichern'), self.save_time))
+        bonus_card = card(layout, t('Bonuszeit heute'))
         self.bonus_label = label(''); bonus_card.addWidget(self.bonus_label)
         self.bonus_buttons(bonus_card)
         row = QHBoxLayout()
-        self.bonus_spin = QSpinBox(); self.bonus_spin.setRange(1, 600); self.bonus_spin.setValue(10); self.bonus_spin.setSuffix(' Min.')
+        self.bonus_spin = QSpinBox(); self.bonus_spin.setRange(1, 600); self.bonus_spin.setValue(10); self.bonus_spin.setSuffix(t(' Min.'))
         row.addWidget(self.bonus_spin)
-        row.addWidget(button('Bonus hinzufügen', lambda: self.give_bonus(self.bonus_spin.value()), secondary=True))
-        row.addWidget(button('Bonus entfernen', self.remove_bonus, danger=True))
+        row.addWidget(button(t('Bonus hinzufügen'), lambda: self.give_bonus(self.bonus_spin.value()), secondary=True))
+        row.addWidget(button(t('Bonus entfernen'), self.remove_bonus, danger=True))
         bonus_card.addLayout(row)
-        reset = card(layout, 'Heutigen Verbrauch zurücksetzen')
-        reset.addWidget(label('Setzt Verbrauch und Bonus auf 0. Das Tageslimit bleibt erhalten.', True))
-        reset.addWidget(button('Heute zurücksetzen', self.reset_usage, danger=True))
+        reset = card(layout, t('Heutigen Verbrauch zurücksetzen'))
+        reset.addWidget(label(t('Setzt Verbrauch und Bonus auf 0. Das Tageslimit bleibt erhalten.'), True))
+        reset.addWidget(button(t('Heute zurücksetzen'), self.reset_usage, danger=True))
         layout.addStretch()
 
     def save_time(self):
-        if self.perform(lambda: parents.set_time(self.limit_spin.value()), 'Tageslimit gespeichert.'):
+        if self.perform(lambda: parents.set_time(self.limit_spin.value()), t('Tageslimit gespeichert.')):
             self.limit_dirty = False
 
     def remove_bonus(self):
-        if QMessageBox.question(self, 'Bonus entfernen?', 'Die Bonuszeit entfernen? Das Gerät kann dadurch gesperrt werden.', QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes:
-            self.perform(parents.clear_bonus, 'Bonuszeit entfernt.')
+        if QMessageBox.question(self, t('Bonus entfernen?'), t('Die Bonuszeit entfernen? Das Gerät kann dadurch gesperrt werden.'), QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes:
+            self.perform(parents.clear_bonus, t('Bonuszeit entfernt.'))
 
     def reset_usage(self):
-        if QMessageBox.question(self, 'Heute zurücksetzen?', 'Heutigen Verbrauch und Bonus wirklich zurücksetzen?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes:
-            self.perform(parents.reset_today, 'Heutiger Verbrauch und Bonus zurückgesetzt.')
+        if QMessageBox.question(self, t('Heute zurücksetzen?'), t('Heutigen Verbrauch und Bonus wirklich zurücksetzen?'), QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes:
+            self.perform(parents.reset_today, t('Heutiger Verbrauch und Bonus zurückgesetzt.'))
 
     def build_settings(self):
-        page, layout = scroll_page(); self.tabs.addTab(page, 'Einstellungen')
-        pin_card = card(layout, 'Eltern-PIN ändern')
-        pin_card.addWidget(label('Die PIN gilt am Gerät und im Web. Beide Felder leer lassen, um sie beizubehalten.', True))
+        page, layout = scroll_page(); self.tabs.addTab(page, t('Einstellungen'))
+        pin_card = card(layout, t('Eltern-PIN ändern'))
+        pin_card.addWidget(label(t('Die PIN gilt am Gerät und im Web. Beide Felder leer lassen, um sie beizubehalten.'), True))
         self.pin_input, self.pin_confirm = QLineEdit(), QLineEdit()
         for field in (self.pin_input, self.pin_confirm):
             field.setEchoMode(QLineEdit.Password); field.setMaxLength(12)
-            field.setPlaceholderText('4 bis 12 Ziffern')
-        form = QFormLayout(); form.addRow('Neue PIN', self.pin_input); form.addRow('PIN wiederholen', self.pin_confirm)
+            field.setPlaceholderText(t('4 bis 12 Ziffern'))
+        form = QFormLayout(); form.addRow(t('Neue PIN'), self.pin_input); form.addRow(t('PIN wiederholen'), self.pin_confirm)
         pin_card.addLayout(form)
-        color_card = card(layout, 'Farbe im Kinder-Menü')
+        color_card = card(layout, t('Farbe im Kinder-Menü'))
         self.color = self.st['bg_color']
-        self.color_button = button('Farbe auswählen', self.choose_color, secondary=True)
+        self.color_button = button(t('Farbe auswählen'), self.choose_color, secondary=True)
         color_card.addWidget(self.color_button)
         self.update_color_button()
-        self.category_tabs_input = QCheckBox('Kategorien im Kinder-Menü anzeigen (Symbole)')
+        self.category_tabs_input = QCheckBox(t('Kategorien im Kinder-Menü anzeigen (Symbole)'))
         self.category_tabs_input.setChecked(bool(self.st.get('category_tabs', False)))
         color_card.addWidget(self.category_tabs_input)
-        color_card.addWidget(label('Alles, Webapps, Spiele und Produktiv. Leere Kategorien verschwinden; Schultertasten wechseln die Ansicht.', True))
-        layout.addWidget(button('Einstellungen speichern', self.save_settings))
-        wifi_card = card(layout, 'WLAN & Internet')
-        wifi_card.addWidget(label('Netzwerke suchen, verbinden und gespeicherte WLANs verwalten.', True))
-        wifi_card.addWidget(button('WLAN verwalten', self.open_wifi, secondary=True))
-        bluetooth_card = card(layout, 'Bluetooth-Geräte')
-        bluetooth_card.addWidget(label('Controller, Kopfhörer und Tastaturen suchen, koppeln und verbinden.', True))
-        bluetooth_card.addWidget(label('Nach dem Verbinden: Steuerkreuz oder linker Stick zum Wählen, Bestätigungstaste zum Öffnen. Start öffnet Farbe / Eltern, die rechte Taste geht zurück. Der Elternbereich bleibt PIN-geschützt.', True))
-        bluetooth_card.addWidget(button('Bluetooth verwalten', self.open_bluetooth, secondary=True))
+        color_card.addWidget(label(t('Alles, Webapps, Spiele und Produktiv. Leere Kategorien verschwinden; Schultertasten wechseln die Ansicht.'), True))
+        layout.addWidget(button(t('Einstellungen speichern'), self.save_settings))
+        wifi_card = card(layout, t('WLAN & Internet'))
+        wifi_card.addWidget(label(t('Netzwerke suchen, verbinden und gespeicherte WLANs verwalten.'), True))
+        wifi_card.addWidget(button(t('WLAN verwalten'), self.open_wifi, secondary=True))
+        bluetooth_card = card(layout, t('Bluetooth-Geräte'))
+        bluetooth_card.addWidget(label(t('Controller, Kopfhörer und Tastaturen suchen, koppeln und verbinden.'), True))
+        bluetooth_card.addWidget(label(t('Nach dem Verbinden: Steuerkreuz oder linker Stick zum Wählen, Bestätigungstaste zum Öffnen. Start öffnet Farbe / Eltern, die rechte Taste geht zurück. Der Elternbereich bleibt PIN-geschützt.'), True))
+        bluetooth_card.addWidget(button(t('Bluetooth verwalten'), self.open_bluetooth, secondary=True))
         layout.addStretch()
 
     def choose_color(self):
-        color = QColorDialog.getColor(QColor(self.color), self, 'Hintergrundfarbe')
+        color = QColorDialog.getColor(QColor(self.color), self, t('Hintergrundfarbe'))
         if color.isValid():
             self.color = color.name().upper(); self.color_dirty = True
             self.update_color_button()
 
     def update_color_button(self):
-        self.color_button.setText('Farbe auswählen · ' + self.color)
+        self.color_button.setText(t('Farbe auswählen · ') + self.color)
         self.color_button.setStyleSheet(f'border:3px solid {self.color};')
 
     def save_settings(self):
-        if self.perform(lambda: parents.save_preferences(self.pin_input.text().strip(), self.pin_confirm.text().strip(), self.color, self.category_tabs_input.isChecked()), 'Einstellungen gespeichert.'):
+        if self.perform(lambda: parents.save_preferences(self.pin_input.text().strip(), self.pin_confirm.text().strip(), self.color, self.category_tabs_input.isChecked()), t('Einstellungen gespeichert.')):
             self.pin_input.clear(); self.pin_confirm.clear(); self.color_dirty = False
 
     def refresh(self):
         try:
             st, items = read_settings(), parents.managed_apps()
             info = parents.usage(st)
-            self.summary.setText('Heute genutzt: ' + parents.duration(info['used']))
-            self.summary_detail.setText('Noch verfügbar: ' + parents.duration(info['remaining']) + f' · Bonus: {info["bonus"]} Min.')
+            self.summary.setText(t('Heute genutzt: ') + parents.duration(info['used']))
+            self.summary_detail.setText(t('Noch verfügbar: ') + parents.duration(info['remaining']) + t(' · Bonus: {value0} Min.', value0=info['bonus']))
             self.progress.setVisible(info['limit'] > 0)
             self.progress.setValue(info['percent'])
-            self.apps_summary.setText(f'{sum(parents.app_active(a, st) for a in items)} von {len(items)} Apps sind freigegeben.')
-            self.bonus_label.setText(f'Heute zusätzlich: {info["bonus"]} Minuten')
+            self.apps_summary.setText(t('{value0} von {value1} Apps sind freigegeben.', value0=sum((parents.app_active(a, st) for a in items)), value1=len(items)))
+            self.bonus_label.setText(t('Heute zusätzlich: {value0} Minuten', value0=info['bonus']))
             if not self.limit_dirty:
                 self.limit_spin.blockSignals(True); self.limit_spin.setValue(min(600, info['limit'])); self.limit_spin.blockSignals(False)
             if not self.color_dirty:
@@ -553,7 +554,7 @@ class ParentDialog(QDialog):
                     checkbox.setChecked(parents.app_active(item, st))
                     checkbox.blockSignals(False)
         except (ValueError, OSError) as exc:
-            self.status.setText('Daten konnten nicht geladen werden: ' + str(exc))
+            self.status.setText(t('Daten konnten nicht geladen werden: ') + str(exc))
 
     def open_diagnostics(self):
         dialog = ParentDiagnostics(self); dialog.exec_(); dialog.deleteLater()
