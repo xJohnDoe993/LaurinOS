@@ -68,9 +68,11 @@ class FirefoxIntegrationTests(unittest.TestCase):
                 command = [sys.executable, '-I', str(ROOT / 'run.py'), 'close_overlay', '--browser',
                            str(profile), str(Path(folder) / 'missing-template.js'),
                            f'http://127.0.0.1:{server.server_port}/']
-                for mode in ('normal', 'normal', 'crash', 'orphan', 'normal'):
+                for attempt, mode in enumerate(('normal', 'normal', 'crash', 'orphan', 'normal')):
                     previous_pages = requests['/']
-                    process = subprocess.Popen(command)
+                    environment = dict(os.environ, MOZ_LOG='cache2:5,nsHttp:3',
+                                       MOZ_LOG_FILE=str(Path(folder) / f'cache-{attempt}.log'))
+                    process = subprocess.Popen(command, env=environment)
                     deadline = time.monotonic() + 45
                     while time.monotonic() < deadline:
                         self.assertIsNone(process.poll(), 'Firefox supervisor exited during startup')
@@ -97,6 +99,16 @@ class FirefoxIntegrationTests(unittest.TestCase):
                         self.assertTrue(browser.profile_available(str(profile)))
                     process = None
                     if mode == 'normal':
+                        if requests['/asset.js'] != 1:
+                            print('CACHE DIAGNOSTICS', flush=True)
+                            for path in Path(folder).rglob(f'cache-{attempt}.log*'):
+                                lines = path.read_text(errors='replace').splitlines()
+                                for index, line in enumerate(lines):
+                                    if '/asset.js' in line:
+                                        print('\n'.join(lines[max(0,index-3):index+12]), flush=True)
+                            print('cache files:', [str(p.relative_to(profile)) for p in profile.rglob('*') if 'cache' in str(p)], flush=True)
+                            print('cache prefs:', [line for line in (profile / 'prefs.js').read_text().splitlines()
+                                                   if 'cache' in line or 'sanitize' in line or 'privatebrowsing' in line], flush=True)
                         self.assertEqual(requests['/asset.js'], 1, 'Cacheable asset downloaded again')
                 self.assertGreaterEqual(requests['/'], 5)
         finally:
