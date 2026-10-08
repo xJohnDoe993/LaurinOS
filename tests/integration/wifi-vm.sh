@@ -56,13 +56,20 @@ for attempt in {1..10}; do
 done
 ssh_vm test -f /source/tests/integration/wifi-guest.sh
 ssh_vm bash /source/tests/integration/wifi-guest.sh install
-boot_before=$(ssh_vm cat /proc/sys/kernel/random/boot_id)
-ssh_vm systemctl reboot || true
-for attempt in {1..120}; do
-    boot_after=$(ssh_vm cat /proc/sys/kernel/random/boot_id 2>/dev/null || true)
-    if [[ -n "$boot_after" && "$boot_after" != "$boot_before" ]]; then break; fi
-    sleep 2
- done
-[[ -n "$boot_after" && "$boot_after" != "$boot_before" ]]
-ssh_vm 'mkdir -p /source 2>/dev/null; mountpoint -q /source || mount -t 9p -o trans=virtio,version=9p2000.L source /source'
-ssh_vm bash /source/tests/integration/wifi-guest.sh reboot
+completed_before=''
+for cycle in 1 2; do
+    boot_before=$(ssh_vm cat /proc/sys/kernel/random/boot_id)
+    ssh_vm systemctl reboot || true
+    for attempt in {1..120}; do
+        boot_after=$(ssh_vm cat /proc/sys/kernel/random/boot_id 2>/dev/null || true)
+        if [[ -n "$boot_after" && "$boot_after" != "$boot_before" ]]; then break; fi
+        sleep 2
+    done
+    [[ -n "$boot_after" && "$boot_after" != "$boot_before" ]]
+    wait_ssh
+    ssh_vm 'mkdir -p /source 2>/dev/null; mountpoint -q /source || mount -t 9p -o trans=virtio,version=9p2000.L source /source'
+    ssh_vm "SECOND_BOOT=$((cycle-1)) bash /source/tests/integration/wifi-guest.sh reboot"
+    completed_after=$(ssh_vm sha256sum /var/lib/paimenos/wifi-migration/completed.json)
+    if (( cycle == 2 )); then [[ "$completed_after" == "$completed_before" ]]; fi
+    completed_before=$completed_after
+done

@@ -1,5 +1,7 @@
 name: Debian Wi-Fi installation and reboot
 on:
+  push:
+    branches: ['fix/**']
   pull_request:
     paths:
       - 'installer/**'
@@ -24,7 +26,13 @@ jobs:
         with:
           persist-credentials: false
       - name: VM-Werkzeuge
-        run: sudo apt-get update && sudo apt-get install -y qemu-system-x86 qemu-utils cloud-image-utils
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 qemu-utils cloud-image-utils acl
+          # Grant only this disposable CI job's user access to VM acceleration.
+          if [[ -e /dev/kvm ]]; then
+            sudo setfacl -m "u:$(id -un):rw" /dev/kvm
+          fi
       - name: Setup und Neustart mit virtuellem WPA-WLAN
         run: bash tests/integration/wifi-vm.sh '${{ matrix.release }}'
       - uses: actions/upload-artifact@v4
