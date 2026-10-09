@@ -21,38 +21,40 @@ Rückkehr zu einem bisherigen Theme stehen unter
 
 ## GitHub als Update-Quelle
 
-Die Quelle ist das [PaimenOS-Repo](https://github.com/xJohnDoe993/PaimenOS/releases). Der frühere Name `xJohnDoe993/LaurinOS` wird bei Release-Dateien als Alias akzeptiert. `paimenos-updates.service` prüft beim Start und alle sechs Stunden das neueste veröffentlichte stabile Release. Entwürfe und Pre-Releases werden nicht angeboten. Tags müssen `vMAJOR.MINOR.PATCH` heißen, zum Beispiel `v0.64.0`; `VERSION` und Manifest enthalten `0.64.0`. Die Prüfung vergleicht Versionsnummern numerisch und installiert nichts automatisch.
+Die Quelle ist das [PaimenOS-Repo](https://github.com/xJohnDoe993/PaimenOS/releases). Der frühere Name `xJohnDoe993/LaurinOS` wird bei Release-Dateien als Alias akzeptiert. `paimenos-updates.service` prüft beim Start und alle sechs Stunden das neueste veröffentlichte stabile Release. Entwürfe und Pre-Releases werden nicht angeboten. Tags müssen `vMAJOR.MINOR.PATCH` heißen, zum Beispiel `v0.65.0`; `VERSION` und Manifest enthalten `0.65.0`. Die Prüfung vergleicht Versionsnummern numerisch und installiert nichts automatisch.
 
 Angemeldete Eltern sehen einen Hinweis auf allen Backend-Seiten und können unter **Updates** manuell prüfen, Release-Notizen lesen und ein Update starten. Offline bleiben die letzte Prüfung und der Fehler sichtbar. Download und Aktivierung laufen als eigener Dienst `paimenos-update-job.service`. Der Auftrag überlebt einen Neustart des Webbackends; nach Stromausfall wird er als unterbrochen gemeldet und nicht automatisch fortgesetzt.
 
 Ein Release benötigt diese beiden Assets:
 
-| Asset für Version 0.64.0 | Inhalt |
+| Asset für Version 0.65.0 | Inhalt |
 |---|---|
-| `PaimenOS-0.64.0.zip` | Mit `tools/build-release.py` gebautes Projektarchiv, Stammordner `PaimenOS/` |
-| `PaimenOS-0.64.0.zip.sha256` | SHA-256 und Dateiname des Archivs |
+| `PaimenOS-0.65.0.zip` | Mit `tools/build-release.py` gebautes Projektarchiv, Stammordner `PaimenOS/` |
+| `PaimenOS-0.65.0.zip.sha256` | SHA-256 und Dateiname des Archivs |
 
 GitHubs automatisch erzeugte „Source code“-Archive ersetzen diese Assets nicht. Archive im alten LaurinOS-Format werden nicht akzeptiert. ZIP-Download höchstens 50 MiB; entpackt höchstens 100 MiB und 5.000 Einträge.
 
 ## Automatischer Release-Build auf GitHub
 
-Der Workflow `.github/workflows/release.yml` heißt **PaimenOS Release vorbereiten**. Er prüft Quellstand, Tests und echte Videowiedergabe unter X11, baut ZIP/SHA-256 und lädt beide in einen Release-Entwurf. Die Veröffentlichung erfolgt anschließend auf GitHub.
+Der Workflow `.github/workflows/release.yml` heißt **PaimenOS Release**. Er prüft Quellstand, Tests und echte Videowiedergabe unter X11, baut ZIP/SHA-256 und bestätigt beide Uploads. Tags und manuelle Läufe erstellen weiterhin einen Entwurf. Ein Push auf einen Branch `release/vMAJOR.MINOR.PATCH` veröffentlicht nach erfolgreicher Prüfung ein neues stabiles Release mit den passenden Notizen aus `docs/releases/MAJOR.MINOR.PATCH.md`.
 
-1. Änderungen in `main` zusammenführen. `VERSION`, `src/paimenos/__init__.py` und `pyproject.toml` müssen dieselbe Version enthalten, für diese Umbenennung `0.64.0`. Manifest mit `python3 tools/build-manifest.py` erzeugen und committen.
-2. [Actions](https://github.com/xJohnDoe993/PaimenOS/actions) öffnen: **PaimenOS Release vorbereiten → Run workflow**, Branch `main`, Tag `v0.64.0`.
+1. Änderungen in `main` zusammenführen. `VERSION`, `src/paimenos/__init__.py` und `pyproject.toml` müssen dieselbe Version enthalten. Manifest mit `python3 tools/build-manifest.py` erzeugen und committen.
+2. [Actions](https://github.com/xJohnDoe993/PaimenOS/actions) öffnen: **PaimenOS Release → Run workflow**, Branch `main`, passenden neuen Tag eingeben.
 3. Erfolgreichen Lauf abwarten. Der Workflow installiert Flask, Qt Multimedia sowie X11-/Video-Testabhängigkeiten und erstellt den Release-Entwurf.
-4. Unter [Releases](https://github.com/xJohnDoe993/PaimenOS/releases) prüfen, dass `PaimenOS-0.64.0.zip` und `PaimenOS-0.64.0.zip.sha256` vollständig hochgeladen wurden. In den Release-Notizen ausdrücklich die nötige Neuinstallation für LaurinOS-Geräte nennen.
+4. Unter [Releases](https://github.com/xJohnDoe993/PaimenOS/releases) prüfen, dass ZIP und SHA-256 für die gewählte Version vollständig hochgeladen wurden. In den Release-Notizen nötige API-Übergänge und die Neuinstallation für LaurinOS-Geräte nennen.
 5. Die Dateien auf einem Testgerät mit frischem Debian installieren und die [Geräteprüfung](device-validation.md) durchführen. Danach **Publish release**, ohne **Pre-release**, als neuestes stabiles Release veröffentlichen.
 6. Spätere PaimenOS-Releases mit höherer Version werden im Elternbackend unter **Updates** angeboten.
 
 Alternativ startet ein neuer Tag den Workflow automatisch:
 
 ```bash
-git tag v0.64.0
-git push origin v0.64.0
+git tag v0.65.0
+git push origin v0.65.0
 ```
 
 Ein vorhandener Tag wird auch bei Auswahl von `main` aus dessen ursprünglichem Commit gebaut. Die Eingabe eines Tags erhöht die Projektversion nicht. Veröffentlichte Tags/Assets nicht ersetzen; Korrekturen erhalten eine neue Versionsnummer. Bei einem unvollständigen Upload den Entwurf unveröffentlicht lassen, nur seine ZIP-/SHA-Dateien entfernen und neu bauen. Ein bereits veröffentlichter Release wird vom Helfer nicht verändert.
+
+Für die direkte Veröffentlichung zuerst Änderungen, Versionsdateien und `docs/releases/0.65.0.md` prüfen und in `main` übernehmen. Anschließend den geprüften Stand auf `release/v0.65.0` pushen. Dieser Branch ist ein ausdrücklicher Veröffentlichungsauftrag: Nur bei bestandenen Tests, übereinstimmenden Versionsdateien, korrekter ZIP-Prüfsumme und vollständig bestätigten Uploads wird das Release als neuestes stabiles Release veröffentlicht. Der Tag wird am gebauten Commit erstellt und danach nochmals geprüft. Ein bereits vorhandener Tag wird auf diesem Weg abgelehnt. Kein zusätzlicher Workflow-Token ist nötig.
 
 Es ist kein zusätzlicher Token nötig: Der Workflow verwendet `GITHUB_TOKEN` mit `contents: write`. **Run workflow** erscheint, nachdem der Workflow in `main` übernommen wurde. Für einen lokalen Build `python3 tools/build-release.py` ausführen und beide Dateien aus `dist/` an einen passenden Release-Entwurf anhängen.
 

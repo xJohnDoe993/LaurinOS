@@ -9,6 +9,7 @@ import sys
 import tempfile
 import textwrap
 import unittest
+from unittest import mock
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,6 +25,8 @@ class FakeGitHub:
         self.release = None
         self.auth_error = False
         self.incomplete = False
+        self.ignore_publish = False
+        self.publish_sha = 'a' * 40
     def __call__(self, command, **kwargs):
         self.calls.append(command)
         if command[0] == 'git':
@@ -45,6 +48,12 @@ class FakeGitHub:
         if command[2] == 'create':
             self.release = {'draft': '--draft' in command, 'assets': [], 'html_url': 'https://github.com/test/repo/releases/tag/v0.63.0'}
         if command[2] == 'edit':
+            if '--draft=false' in command and not self.ignore_publish:
+                self.release['draft'] = False
+                self.release['prerelease'] = False
+                self.release['body'] = Path(command[command.index('--notes-file') + 1]).read_text()
+                if self.reference is None:
+                    self.reference = {'object': {'type': 'commit', 'sha': self.publish_sha}}
             return subprocess.CompletedProcess(command, 0)
         for path in (self.root / 'dist').iterdir():
             if not self.incomplete or path.suffix == '.zip':
@@ -61,6 +70,9 @@ class GitHubReleaseTests(unittest.TestCase):
         (self.root / 'src/paimenos/__init__.py').write_text('__version__ = "0.63.0"\n')
         (self.root / 'manifest.json').write_text('{"version":"0.63.0"}')
         (self.root / 'pyproject.toml').write_text('[tool.paimenos]\nversion="0.63.0"\n')
+        (self.root / 'docs/releases').mkdir(parents=True)
+        self.notes = self.root / 'docs/releases/0.63.0.md'
+        self.notes.write_text('## Release\n\nSecurity fix and update instructions.\n')
         (self.root / 'dist').mkdir()
         self.archive = self.root / 'dist/PaimenOS-0.63.0.zip'
         with zipfile.ZipFile(self.archive, 'w') as package:
@@ -69,7 +81,8 @@ class GitHubReleaseTests(unittest.TestCase):
         self.checksum.write_text(hashlib.sha256(self.archive.read_bytes()).hexdigest() + '  ' + self.archive.name + '\n')
         self.github = FakeGitHub(self.root)
     def tearDown(self): self.temp.cleanup()
-    def prepare(self): return release.prepare(self.root, 'v0.63.0', 'test/repo', self.github)
+    def prepare(self, *, publish=False):
+        return release.prepare(self.root, 'v0.63.0', 'test/repo', self.github, publish=publish)
     def writes(self): return [call for call in self.github.calls if call[:2] == ['gh', 'release']]
     def test_new_release_attaches_both_assets_as_draft_at_built_commit(self):
         self.assertIn('/v0.63.0', self.prepare())
@@ -129,6 +142,46 @@ class GitHubReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'nicht vollständig'): self.prepare()
         self.assertTrue(self.github.release['draft'])
 
+    def test_explicit_publication_uses_notes_and_verified_assets_at_built_commit(self):
+        self.assertIn('/v0.63.0', self.prepare(publish=True))
+        self.assertEqual([call[2] for call in self.writes()], ['create', 'edit'])
+        command = self.writes()[-1]
+        self.assertIn('--draft=false', command)
+        self.assertIn('--prerelease=false', command)
+        self.assertIn('--latest', command)
+        self.assertEqual(command[command.index('--target') + 1], 'a' * 40)
+        self.assertEqual(self.github.release['body'], self.notes.read_text())
+        self.assertFalse(self.github.release['draft'])
+        self.assertEqual({asset['name'] for asset in self.github.release['assets']},
+                         {self.archive.name, self.checksum.name})
+        self.assertEqual(self.github.reference['object']['sha'], 'a' * 40)
+
+    def test_publication_requires_nonempty_notes_before_any_github_operation(self):
+        self.notes.write_text(' \n')
+        with self.assertRaisesRegex(ValueError, 'Release-Notizen'): self.prepare(publish=True)
+        self.notes.unlink()
+        with self.assertRaisesRegex(ValueError, 'Release-Notizen'): self.prepare(publish=True)
+        self.assertEqual(self.github.calls, [])
+
+    def test_publication_does_not_follow_an_incomplete_upload(self):
+        self.github.incomplete = True
+        with self.assertRaisesRegex(ValueError, 'nicht vollständig'): self.prepare(publish=True)
+        self.assertTrue(self.github.release['draft'])
+        self.assertFalse(any('--draft=false' in call for call in self.writes()))
+
+    def test_publication_must_be_confirmed_as_stable(self):
+        self.github.ignore_publish = True
+        with self.assertRaisesRegex(ValueError, 'nicht bestätigt'): self.prepare(publish=True)
+
+    def test_published_tag_is_checked_again_against_built_commit(self):
+        self.github.publish_sha = 'b' * 40
+        with self.assertRaisesRegex(ValueError, 'gebauten Commit'): self.prepare(publish=True)
+
+    def test_explicit_publication_cannot_modify_an_existing_published_release(self):
+        self.github.release = {'draft': False, 'assets': []}
+        with self.assertRaisesRegex(ValueError, 'bereits veröffentlicht'): self.prepare(publish=True)
+        self.assertEqual(self.writes(), [])
+
 
 class WorkflowSourceTests(unittest.TestCase):
     def setUp(self):
@@ -163,6 +216,57 @@ class WorkflowSourceTests(unittest.TestCase):
         result = self.check('v' + version)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('OK: Version ' + version, result.stdout)
+
+
+class WorkflowCheckoutTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(dir=ROOT.parent)
+        self.output = Path(self.temp.name) / 'output'
+        workflow = (ROOT / '.github/workflows/release.yml').read_text()
+        step = workflow.split("python3 - <<'PY'\n", 1)[1].split('          PY', 1)[0]
+        self.code = textwrap.dedent(step)
+
+    def tearDown(self): self.temp.cleanup()
+
+    def checkout(self, tag, event='workflow_dispatch', ref='refs/heads/main', exists=False):
+        entries = [{'ref': 'refs/tags/v0.65.0'}] if exists else []
+        result = subprocess.CompletedProcess([], 0, stdout=json.dumps(entries))
+        environment = dict(RELEASE_TAG=tag, SOURCE_SHA='a' * 40, GH_REPO='test/repo',
+                           GITHUB_OUTPUT=str(self.output), GITHUB_EVENT_NAME=event, GITHUB_REF=ref)
+        with mock.patch.dict(os.environ, environment, clear=True), mock.patch.object(subprocess, 'run', return_value=result):
+            exec(compile(self.code, '<release workflow>', 'exec'), {})
+        return dict(line.split('=', 1) for line in self.output.read_text().splitlines())
+
+    def test_manual_run_defaults_to_draft_and_selected_commit(self):
+        self.assertEqual(self.checkout('v0.65.0'),
+                         {'tag': 'v0.65.0', 'ref': 'a' * 40, 'publish': 'false'})
+
+    def test_tag_run_uses_original_tag_and_remains_a_draft(self):
+        output = self.checkout('v0.65.0', 'push', 'refs/tags/v0.65.0', exists=True)
+        self.assertEqual(output['ref'], 'refs/tags/v0.65.0')
+        self.assertEqual(output['publish'], 'false')
+
+    def test_only_release_branch_push_opts_into_publication(self):
+        self.assertEqual(self.checkout('release/v0.65.0', 'push', 'refs/heads/release/v0.65.0'),
+                         {'tag': 'v0.65.0', 'ref': 'a' * 40, 'publish': 'true'})
+        self.output.unlink()
+        output = self.checkout('v0.65.0', 'workflow_dispatch', 'refs/heads/release/v0.65.0')
+        self.assertEqual(output['publish'], 'false')
+
+    def test_release_branch_ref_and_version_must_match(self):
+        with self.assertRaises(SystemExit):
+            self.checkout('release/v0.65.1', 'push', 'refs/heads/release/v0.65.0')
+        self.assertFalse(self.output.exists())
+
+    def test_release_branch_cannot_republish_an_existing_tag(self):
+        with self.assertRaisesRegex(SystemExit, 'neuen Tag'):
+            self.checkout('release/v0.65.0', 'push', 'refs/heads/release/v0.65.0', exists=True)
+        self.assertFalse(self.output.exists())
+
+    def test_invalid_tags_are_rejected_before_checkout(self):
+        for tag in ('v0.65', 'v0.65.0-beta', 'v0.65.0;echo bad'):
+            with self.subTest(tag=tag), self.assertRaises(SystemExit): self.checkout(tag)
+        self.assertFalse(self.output.exists())
 
 
 if __name__ == '__main__': unittest.main()

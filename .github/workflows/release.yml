@@ -1,13 +1,15 @@
-name: PaimenOS Release vorbereiten
+name: PaimenOS Release
 
 on:
   push:
+    branches:
+      - 'release/v*'
     tags:
       - 'v*'
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Versions-Tag, z. B. v0.64.0 (muss zu VERSION passen)'
+        description: 'Versions-Tag, z. B. v0.65.0 (erstellt einen Entwurf)'
         required: true
         type: string
 
@@ -15,7 +17,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: paimenos-release-${{ inputs.tag || github.ref_name }}
+  group: paimenos-release
   cancel-in-progress: false
 
 jobs:
@@ -38,15 +40,24 @@ jobs:
           import json, os, re, subprocess
           from pathlib import Path
           tag = os.environ['RELEASE_TAG']
+          publish = (os.environ.get('GITHUB_EVENT_NAME') == 'push'
+                     and os.environ.get('GITHUB_REF', '').startswith('refs/heads/release/'))
+          if publish:
+              tag = tag.removeprefix('release/')
+              if os.environ['GITHUB_REF'] != 'refs/heads/release/' + tag:
+                  raise SystemExit('Release-Branch und Tag stimmen nicht überein.')
           if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', tag):
               raise SystemExit('Tag muss vMAJOR.MINOR.PATCH heißen.')
           result = subprocess.run(['gh', 'api', 'repos/' + os.environ['GH_REPO']
                                    + '/git/matching-refs/tags/' + tag],
                                   check=True, capture_output=True, text=True)
           exists = any(item['ref'] == 'refs/tags/' + tag for item in json.loads(result.stdout))
+          if publish and exists:
+              raise SystemExit('Veröffentlichung benötigt einen neuen Tag; vorhandenen Tag nicht verändern.')
           ref = 'refs/tags/' + tag if exists else os.environ['SOURCE_SHA']
           with Path(os.environ['GITHUB_OUTPUT']).open('a') as output:
-              output.write('tag=' + tag + '\nref=' + ref + '\n')
+              output.write('tag=' + tag + '\nref=' + ref
+                           + '\npublish=' + str(publish).lower() + '\n')
           PY
 
       - name: Release-Quellcode laden
@@ -93,9 +104,15 @@ jobs:
           git diff --exit-code -- manifest.json
           python3 -B tools/build-release.py
 
-      - name: Release-Entwurf mit beiden Dateien anlegen
+      - name: Geprüfte Release-Dateien hochladen
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ steps.source.outputs.tag }}
-        run: python3 .github/scripts/release.py "$RELEASE_TAG"
+          PUBLISH_RELEASE: ${{ steps.source.outputs.publish }}
+        run: |
+          if [ "$PUBLISH_RELEASE" = true ]; then
+            python3 .github/scripts/release.py "$RELEASE_TAG" --publish
+          else
+            python3 .github/scripts/release.py "$RELEASE_TAG"
+          fi
