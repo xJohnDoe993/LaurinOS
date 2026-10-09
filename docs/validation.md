@@ -96,3 +96,25 @@ Am 7. Oktober 2026: Oberfläche, Python-Paket, Installer-Variablen, Startbefehle
 99 Tests mit Flask und PyQt5 bestehen; Syntax-/Ressourcenprüfung für 68 Python-Dateien und 27 Shell-Dateien erfolgreich. Der unveränderte alte LaurinOS-Deployer verweigert das PaimenOS-Manifest vor Aktivierung; der neue Deployer verweigert die alte API sowie Teilupdates über API-Grenzen. Der Installer weist eine erkannte LaurinOS-Installation vor Systemänderungen zurück. Eine automatische Migration ist nicht implementiert; Neuinstallation auf frischem Debian ist erforderlich.
 
 Zusätzlich wurde die echte MJPEG-Wiedergabe mit X11-Eingaben über das neue paimenos-Paket geprüft. Der Release-Build erzeugt PaimenOS-0.64.0.zip mit Stammordner PaimenOS/ und SHA-256-Datei. Die historische Hardware-/Ton-Einschränkung gilt weiter: Neuinstallation, Ton und Verhalten auf dem KidsPad sind am Gerät zu prüfen. Es wurde kein Release veröffentlicht.
+
+## Bildschirmzeit und Fensterpriorität, 9. Oktober 2026
+
+Die lokale Gesamtprüfung mit Flask und PyQt5 prüft 85 Python-Dateien,
+35 Shell-Dateien, Manifest, Ressourcen, Importe und Dienstpfade. 195 von
+199 Tests bestehen; vier Tests benötigen eine reale X11-/Openbox-Sitzung
+bzw. Qt Multimedia und werden lokal übersprungen. Zusätzlich bestehen
+19 gezielte Sperr-/Qt-Regressionstests im finalen Stand.
+
+Die neuen Prüfungen decken abgelaufene Zeit bei nativen Apps, Webapps,
+Kamera und Tux Paint, verspätete Menüknopf-Klicks, Controller-/Tastatureingaben,
+App-Ende, Kamerarückkehr, Menü-Hotkey, Bonuszeit, Tageswechsel, unbegrenzte Zeit,
+beschädigte Einstellungen, Eltern-PIN, Eltern-Vollbild, Zweitbildschirm-Geometrie
+und OSD-Unterdrückung ab. Ein echter Prozessabbruch prüft, dass die Eltern-
+Fensterpriorität ohne veraltete Markierungsdatei freigegeben wird.
+
+Der Firefox-Workflow führt zusätzlich zwei X11-Eingabe-/Fensterprüfungen
+unter Openbox mit der tatsächlichen PaimenOS-Konfiguration für Debian 12/13
+aus: unveränderte Menüknopf-Größe/-Position und normaler Klick sowie
+Browserüberdeckung, blockierter Klick bei Ablauf und Eltern-PIN im Vordergrund.
+Hardware-/Mehrmonitorprüfungen auf dem Zielgerät sind in
+`docs/device-validation.md` beschrieben.
