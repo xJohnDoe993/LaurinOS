@@ -328,6 +328,19 @@ class WidgetGuardTests(GuardFixture, unittest.TestCase):
             self.save(bonus_minutes=5)
             window.check_unlocked(); quit_app.assert_called_once()
 
+    def test_lock_never_automatically_shuts_down_and_requires_confirmation(self):
+        self.save(today_used_seconds=60)
+        window = lockscreen.LockScreen(); self.windows.append(window)
+        self.assertFalse(hasattr(window, 'auto_shutdown_timer'))
+        with patch.object(lockscreen.QMessageBox, 'question', return_value=lockscreen.QMessageBox.No), \
+                patch.object(lockscreen.subprocess, 'run') as run:
+            window.shutdown()
+            run.assert_not_called()
+        with patch.object(lockscreen.QMessageBox, 'question', return_value=lockscreen.QMessageBox.Yes), \
+                patch.object(lockscreen.subprocess, 'run') as run:
+            window.shutdown()
+            run.assert_called_once_with(['systemctl', 'poweroff'])
+
     def test_volume_overlay_never_covers_parent_view_or_expired_lock(self):
         reader, sender = socket.socketpair(socket.AF_UNIX, socket.SOCK_DGRAM)
         self.addCleanup(reader.close); self.addCleanup(sender.close)

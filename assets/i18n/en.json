@@ -1296,5 +1296,8 @@
   "\\nNetzwerkdiagnose und IPv4-APT-Test ...\\n": "\\nNetwork diagnostics and IPv4 APT test ...\\n",
   "IPv4-APT-Test erfolgreich.\\n": "IPv4 APT test succeeded.\\n",
   "IPv4-APT-Test fehlgeschlagen. Bitte die Fehlermeldungen oben prüfen.\\n": "IPv4 APT test failed. Please check the errors above.\\n",
-  "Mit Enter zurück zum Setup-Menü: ": "Press Enter to return to the setup menu: "
+  "Mit Enter zurück zum Setup-Menü: ": "Press Enter to return to the setup menu: ",
+  "Deine Apps bleiben geöffnet. Rufe deine Eltern zum Fortsetzen oder Speichern.": "Your apps stay open. Ask your parents to continue or save your work.",
+  "Herunterfahren?": "Shut down?",
+  "Ungespeicherte Arbeiten können beim Ausschalten verloren gehen. Zum Speichern zuerst Elternzeit hinzufügen. Trotzdem ausschalten?": "Unsaved work may be lost when shutting down. Ask your parents to add time so you can save first. Shut down anyway?"
 }

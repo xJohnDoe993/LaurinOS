@@ -301,6 +301,9 @@ def launch(system, filename):
     content = '\n'.join([
         'video_fullscreen = "true"', 'config_save_on_exit = "false"',
         'savestate_auto_save = "true"',
+        'savestate_auto_index = "true"', 'savestate_max_keep = "0"',
+        'autosave_interval = "10"',
+        'stdin_cmd_enable = "true"', 'network_cmd_enable = "false"',
         'savestate_auto_load = "' + ('false' if system == 'ps1' else 'true') + '"',
         'joypad_autoconfig_dir = ' + controllers.quote(autoconfig),
         'input_driver = "udev"', 'input_joypad_driver = "udev"',
@@ -347,5 +350,6 @@ def launch(system, filename):
         t('\nKonfiguration: ') + str(cfg) + '\n')
     log = ROOT / 'retroarch-last.log'
     log.write_text('')
-    os.execv('/usr/bin/retroarch', ['retroarch', '--verbose', '--log-file', str(log),
+    from paimenos.emulator_session import run_session
+    return run_session(['/usr/bin/retroarch', '--verbose', '--log-file', str(log),
                                  '-f', '-c', str(cfg), '-L', core, str(game)])

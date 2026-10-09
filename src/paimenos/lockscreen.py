@@ -60,7 +60,7 @@ class LockScreen(QWidget):
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
 
-        sub_label = QLabel(t('Rufe deine Eltern, wenn du noch etwas Zeit brauchst.'), self)
+        sub_label = QLabel(t('Deine Apps bleiben geöffnet. Rufe deine Eltern zum Fortsetzen oder Speichern.'), self)
         sub_label.setFont(QFont("DejaVu Sans", 20))
         sub_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(sub_label)
@@ -88,10 +88,6 @@ class LockScreen(QWidget):
 
         layout.addStretch()
 
-        self.auto_shutdown_timer = QTimer(self)
-        self.auto_shutdown_timer.setSingleShot(True)
-        self.auto_shutdown_timer.timeout.connect(self.shutdown)
-        self.auto_shutdown_timer.start(600000)
         self.refresh_timer = QTimer(self)
         self.refresh_timer.timeout.connect(self.check_unlocked)
         self.refresh_timer.start(1000)
@@ -113,7 +109,6 @@ class LockScreen(QWidget):
             QApplication.quit()
 
     def add_time_dialog(self):
-        self.auto_shutdown_timer.stop()
         self.refresh_timer.stop()
 
         pin, ok_pin = QInputDialog.getText(
@@ -139,11 +134,16 @@ class LockScreen(QWidget):
         elif ok_pin:
             QMessageBox.warning(self, t('Falsch'), t('Falscher PIN!'))
 
-        self.auto_shutdown_timer.start(600000)
         self.refresh_timer.start(1000)
 
     def shutdown(self):
-        subprocess.run(["systemctl", "poweroff"])
+        answer = QMessageBox.question(
+            self, t('Herunterfahren?'),
+            t('Ungespeicherte Arbeiten können beim Ausschalten verloren gehen. '
+              'Zum Speichern zuerst Elternzeit hinzufügen. Trotzdem ausschalten?'),
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if answer == QMessageBox.Yes:
+            subprocess.run(["systemctl", "poweroff"])
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
