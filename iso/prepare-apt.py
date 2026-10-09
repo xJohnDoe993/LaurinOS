@@ -1,19 +1,72 @@
 #!/usr/bin/python3
-"""Disable installation-media sources and fill missing Debian online components."""
+"""Prepare online sources and a temporary APT configuration for ISO setup."""
 from pathlib import Path as _Path
 import sys as _sys
 _release = _Path(__file__).resolve().parents[1]
 _sys.path.insert(0, str(_release / ('app' if (_release / 'app').is_dir() else 'src')))
 from paimenos.i18n import t
+import argparse
 import importlib.util
 import os
 from pathlib import Path
 import re
 import shutil
+import socket
+import subprocess
 
 spec = importlib.util.spec_from_file_location('components', Path(__file__).resolve().parents[1] / 'tools/configure-debian-components.py')
 components = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(components)
+
+
+def can_connect(family, port=443):
+    """Check Debian's TCP endpoint independently for IPv4 and IPv6."""
+    try:
+        addresses = socket.getaddrinfo('deb.debian.org', port, family, socket.SOCK_STREAM)
+    except OSError:
+        return False
+    # Bound connection attempts even if DNS returns many unreachable addresses.
+    for address in addresses[:2]:
+        try:
+            with socket.socket(family, socket.SOCK_STREAM) as connection:
+                connection.settimeout(3)
+                connection.connect(address[4])
+            return True
+        except OSError:
+            continue
+    return False
+
+
+def session_config(path, probe=can_connect, previous_config=None):
+    """Use IPv4 only when it works and IPv6 does not; leave system APT untouched."""
+    content = Path(previous_config).read_text() + '\n' if previous_config else ''
+    content += ('APT::Update::Error-Mode "any";\n'
+                'Acquire::Retries "1";\n'
+                'Acquire::http::Timeout "15";\n'
+                'Acquire::https::Timeout "15";\n')
+    ipv4, ipv6 = probe(socket.AF_INET), probe(socket.AF_INET6)
+    if ipv4 and not ipv6:
+        content += 'Acquire::ForceIPv4 "true";\nAcquire::ForceIPv6 "false";\n'
+        print(t('IPv6-Verbindung zum Debian-Server nicht nutzbar; das Setup lädt Pakete über IPv4.'))
+    Path(path).write_text(content)
+    # Inherited APT_CONFIG may contain proxy credentials. The caller uses mktemp.
+    Path(path).chmod(0o600)
+
+
+def diagnose(run=subprocess.run, probe=can_connect):
+    """Read-only routing and TCP diagnostics; no service or DNS changes."""
+    for command in (['ip', '-4', '-brief', 'address'], ['ip', '-4', 'route'],
+                    ['ip', '-6', 'route'], ['getent', 'ahostsv4', 'deb.debian.org']):
+        print('$ ' + ' '.join(command), flush=True)
+        try:
+            result = run(command, capture_output=True, text=True, timeout=10, check=False)
+            print(result.stdout.strip() or result.stderr.strip() or '-', flush=True)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            print(str(exc), flush=True)
+    for port in (80, 443):
+        for family, name in ((socket.AF_INET, 'IPv4'), (socket.AF_INET6, 'IPv6')):
+            status = t('erreichbar') if probe(family, port) else t('nicht erreichbar')
+            print(f'deb.debian.org TCP/{port} {name}: {status}', flush=True)
 
 
 def configure(root=Path('/')):
@@ -68,6 +121,15 @@ def configure(root=Path('/')):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--apt-config', type=Path)
+    parser.add_argument('--diagnose', action='store_true')
+    args = parser.parse_args()
+    if args.diagnose:
+        diagnose()
+        raise SystemExit(0)
     if os.geteuid() != 0:
         raise SystemExit(t('Bitte mit sudo starten.'))
     configure()
+    if args.apt_config:
+        session_config(args.apt_config, previous_config=os.environ.get('APT_CONFIG'))

@@ -1287,5 +1287,9 @@
   "Wiederverbindung/IP/DNS nicht erfolgreich; Debian-Konfiguration wird wiederhergestellt.": "Reconnection/IP/DNS check failed; restoring the Debian configuration.",
   "WLAN verbunden, IP-Adresse und DNS geprüft. Profil bleibt nach Neustart erhalten. Sicherung: {value0}": "Wi-Fi connected, IP address and DNS checked. Profile is retained after restart. Backup: {value0}",
   "PaimenOS: systemd-Benutzersitzung fehlt; siehe Geräte-Diagnose.": "PaimenOS: systemd user session is missing; see device diagnostics.",
-  "Weiter": "Forward"
+  "Weiter": "Forward",
+  "Debian-Paketquellen konnten nicht vollständig geprüft werden. Netzwerk und APT-Fehler oben prüfen; dann erneut versuchen.\\n": "Could not fully verify Debian package sources. Check the network and APT errors above, then try again.\\n",
+  "IPv6-Verbindung zum Debian-Server nicht nutzbar; das Setup lädt Pakete über IPv4.": "IPv6 connection to the Debian server is unavailable; setup downloads packages over IPv4.",
+  "erreichbar": "reachable",
+  "nicht erreichbar": "unreachable"
 }
