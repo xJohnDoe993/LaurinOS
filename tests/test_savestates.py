@@ -81,7 +81,31 @@ class ResumeTests(unittest.TestCase):
             self.assertIn('core_info_cache_enable = "false"', cfg.read_text())
             self.assertIn('savestate_auto_load = "true"', cfg.read_text())
             args = run.call_args.args[0]
-            self.assertEqual(Path(args[args.index('--savestate') + 1] + '.auto').read_bytes(), b'checkpoint')
+            self.assertNotIn('--savestate', args)
+            target = self.folder / 'paimenos-resume'
+            self.assertIn('savestate_directory = "' + str(target) + '"', cfg.read_text())
+            for option in ('sort_savestates_enable', 'sort_savestates_by_content_enable', 'savestates_in_content_dir'):
+                self.assertIn(option + ' = "false"', cfg.read_text())
+            self.assertEqual((target / 'Game.state.auto').read_bytes(), b'checkpoint')
             write_status(run.call_args.kwargs['resume_marker'], 'clean')
             emulators.launch('snes', str(self.game))
             self.assertIn('savestate_auto_load = "false"', cfg.read_text())
+
+    def test_recover_actual_retroarch_120_legacy_path_without_changing_original(self):
+        legacy = self.root / '.config/retroarch/states'
+        saved = legacy / self.game.parent.name / 'Snes9x' / 'Game.state.auto'
+        saved.parent.mkdir(parents=True)
+        saved.write_bytes(b'previous interrupted game')
+        base, source, marker = prepare_resume(self.states, self.game, [legacy])
+        self.assertEqual(source, saved)
+        self.assertEqual(Path(str(base) + '.auto').read_bytes(), saved.read_bytes())
+        write_status(marker, 'clean')
+        self.assertIsNone(prepare_resume(self.states, self.game, [legacy])[1])
+        self.assertEqual(saved.read_bytes(), b'previous interrupted game')
+
+    def test_legacy_same_filename_in_other_game_is_not_imported(self):
+        legacy = self.root / 'legacy'
+        other = legacy / 'rom-other/Snes9x'
+        other.mkdir(parents=True)
+        (other / 'Game.state.auto').write_bytes(b'wrong ROM')
+        self.assertIsNone(prepare_resume(self.states, self.game, [legacy])[1])

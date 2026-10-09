@@ -26,7 +26,15 @@ def write_status(marker, status):
             os.unlink(temporary)
 
 
-def prepare_resume(states, game):
+def legacy_state_roots():
+    default = Path.home() / '.config'
+    configured = Path(os.environ.get('XDG_CONFIG_HOME') or default)
+    if not configured.is_absolute():
+        configured = default
+    return tuple(dict.fromkeys((configured / 'retroarch/states', default / 'retroarch/states')))
+
+
+def prepare_resume(states, game, legacy_roots=None):
     states, game = Path(states), Path(game)
     folder = states / game.parent.name
     folder.mkdir(parents=True, exist_ok=True)
@@ -39,14 +47,20 @@ def prepare_resume(states, game):
     # Never take a same-named ROM's state from a different game ID.
     pattern = re.compile(re.escape(game.stem) + r'\.state(?:\d+|\.auto)?$')
     candidates = []
-    for directory, dirs, files in os.walk(folder, followlinks=False):
-        dirs[:] = [d for d in dirs if not (Path(directory) / d).is_symlink()]
-        for name in files:
-            path = Path(directory) / name
-            if pattern.fullmatch(name) and not path.is_symlink() and path.is_file():
-                stat = path.stat()
-                if stat.st_size:
-                    candidates.append((stat.st_mtime_ns, str(path), path))
+    roots = legacy_state_roots() if legacy_roots is None else legacy_roots
+    folders = [folder, *(Path(root) / game.parent.name for root in roots)]
+    for source_folder in dict.fromkeys(folders):
+        # Only inspect this ROM's ID, including a legacy per-core subdirectory.
+        if source_folder.is_symlink() or not source_folder.is_dir():
+            continue
+        for directory, dirs, files in os.walk(source_folder, followlinks=False):
+            dirs[:] = [d for d in dirs if not (Path(directory) / d).is_symlink()]
+            for name in files:
+                path = Path(directory) / name
+                if pattern.fullmatch(name) and not path.is_symlink() and path.is_file():
+                    stat = path.stat()
+                    if stat.st_size:
+                        candidates.append((stat.st_mtime_ns, str(path), path))
     target_dir = folder / 'paimenos-resume'
     target_dir.mkdir(exist_ok=True)
     if target_dir.is_symlink():

@@ -135,3 +135,25 @@ danach Bildschirmzeit-Ende sowie Wiederaufnahme nach Herunterfahren prüfen.
 Meldung bestehen, dieses Protokoll prüfen: Neben fehlenden Metadaten kann auch eine
 vom Core zurückgegebene Zustandsgröße von 0 das Speichern verhindern. Ein zuvor
 fehlgeschlagener Speichervorgang kann durch diesen Fix nicht nachgeholt werden.
+
+### Abweichender Speicherort trotz angezeigtem Resume-Ziel
+
+RetroArch 1.20 ignoriert `savestate_directory`, wenn der veraltete CLI-Parameter
+`--savestate` gesetzt ist (`configuration.c`, Prüfung von
+`RARCH_OVERRIDE_SETTING_STATE_PATH`). Damit konnte der tatsächliche Zielpfad
+unter `~/.config/retroarch/states/<ROM-ID>/Snes9x/` liegen, obwohl PaimenOS einen
+anderen Resume-Pfad vorbereitet hatte.
+
+Der Launcher verwendet ausschließlich `savestate_directory` und deaktiviert
+zusätzliche Savestate-Sortierung sowie Speicherung im Inhaltsordner. Die SRAM-
+Konfiguration bleibt unverändert. Die Wiederaufnahme sucht zusätzlich unter
+`$XDG_CONFIG_HOME/retroarch/states/<ROM-ID>/` und
+`~/.config/retroarch/states/<ROM-ID>/`, einschließlich Core-Unterordnern.
+Originale werden nicht gelöscht. Die Kennzeichnung eines regulären Endes hat
+weiterhin Vorrang vor allen vorhandenen Zuständen.
+
+Im Geräteprotokoll muss der tatsächliche `.state`-Pfad nun demselben Basispfad wie
+`Resume target` entsprechen (Autozustände tragen zusätzlich `.auto`).
+`Previous session` erklärt, ob automatisches Laden wegen eines regulären Endes
+unterdrückt wurde. Zum Test Bildschirmzeit ablaufen lassen, herunterfahren,
+neustarten und dieselbe ROM öffnen; nach regulärem Beenden dagegen normal starten.
