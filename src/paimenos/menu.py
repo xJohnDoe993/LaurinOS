@@ -1310,6 +1310,27 @@ class PaimenOSMenu(QWidget):
                 return
             QMessageBox.warning(target, t('Programmstart'), t('Das Programm wurde mit Fehlercode {value0} beendet.\nDetails stehen im Elternbereich unter Geräte-Diagnose.', value0=code))
 
+    def stop_for_shutdown(self):
+        # KillMode=mixed sends SIGTERM only to this menu. Give the supervisor
+        # time to resume a stopped emulator and request RetroArch's normal QUIT
+        # (which writes the .state.auto used by savestate_auto_load).
+        if getattr(self, '_shutting_down', False):
+            return
+        self._shutting_down = True
+        process = self.active_process
+        try:
+            if process is not None and process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=15)
+                except subprocess.TimeoutExpired:
+                    print('Application did not finish saving before shutdown timeout.',
+                          file=sys.stderr, flush=True)
+        except ProcessLookupError:
+            pass
+        finally:
+            QApplication.quit()
+
     def camera_finished(self, browser):
         if getattr(self, "camera_browser", None) is browser:
             self.camera_browser = None
@@ -1412,6 +1433,8 @@ if __name__ == "__main__":
     setup_qt(app)
     app.setWindowIcon(QIcon(str(ASSETS_DIR / 'branding/paimenos-logo.png')))
     window = PaimenOSMenu()
+    signal.signal(signal.SIGTERM, lambda signum, frame: window.stop_for_shutdown())
+    signal.signal(signal.SIGINT, lambda signum, frame: window.stop_for_shutdown())
     window.showFullScreen()
     window.raise_()
     window.activateWindow()

@@ -24,6 +24,22 @@ geladen werden; die bestehende Auto-Load-Regel für `.auto`-Stände bleibt erhal
 Sekunden gespeichert, soweit der Core dies unterstützt. Normales Beenden
 behält RetroArchs Auto-Save bei.
 
+Beim regulären Herunterfahren erhält zuerst nur das Kindermenü das Stoppsignal
+(`KillMode=mixed`). Es beendet den eigenen Begleitprozess und wartet bis zu
+15 Sekunden. Der Emulator-Begleitprozess setzt ein pausiertes RetroArch fort
+und sendet `QUIT`, damit RetroArch seinen automatisch ladbaren
+`.state.auto`-Stand schreiben kann. Der Dienst lässt dafür insgesamt 20 Sekunden
+Zeit. Bei einem hängenden Programm beendet systemd danach weiterhin die ganze
+Prozessgruppe. Vor dieser Korrektur bekamen alle Prozesse gleichzeitig SIGTERM;
+das fünfsekündige Dienstlimit war zudem kürzer als das geordnete Beenden.
+
+Ein nummerierter `SAVE_STATE`-Stand vom Zeitablauf ist nicht derselbe wie der
+beim nächsten Start automatisch geladene `.state.auto`-Stand. Fehlendes
+automatisches Fortsetzen bedeutet daher nicht zwingend, dass sämtliche
+Speicherstände fehlen. Vorhandene nummerierte Stände können über das
+RetroArch-Schnellmenü geladen werden. Die Korrektur erfordert ein vollständiges
+Update einschließlich der systemd-Dienste.
+
 Ein Speicherauftrag ist keine bestätigte Sicherung: Core-Unterstützung,
 Schreibfehler oder langsame Speichermedien können den Save-State verhindern.
 Deshalb wird die Sitzung bei Zeitablauf **nicht beendet**, auch bei defekter
@@ -41,3 +57,10 @@ Speicherns, defekte Pipes sowie Pause/Fortsetzen eines echten Kindprozesses.
 Die Qt-Sperrtests prüfen zusätzlich das fehlende automatische Herunterfahren
 und beide Antworten auf die Ausschaltbestätigung. Ein Hardwaretest mit den
 installierten RetroArch-Cores bleibt erforderlich.
+
+Zusätzliche Abschalttests prüfen die Reihenfolge im echten Qt-Menü und das
+Zeitlimit. Ein echter Python-Begleitprozess beendet einen laufenden sowie einen
+mit SIGSTOP angehaltenen Testprozess über die stdin-Pipe. Der Testprozess
+schreibt nur bei QUIT eine simulierte Auto-State-Datei. Dies prüft Signale,
+Fortsetzen, Beenden und Reaping, jedoch weder echte SNES-Serialisierung noch
+den vollständigen systemd-/Hardware-Shutdown.

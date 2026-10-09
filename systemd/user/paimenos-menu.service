@@ -13,6 +13,9 @@ Environment=PATH=/usr/local/bin:/usr/bin:/bin:/usr/games:/usr/local/games
 ExecStart=/usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py menu
 Restart=always
 RestartSec=3
-TimeoutStopSec=5
+# Let the menu stop its application supervisor first. SIGKILL still cleans up
+# the entire service cgroup if graceful shutdown exceeds the deadline.
+KillMode=mixed
+TimeoutStopSec=20
 StandardOutput=journal
 StandardError=journal

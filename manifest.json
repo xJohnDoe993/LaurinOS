@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "runtime_api": 3,
-  "version": "0.66.0",
+  "version": "0.66.1",
   "components": {
     "shared": {
       "files": [

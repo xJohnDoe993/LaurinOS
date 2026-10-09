@@ -179,6 +179,31 @@ class WidgetGuardTests(GuardFixture, unittest.TestCase):
         self.spawn.reset_mock()
         return window
 
+    def test_shutdown_waits_for_supervisor_before_quitting_menu(self):
+        window = self.child_menu()
+        process = MagicMock()
+        process.poll.return_value = None
+        window.active_process = process
+        calls = MagicMock()
+        calls.attach_mock(process.terminate, 'terminate')
+        calls.attach_mock(process.wait, 'wait')
+        with patch.object(QApplication, 'quit') as quit_app:
+            calls.attach_mock(quit_app, 'quit')
+            window.stop_for_shutdown()
+            window.stop_for_shutdown()
+        from unittest.mock import call
+        self.assertEqual(calls.mock_calls, [call.terminate(), call.wait(timeout=15), call.quit()])
+
+    def test_shutdown_timeout_is_bounded_and_still_exits_menu(self):
+        window = self.child_menu()
+        process = MagicMock()
+        process.poll.return_value = None
+        process.wait.side_effect = subprocess.TimeoutExpired('app', 15)
+        window.active_process = process
+        with patch.object(QApplication, 'quit') as quit_app:
+            window.stop_for_shutdown()
+            quit_app.assert_called_once()
+
     def test_corrupt_settings_keep_lock_visible_and_recover_after_repair(self):
         self.settings_file.write_text('{broken')
         window = lockscreen.LockScreen()
