@@ -1291,5 +1291,10 @@
   "Debian-Paketquellen konnten nicht vollständig geprüft werden. Netzwerk und APT-Fehler oben prüfen; dann erneut versuchen.\\n": "Could not fully verify Debian package sources. Check the network and APT errors above, then try again.\\n",
   "IPv6-Verbindung zum Debian-Server nicht nutzbar; das Setup lädt Pakete über IPv4.": "IPv6 connection to the Debian server is unavailable; setup downloads packages over IPv4.",
   "erreichbar": "reachable",
-  "nicht erreichbar": "unreachable"
+  "nicht erreichbar": "unreachable",
+  "\\n1) WLAN/Netzwerk einrichten\\n2) PaimenOS-Setup starten\\n3) Neu starten\\n4) Netzwerkdiagnose / IPv4-Test\\n": "\\n1) Configure Wi-Fi/network\\n2) Start PaimenOS setup\\n3) Restart\\n4) Network diagnostics / IPv4 test\\n",
+  "\\nNetzwerkdiagnose und IPv4-APT-Test ...\\n": "\\nNetwork diagnostics and IPv4 APT test ...\\n",
+  "IPv4-APT-Test erfolgreich.\\n": "IPv4 APT test succeeded.\\n",
+  "IPv4-APT-Test fehlgeschlagen. Bitte die Fehlermeldungen oben prüfen.\\n": "IPv4 APT test failed. Please check the errors above.\\n",
+  "Mit Enter zurück zum Setup-Menü: ": "Press Enter to return to the setup menu: "
 }

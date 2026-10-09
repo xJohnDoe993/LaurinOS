@@ -15,11 +15,26 @@ if [[ ! -f $SUCCESS ]]; then
     printf "$(paimenos_text '\nWillkommen bei PaimenOS!\nDie Debian-Grundinstallation ist abgeschlossen.\n')"
     printf "$(paimenos_text 'Für Programme und Emulatoren ist jetzt eine Internetverbindung erforderlich.\n')"
     while :; do
-        printf "$(paimenos_text '\n1) WLAN/Netzwerk einrichten\n2) PaimenOS-Setup starten\n3) Neu starten\n')"
+        printf "$(paimenos_text '\n1) WLAN/Netzwerk einrichten\n2) PaimenOS-Setup starten\n3) Neu starten\n4) Netzwerkdiagnose / IPv4-Test\n')"
         read -r -p "$(paimenos_text 'Auswahl [2]: ')" choice
         case "$choice" in
             1) nmtui || true; continue ;;
             3) systemctl reboot; exit 0 ;;
+            4)
+                printf "$(paimenos_text '\nNetzwerkdiagnose und IPv4-APT-Test ...\n')"
+                /usr/bin/python3 "$SOURCE/iso/prepare-apt.py" --diagnose || true
+                if /usr/bin/python3 "$SOURCE/iso/prepare-apt.py" --apt-config "$APT_SESSION_CONFIG" &&
+                    APT_CONFIG="$APT_SESSION_CONFIG" apt-get \
+                        -o Acquire::ForceIPv4=true -o Acquire::ForceIPv6=false \
+                        -o Acquire::Retries=0 -o Acquire::http::Timeout=10 \
+                        -o Acquire::https::Timeout=10 -o APT::Update::Error-Mode=any update; then
+                    printf "$(paimenos_text 'IPv4-APT-Test erfolgreich.\n')"
+                else
+                    printf "$(paimenos_text 'IPv4-APT-Test fehlgeschlagen. Bitte die Fehlermeldungen oben prüfen.\n')"
+                fi
+                read -r -p "$(paimenos_text 'Mit Enter zurück zum Setup-Menü: ')" diagnostic_answer
+                continue
+                ;;
             ''|2) ;;
             *) continue ;;
         esac
