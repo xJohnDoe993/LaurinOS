@@ -26,6 +26,7 @@ declare -A PAIMENOS_ENGLISH=(
     ['Benutzer '"'"'{value0}'"'"', Ordnerstruktur & Bibata-Cursor ...']='User '"'"'{value0}'"'"', directory structure & Bibata cursor ...'
     ['Bitte das Gerät jetzt neu starten: sudo reboot']='Please restart the device now: sudo reboot'
     ['Debian 12 oder 13 erforderlich.']='Debian 12 or 13 required.'
+    ['Debian-Paketquellen konnten nicht vollständig geprüft werden. Netzwerk und APT-Fehler oben prüfen; dann erneut versuchen.\n']='Could not fully verify Debian package sources. Check the network and APT errors above, then try again.\n'
     ['Diese Version erwartet eine Neuinstallation. Für modulare Installationen: sudo bash update.sh']='This version requires a fresh installation. For modular installations: sudo bash update.sh'
     ['Download fehlgeschlagen, fahre fort...']='Download failed, continuing...'
     ['Eine PaimenOS-Wartung läuft bereits.']='PaimenOS maintenance is already running.'

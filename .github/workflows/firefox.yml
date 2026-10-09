@@ -9,6 +9,7 @@ on:
       - 'src/paimenos/i18n.py'
       - 'installer/language.sh'
       - 'iso/setup-after-install.sh'
+      - 'iso/prepare-apt.py'
       - 'assets/i18n/**'
       - 'src/paimenos/close_overlay.py'
       - 'src/paimenos/menu.py'
@@ -16,6 +17,7 @@ on:
       - 'tests/test_firefox_integration.py'
       - 'tests/test_i18n.py'
       - 'tests/test_iso_setup.py'
+      - 'tests/test_iso_apt.py'
       - '.github/workflows/iso.yml'
       - '.github/workflows/release.yml'
       - '.github/workflows/firefox.yml'
@@ -46,6 +48,22 @@ jobs:
         run: |
           python3 -B -m unittest discover -s tests -p test_i18n.py -v
           python3 -B -m unittest discover -s tests -p test_iso_setup.py -v
+          python3 -B -m unittest discover -s tests -p test_iso_apt.py -v
+      - name: Real APT download with ISO session configuration
+        run: |
+          apt_session=$(mktemp)
+          trap 'rm -f "$apt_session"' EXIT
+          python3 -B - "$apt_session" <<'PY'
+          import importlib.util
+          import os
+          from pathlib import Path
+          import sys
+          spec = importlib.util.spec_from_file_location('iso_apt', 'iso/prepare-apt.py')
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          module.session_config(Path(sys.argv[1]), previous_config=os.environ.get('APT_CONFIG'))
+          PY
+          APT_CONFIG="$apt_session" apt-get update
       - name: Real Firefox cache and restart tests
         env:
           PAIMENOS_FIREFOX_INTEGRATION: '1'

@@ -42,6 +42,26 @@ Manuell ist das Fortsetzen auch möglich:
 sudo bash /opt/paimenos-source/install.sh --resume
 ```
 
+Das ISO-Setup prüft vor der Eltern-PIN und vor der Paketinstallation, ob APT
+aktuelle, signierte Paketlisten abrufen kann. Eine aktive Ethernet- oder
+WLAN-Verbindung allein bestätigt keinen Internetzugang. Scheitert der Abruf,
+erscheinen die APT-Fehler sowie IPv4-/IPv6-Routen, die IPv4-Namensauflösung und
+getrennte TCP-Verbindungstests zu `deb.debian.org` auf Port 80 und 443.
+Die Diagnose lässt sich ohne Änderungen am System wiederholen:
+
+```bash
+python3 /opt/paimenos-source/iso/prepare-apt.py --diagnose
+```
+
+Ist der Debian-Server per IPv4 erreichbar, per IPv6 jedoch nicht, verwendet APT
+während der Einrichtung IPv4. Die temporäre APT-Konfiguration wird bei jedem
+Setup-Versuch neu geprüft und beim Beenden entfernt. IPv6 bleibt im System
+aktiv; bestehende Netzwerkprofile, DNS- und Proxy-Einstellungen werden beibehalten.
+Scheitert auch IPv4, hilft diese Ausweichlösung nicht: In einer VM dann Adresse,
+Standardroute und die Internetweiterleitung des Hosts prüfen. Ein erfolgreicher
+TCP-Test bestätigt noch keinen erfolgreichen HTTPS- oder APT-Abruf; deshalb
+bleibt die Prüfung durch APT erforderlich.
+
 ## Build und Prüfung
 
 Der Build läuft in einem privilegierten Debian-13-Container auf einem
