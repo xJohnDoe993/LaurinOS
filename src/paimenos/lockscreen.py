@@ -22,11 +22,7 @@ class LockScreen(QWidget):
         self.setWindowTitle(t('Zeit abgelaufen'))
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         
-        try:
-            self.settings = load_settings()
-        except (OSError, ValueError, KeyError, TypeError):
-            # A broken settings file must not expose a running child app.
-            self.settings = {}
+        self.settings = load_settings()
         bg_color = self.settings.get("bg_color", "#FF9F00")
 
         self.setStyleSheet(f"""
@@ -111,26 +107,15 @@ class LockScreen(QWidget):
         super().keyPressEvent(event)
 
     def check_unlocked(self):
-        try:
-            current = read_settings()
-            left = remaining_seconds(current)
-        except (OSError, ValueError, KeyError, TypeError):
-            return
+        current = read_settings()
+        left = remaining_seconds(current)
         if left is None or left > 0:
             QApplication.quit()
 
     def add_time_dialog(self):
         self.auto_shutdown_timer.stop()
         self.refresh_timer.stop()
-        try:
-            self.request_bonus()
-        except (OSError, ValueError, KeyError, TypeError) as exc:
-            QMessageBox.warning(self, t('Datenfehler'), str(exc))
-        finally:
-            self.auto_shutdown_timer.start(600000)
-            self.refresh_timer.start(1000)
 
-    def request_bonus(self):
         pin, ok_pin = QInputDialog.getText(
             self, t('🔒 Eltern-PIN'), t('Bitte Eltern-PIN eingeben:'), QLineEdit.Password
         )
@@ -153,6 +138,9 @@ class LockScreen(QWidget):
                 return
         elif ok_pin:
             QMessageBox.warning(self, t('Falsch'), t('Falscher PIN!'))
+
+        self.auto_shutdown_timer.start(600000)
+        self.refresh_timer.start(1000)
 
     def shutdown(self):
         subprocess.run(["systemctl", "poweroff"])

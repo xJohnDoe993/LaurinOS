@@ -1354,11 +1354,7 @@ class PaimenOSMenu(QWidget):
         current_online = self.network_status.value()
         current_media = has_media_attached()
 
-        try:
-            settings = load_json(SETTINGS_FILE)
-        except (OSError, ValueError, KeyError, TypeError):
-            self.hide_child_views()
-            return
+        settings = load_json(SETTINGS_FILE)
         if screen_time_expired() and not protected_view_active():
             self.hide_child_views()
         elif (self.time_blocked and not child_access_blocked()
