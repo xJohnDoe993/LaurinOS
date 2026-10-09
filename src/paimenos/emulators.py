@@ -317,9 +317,10 @@ def launch(system, filename):
         'input_autodetect_enable = "true"', 'input_exit_emulator = "escape"',
         'input_menu_toggle = "f8"', 'input_save_state = "f9"', 'input_load_state = "f10"',
         'savefile_directory = "' + str(ROOT / 'saves') + '"',
-        'savestate_directory = "' + str(ROOT / 'states') + '"',
+        'savestate_directory = ' + controllers.quote(state_base.parent),
+        'sort_savestates_enable = "false"', 'savestates_in_content_dir = "false"',
         'system_directory = "' + str(catalog.SHARED_SYSTEM if system == 'psp' else ROOT / 'bios') + '"',
-        'sort_savefiles_by_content_enable = "true"', 'sort_savestates_by_content_enable = "true"',
+        'sort_savefiles_by_content_enable = "true"', 'sort_savestates_by_content_enable = "false"',
         'input_player1_a = "x"', 'input_player1_b = "z"', 'input_player1_x = "s"',
         'input_player1_y = "a"', 'input_player1_l = "q"', 'input_player1_r = "w"',
         'input_player1_start = "enter"', 'input_player1_select = "rshift"']) + '\n'
@@ -359,9 +360,10 @@ def launch(system, filename):
     log = ROOT / 'retroarch-last.log'
     with (ROOT / 'last-launch.txt').open('a') as report:
         report.write('Core info: ' + (str(core_info) if core_info else 'not found') + '\n')
+        report.write('Previous session: ' + (resume_marker.read_text() if resume_marker.exists() else 'legacy/unknown') + '\n')
         report.write('Resume source: ' + (str(resume_state) if resume_state else 'none') + '\n'
                      'Resume target: ' + str(state_base) + '.auto\n')
     log.write_text('')
     from paimenos.emulator_session import run_session
     return run_session(['/usr/bin/retroarch', '--verbose', '--log-file', str(log),
-                                 '-f', '-c', str(cfg), '--savestate', str(state_base), '-L', core, str(game)], resume_marker=resume_marker)
+                                 '-f', '-c', str(cfg), '-L', core, str(game)], resume_marker=resume_marker)
