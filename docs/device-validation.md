@@ -94,3 +94,28 @@ dpkg-query -W python3-pyqt5.qtmultimedia libqt5multimedia5-plugins gstreamer1.0-
 ```
 
 Erst nach diesen Geräteprüfungen den Stand als auf Debian/T450 praktisch getestet markieren.
+
+## Wiederaufnahme von Emulator-Sitzungen
+
+Beim Start sucht PaimenOS im Savestate-Verzeichnis der konkreten ROM nach dem
+neuesten nicht leeren `.state`, nummerierten `.stateN` oder `.state.auto`.
+Nach einer unterbrochenen Sitzung wird dieser Zustand atomar auf den expliziten
+RetroArch-Autoload-Pfad kopiert. Originaldateien bleiben erhalten.
+Die dauerhaft geschriebene Sitzungskennzeichnung wird nur nach regulärem
+Emulator-Ende mit Exitcode 0 zurückgesetzt. Herunterfahren, Abbruch und Absturz
+lassen die Wiederaufnahme aktiv. Nach regulärem Beenden startet das Spiel normal;
+spielinterne SRAM-Speicherstände bleiben unabhängig davon erhalten.
+Bei der Migration ohne Kennzeichnung wird ein vorhandener Savestate einmalig
+zur Wiederaufnahme angeboten. RetroArch muss den Zustand mit dem verwendeten
+Core laden können; beschädigte oder inkompatible Zustände werden nicht repariert.
+
+Am Gerät mit einer SNES-ROM prüfen:
+
+1. Spielen, Bildschirmzeit ablaufen lassen, herunterfahren und neu starten.
+   Dieselbe ROM muss den gespeicherten Zustand wiederherstellen.
+2. Nach Bonuszeit weiterspielen und das Spiel regulär beenden. Beim nächsten
+   Öffnen muss es normal starten, ohne automatischen Savestate-Import.
+3. Zwei ROMs mit gleichem Dateinamen in getrennten Spieleinträgen starten.
+   Speicherstände dürfen nicht zwischen den Einträgen übernommen werden.
+4. `last-launch.txt` auf Quelle/Ziel und `retroarch-last.log` auf das tatsächliche
+   Laden prüfen. Eine angegebene Quelle allein bestätigt noch keinen Ladeerfolg.

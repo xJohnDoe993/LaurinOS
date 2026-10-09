@@ -46,8 +46,20 @@ class Session:
             self.paused = False
 
 
-def run_session(command):
-    process = subprocess.Popen(command, stdin=subprocess.PIPE)
+def run_session(command, resume_marker=None):
+    from paimenos.savestates import write_status
+    if resume_marker is not None:
+        previous_status = resume_marker.read_text() if resume_marker.exists() else None
+        write_status(resume_marker, 'running')
+    try:
+        process = subprocess.Popen(command, stdin=subprocess.PIPE)
+    except Exception:
+        if resume_marker is not None:
+            if previous_status is None:
+                resume_marker.unlink(missing_ok=True)
+            else:
+                write_status(resume_marker, previous_status)
+        raise
     session = Session(process)
     stopping = False
 
@@ -71,7 +83,10 @@ def run_session(command):
             except ProcessLookupError:
                 break
             time.sleep(0.1)
-        return process.wait()
+        result = process.wait()
+        if resume_marker is not None and result == 0 and not stopping and session.deadline is None:
+            write_status(resume_marker, 'clean')
+        return result
     finally:
         for sig, handler in previous.items():
             signal.signal(sig, handler)

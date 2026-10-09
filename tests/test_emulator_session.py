@@ -40,7 +40,7 @@ class SessionTests(unittest.TestCase):
                     '  Path(sys.argv[3],"stopped").write_text("stopped")\n'
                     'e.Session.tick=checked_tick\n'
                     'e.screen_time_expired=lambda:sys.argv[1]=="True"\n'
-                    'raise SystemExit(e.run_session([sys.executable,"-u","-c",sys.argv[2],sys.argv[3]]))\n')
+                    'raise SystemExit(e.run_session([sys.executable,"-u","-c",sys.argv[2],sys.argv[3]], Path(sys.argv[3])/"session-status"))\n')
                 proc = subprocess.Popen([sys.executable, '-u', '-c', supervisor_code,
                     str(expired), child_code, str(folder)],
                     env=dict(os.environ, PYTHONPATH=str(root / 'src')), stdout=subprocess.DEVNULL, start_new_session=True)
@@ -56,6 +56,7 @@ class SessionTests(unittest.TestCase):
                     proc.terminate()
                     self.assertEqual(proc.wait(timeout=5), 0)
                     self.assertEqual((folder / 'game.state.auto').read_bytes(), b'session at shutdown')
+                    self.assertEqual((folder / 'session-status').read_text(), 'running')
                 finally:
                     if proc.poll() is None:
                         os.killpg(proc.pid, signal.SIGKILL); proc.wait(timeout=3)
