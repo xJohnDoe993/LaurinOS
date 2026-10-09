@@ -20,6 +20,7 @@ components['shared']['files'] += ['run.py', 'assets/webapp.css', 'assets/i18n/en
 components['shared']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'assets/branding').glob('*.png'))
 components['backend']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'assets/parent-web').glob('*.html'))
 components['emulators']['files'] += ['data/emulator-catalog.json']
+components['emulators']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'data/libretro-info').glob('*') if p.is_file())
 components['cli']['files'] += sorted(str(p.relative_to(ROOT)) for folder in ('bin', 'sbin') for p in (ROOT / folder).glob('*') if p.is_file())
 components['tools']['files'] += sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'tools').glob('*.py') if p.name not in {'check.py', 'build-manifest.py', 'build-release.py'})
 components['tools']['files'].append('data/update-packages.json')

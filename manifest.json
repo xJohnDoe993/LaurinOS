@@ -61,7 +61,11 @@
         "src/paimenos/emulator_install.py",
         "src/paimenos/emulator_catalog.py",
         "src/paimenos/emulator_service.py",
-        "data/emulator-catalog.json"
+        "data/emulator-catalog.json",
+        "data/libretro-info/COPYING",
+        "data/libretro-info/README.md",
+        "data/libretro-info/bsnes_mercury_performance_libretro.info",
+        "data/libretro-info/snes9x_libretro.info"
       ]
     },
     "backend": {
