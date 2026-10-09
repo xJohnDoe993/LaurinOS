@@ -13,6 +13,7 @@ verfügbar; der Workflow veröffentlicht keinen Release.
 3. Installation abschließen, USB-Stick entfernen und neu starten.
 4. Auf der ersten Textkonsole erscheint die PaimenOS-Einrichtung automatisch.
    Bei Bedarf mit **1** über `nmtui` WLAN einrichten; mit **2** das Setup starten.
+   **4** zeigt die Netzwerkdiagnose und prüft den Paketabruf ausschließlich per IPv4.
 5. Eltern-PIN, Emulatoren, Apps und Debian/Flathub-Paketquelle im normalen
    Setup selbst wählen. Nach Abschluss neu starten: Die Kinderoberfläche erscheint.
 
@@ -41,6 +42,38 @@ Manuell ist das Fortsetzen auch möglich:
 ```bash
 sudo bash /opt/paimenos-source/install.sh --resume
 ```
+
+Das ISO-Setup prüft vor der Eltern-PIN und vor der Paketinstallation, ob APT
+aktuelle, signierte Paketlisten abrufen kann. Eine aktive Ethernet- oder
+WLAN-Verbindung allein bestätigt keinen Internetzugang. Scheitert der Abruf,
+erscheinen die APT-Fehler sowie IPv4-/IPv6-Routen, die IPv4-Namensauflösung und
+getrennte TCP-Verbindungstests zu `deb.debian.org` auf Port 80 und 443.
+Die Diagnose lässt sich ohne Änderungen am System wiederholen:
+
+```bash
+python3 /opt/paimenos-source/iso/prepare-apt.py --diagnose
+```
+
+Ohne weitere Konsole im Setup **4) Netzwerkdiagnose / IPv4-Test** wählen.
+Der Test zeigt die Netzwerkdaten und führt einen vollständigen APT-Abruf der
+Paketlisten ausschließlich über IPv4 aus. Dabei werden die Debian-Onlinequellen
+vorbereitet und Paketlisten aktualisiert; Programme werden nicht installiert.
+Nach dem Ergebnis bleibt die Ausgabe bis zum Drücken von Enter stehen und das
+Setup-Menü erscheint erneut. Auch ein fehlgeschlagener Test beendet das Setup nicht.
+
+In GNOME Boxes werden manche Tastenkombinationen vom Host abgefangen. Über den
+Tastaturknopf in der Kopfleiste **Strg+Alt+F2** oder **Strg+Alt+F3** an die VM
+senden, um eine weitere Konsole zu öffnen; **Strg+Alt+F1** führt zum Setup zurück.
+Siehe die [GNOME-Anleitung](https://help.gnome.org/gnome-boxes/keystrokes.html.de).
+
+Ist der Debian-Server per IPv4 erreichbar, per IPv6 jedoch nicht, verwendet APT
+während der Einrichtung IPv4. Die temporäre APT-Konfiguration wird bei jedem
+Setup-Versuch neu geprüft und beim Beenden entfernt. IPv6 bleibt im System
+aktiv; bestehende Netzwerkprofile, DNS- und Proxy-Einstellungen werden beibehalten.
+Scheitert auch IPv4, hilft diese Ausweichlösung nicht: In einer VM dann Adresse,
+Standardroute und die Internetweiterleitung des Hosts prüfen. Ein erfolgreicher
+TCP-Test bestätigt noch keinen erfolgreichen HTTPS- oder APT-Abruf; deshalb
+bleibt die Prüfung durch APT erforderlich.
 
 ## Build und Prüfung
 
