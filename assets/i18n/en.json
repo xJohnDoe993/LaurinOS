@@ -1296,6 +1296,5 @@
   "\\nNetzwerkdiagnose und IPv4-APT-Test ...\\n": "\\nNetwork diagnostics and IPv4 APT test ...\\n",
   "IPv4-APT-Test erfolgreich.\\n": "IPv4 APT test succeeded.\\n",
   "IPv4-APT-Test fehlgeschlagen. Bitte die Fehlermeldungen oben prüfen.\\n": "IPv4 APT test failed. Please check the errors above.\\n",
-  "Mit Enter zurück zum Setup-Menü: ": "Press Enter to return to the setup menu: ",
-  "Ungültiger Bildschirmzeit-Wert: ": "Invalid screen-time value: "
+  "Mit Enter zurück zum Setup-Menü: ": "Press Enter to return to the setup menu: "
 }

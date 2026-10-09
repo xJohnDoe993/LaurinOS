@@ -26,19 +26,13 @@ def run_timer():
             # Während der Sperre keine weitere Bildschirmzeit zählen.
             if lock_process is None or lock_process.poll() is not None:
                 data["today_used_seconds"] += elapsed
-        try:
-            settings = read_settings()
-            left = remaining_seconds(settings)
-            if elapsed >= 10 or (left is not None and elapsed >= left):
-                # Suspend zählt nicht: monotonic läuft während suspend nicht weiter.
-                settings = update_settings(tick)
-                previous += elapsed
-            remaining = remaining_seconds(settings)
-        except (OSError, ValueError, KeyError, TypeError):
-            # Keep enforcing the lock and retry after a settings repair instead
-            # of exhausting systemd's restart limit. Never overwrite bad data.
-            remaining = 0
-            previous = now
+        settings = read_settings()
+        left = remaining_seconds(settings)
+        if elapsed >= 10 or (left is not None and elapsed >= left):
+            # Suspend zählt nicht: monotonic läuft während suspend nicht weiter.
+            settings = update_settings(tick)
+            previous += elapsed
+        remaining = remaining_seconds(settings)
         if remaining == 0:
             if (lock_process is None or lock_process.poll() is not None) and not protected_view_active():
                 lock_process = subprocess.Popen([sys.executable, "-I", LOCKSCREEN_SCRIPT, "lockscreen"])
