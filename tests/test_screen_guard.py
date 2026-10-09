@@ -369,7 +369,8 @@ class X11GuardTests(GuardFixture, unittest.TestCase):
         self.browser.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.browser.setWindowTitle('Screen guard test browser')
         self.windows.append(self.browser)
-        self.browser.showFullScreen()
+        # Firefox normally starts maximized; its video fullscreen is a different layer.
+        self.browser.showMaximized()
         with patch.object(close_overlay, 'FullscreenTracker'), \
                 patch.object(close_overlay.os, 'pidfd_open', side_effect=OSError):
             self.overlay = close_overlay.CloseButtonOverlay(os.getpid())
@@ -420,6 +421,8 @@ class X11GuardTests(GuardFixture, unittest.TestCase):
 
     def test_expired_lock_covers_browser_button_and_keeps_parent_pin_above_it(self):
         point = self.overlay.geometry().center()
+        self.browser.showFullScreen()
+        self.wait()
         self.save(today_used_seconds=60)
         locked = lockscreen.LockScreen(); self.windows.append(locked); locked.showFullScreen()
         self.wait()

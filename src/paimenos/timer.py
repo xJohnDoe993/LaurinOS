@@ -7,11 +7,15 @@ LOCKSCREEN_SCRIPT = "/usr/local/lib/paimenos/current/run.py"
 
 def main():
     # Auch nach wiederholtem Openbox-Autostart nur einmal zählen.
-    instance = open(os.path.expanduser("~/.local/state/paimenos/paimenos-timer.lock"), "a")
-    try:
-        fcntl.flock(instance, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError:
-        return
+    with open(os.path.expanduser("~/.local/state/paimenos/paimenos-timer.lock"), "a") as instance:
+        try:
+            fcntl.flock(instance, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return
+        run_timer()
+
+
+def run_timer():
     lock_process = None
     previous = time.monotonic()
     while True:

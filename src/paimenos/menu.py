@@ -807,6 +807,7 @@ class PaimenOSMenu(QWidget):
         self.return_window = None
         self.camera_browser = None
         self.overlay_proc = None
+        self.time_blocked = False
         self.setWindowTitle(t('PaimenOS Kinder-Menü'))
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
 
@@ -1196,6 +1197,7 @@ class PaimenOSMenu(QWidget):
             self.hide_child_views()
 
     def hide_child_views(self):
+        self.time_blocked = True
         browser = getattr(self, 'camera_browser', None)
         if browser is not None and not sip.isdeleted(browser):
             browser.hide()
@@ -1209,6 +1211,7 @@ class PaimenOSMenu(QWidget):
             return False
         if target is None or sip.isdeleted(target):
             target = self
+        self.time_blocked = False
         self.showFullScreen()
         target.showFullScreen()
         target.raise_()
@@ -1354,7 +1357,8 @@ class PaimenOSMenu(QWidget):
         settings = load_json(SETTINGS_FILE)
         if screen_time_expired() and not protected_view_active():
             self.hide_child_views()
-        elif not child_access_blocked() and self.active_process is None and not self.isVisible():
+        elif (self.time_blocked and not child_access_blocked()
+              and self.active_process is None and not self.isVisible()):
             # A parent can grant bonus time remotely while the menu is hidden.
             self.restore_child_view()
         signature = (os.stat(APPS_FILE).st_mtime_ns if os.path.exists(APPS_FILE) else 0,
