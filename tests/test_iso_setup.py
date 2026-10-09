@@ -12,7 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class SetupLoopTests(unittest.TestCase):
-    def run_setup(self, fail_once=False, installed_locale='de_DE.UTF-8', legacy_locale='', apt_fails_once=False):
+    def run_setup(self, fail_once=False, installed_locale='de_DE.UTF-8', legacy_locale='', apt_fails_once=False,
+                  choices=None, expected_complete=True):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
             pending, success = base / 'pending', base / 'success'
@@ -43,6 +44,9 @@ parser.add_argument('--diagnose', action='store_true')
 args = parser.parse_args()
 if args.apt_config:
     args.apt_config.write_text('APT::Update::Error-Mode "any";\\nAcquire::ForceIPv4 "true";\\n')
+if args.diagnose:
+    with (Path(__file__).resolve().parents[1] / 'calls').open('a') as log:
+        log.write('diagnose\\n')
 ''')
             (base / 'bin').mkdir()
             apt = base / 'bin/apt-get'
@@ -84,18 +88,24 @@ touch '{success}'
             wrapper.write_text(script)
             environment = dict(os.environ, LANG='C.UTF-8', LC_ALL='C.UTF-8', PATH=str(base / 'bin') + ':' + os.environ['PATH'])
             environment.pop('PAIMENOS_LANGUAGE', None)
-            result = subprocess.run(['bash', str(wrapper)], input='2\n' * (2 if fail_once or apt_fails_once else 1) + 'n\n',
+            if choices is None:
+                choices = '2\n' * (2 if fail_once or apt_fails_once else 1) + 'n\n'
+            result = subprocess.run(['bash', str(wrapper)], input=choices,
                                     env=environment, text=True, capture_output=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertFalse(pending.exists())
-            self.assertTrue(success.exists())
+            self.assertEqual(pending.exists(), not expected_complete)
+            self.assertEqual(success.exists(), expected_complete)
             log = calls.read_text()
-            self.assertIn('systemctl:disable paimenos-setup.service', log)
-            self.assertNotIn('systemctl:reboot', log)
+            if expected_complete:
+                self.assertIn('systemctl:disable paimenos-setup.service', log)
+                self.assertNotIn('systemctl:reboot', log)
+            else:
+                self.assertNotIn('systemctl:disable paimenos-setup.service', log)
+            self.assertEqual(list(base.glob('paimenos-apt.*')), [])
             for filename in re.findall(r'^apt-config:(.+)$', log, re.M):
                 if filename != 'missing':
                     self.assertFalse(Path(filename).exists(), 'APT session file survives setup exit')
-            return log, result.stdout, json.loads('[' + webapps.read_text() + ']')
+            return log, result.stdout, json.loads('[' + webapps.read_text() + ']') if webapps.exists() else []
 
     def test_success_disables_setup_without_forcing_reboot(self):
         log, _, _ = self.run_setup()
@@ -118,6 +128,26 @@ touch '{success}'
         self.assertEqual(log.count('args: reboot:0'), 1)
         self.assertLess(log.rindex('apt:update'), log.index('args: reboot:0'))
         self.assertIn('Debian-Paketquellen konnten nicht vollständig geprüft werden.', output)
+
+    def test_menu_diagnosis_runs_on_same_console_without_installing(self):
+        for locale, menu, success in (('de_DE.UTF-8', '4) Netzwerkdiagnose / IPv4-Test', 'IPv4-APT-Test erfolgreich.'),
+                                     ('en_GB.UTF-8', '4) Network diagnostics / IPv4 test', 'IPv4 APT test succeeded.')):
+            with self.subTest(locale=locale):
+                log, output, _ = self.run_setup(installed_locale=locale, choices='4\n\n3\n', expected_complete=False)
+                self.assertIn(menu, output)
+                self.assertIn(success, output)
+                self.assertIn('diagnose', log)
+                self.assertIn('Acquire::ForceIPv4=true', log)
+                self.assertIn('Acquire::ForceIPv6=false', log)
+                self.assertIn('APT::Update::Error-Mode=any', log)
+                self.assertNotIn('args:', log)
+
+    def test_failed_menu_diagnosis_keeps_setup_available(self):
+        log, output, _ = self.run_setup(apt_fails_once=True, choices='4\n\n3\n', expected_complete=False)
+        self.assertIn('IPv4-APT-Test fehlgeschlagen.', output)
+        self.assertIn('diagnose', log)
+        self.assertNotIn('args:', log)
+        self.assertIn('systemctl:reboot', log)
 
     def test_english_first_boot_uses_installed_locale_and_english_webapps(self):
         log, output, apps = self.run_setup(installed_locale='en_GB.UTF-8', legacy_locale='de_DE.UTF-8')
