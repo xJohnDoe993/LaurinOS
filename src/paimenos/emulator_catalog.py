@@ -42,6 +42,21 @@ def core_path(system):
     return None
 
 
+# Debian packages and manually installed cores may live in different trees.
+CORE_INFO_DIRS = (Path('/usr/share/libretro/info'), Path('/usr/share/libretro'),
+                  Path('/usr/local/share/libretro/info'))
+
+
+def core_info_path(core):
+    """Find metadata for the actual loaded core, not RetroArch's user defaults."""
+    core = Path(core)
+    name = core.with_suffix('.info').name
+    for directory in (*CORE_INFO_DIRS, core.parent, DATA_DIR / 'libretro-info'):
+        if (directory / name).is_file():
+            return directory
+    return None
+
+
 def psp_assets_ready():
     assets = SHARED_SYSTEM / 'PPSSPP'
     return (assets / 'ppge_atlas.zim').is_file() and (assets / 'lang').is_dir() and (assets / 'flash0/font').is_dir()

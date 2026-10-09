@@ -298,6 +298,7 @@ def launch(system, filename):
         (ROOT / name).mkdir(parents=True, exist_ok=True)
     from paimenos.savestates import prepare_resume
     state_base, resume_state, resume_marker = prepare_resume(ROOT / 'states', game)
+    core_info = catalog.core_info_path(core)
     autoconfig = controllers.effective_autoconfig()
     cfg = ROOT / ('retroarch-paimenos-' + system + '.cfg')
     content = '\n'.join([
@@ -308,6 +309,8 @@ def launch(system, filename):
         'stdin_cmd_enable = "true"', 'network_cmd_enable = "false"',
         'savestate_auto_load = "' + ('true' if resume_state else 'false') + '"',
         'auto_overrides_enable = "false"',
+        'libretro_directory = ' + controllers.quote(Path(core).parent),
+        'core_info_cache_enable = "false"',
         'joypad_autoconfig_dir = ' + controllers.quote(autoconfig),
         'input_driver = "udev"', 'input_joypad_driver = "udev"',
         'input_player1_joypad_index = "0"', 'input_libretro_device_p1 = "1"',
@@ -320,6 +323,8 @@ def launch(system, filename):
         'input_player1_a = "x"', 'input_player1_b = "z"', 'input_player1_x = "s"',
         'input_player1_y = "a"', 'input_player1_l = "q"', 'input_player1_r = "w"',
         'input_player1_start = "enter"', 'input_player1_select = "rshift"']) + '\n'
+    if core_info is not None:
+        content += 'libretro_info_path = ' + controllers.quote(core_info) + '\n'
     if system == 'ps1':
         options = ROOT / 'ps1-paimenos-options.cfg'
         options.write_text('beetle_psx_internal_resolution = "1x(native)"\n'
@@ -353,6 +358,7 @@ def launch(system, filename):
         t('\nKonfiguration: ') + str(cfg) + '\n')
     log = ROOT / 'retroarch-last.log'
     with (ROOT / 'last-launch.txt').open('a') as report:
+        report.write('Core info: ' + (str(core_info) if core_info else 'not found') + '\n')
         report.write('Resume source: ' + (str(resume_state) if resume_state else 'none') + '\n'
                      'Resume target: ' + str(state_base) + '.auto\n')
     log.write_text('')

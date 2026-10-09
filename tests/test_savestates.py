@@ -73,9 +73,12 @@ class ResumeTests(unittest.TestCase):
         self.game.parent.mkdir(parents=True)
         self.game.write_bytes(b'ROM')
         self.save('Game.state1', b'checkpoint', 10)
-        with patch.object(emulators, 'ROOT', self.root), patch.object(emulators, 'core_path', return_value='/core.so'), patch.object(emulators, 'ready', return_value=True), patch.object(emulators.controllers, 'effective_autoconfig', return_value=self.root), patch('paimenos.emulator_session.run_session', return_value=0) as run:
+        with patch.object(emulators, 'ROOT', self.root), patch.object(emulators, 'core_path', return_value='/cores/snes9x_libretro.so'), patch.object(emulators, 'ready', return_value=True), patch.object(emulators.controllers, 'effective_autoconfig', return_value=self.root), patch('paimenos.emulator_session.run_session', return_value=0) as run:
             emulators.launch('snes', str(self.game))
             cfg = self.root / 'retroarch-paimenos-snes.cfg'
+            self.assertIn('libretro_directory = "/cores"', cfg.read_text())
+            self.assertIn('libretro_info_path = ', cfg.read_text())
+            self.assertIn('core_info_cache_enable = "false"', cfg.read_text())
             self.assertIn('savestate_auto_load = "true"', cfg.read_text())
             args = run.call_args.args[0]
             self.assertEqual(Path(args[args.index('--savestate') + 1] + '.auto').read_bytes(), b'checkpoint')

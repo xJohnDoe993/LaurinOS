@@ -119,3 +119,19 @@ Am Gerät mit einer SNES-ROM prüfen:
    Speicherstände dürfen nicht zwischen den Einträgen übernommen werden.
 4. `last-launch.txt` auf Quelle/Ziel und `retroarch-last.log` auf das tatsächliche
    Laden prüfen. Eine angegebene Quelle allein bestätigt noch keinen Ladeerfolg.
+
+### Meldung „Core unterstützt keine Speicherabbilder“ bei SNES
+
+Auch fehlende Core-Metadaten können diese RetroArch-Meldung auslösen. Der Launcher
+setzt deshalb `libretro_directory` auf das Verzeichnis des tatsächlich geladenen
+Cores und `libretro_info_path` auf ein Verzeichnis mit seiner `.info`-Datei.
+Systemdateien haben Vorrang; für Snes9x und bsnes-mercury Performance werden die
+offiziellen Informationen als Offline-Fallback mitgeliefert. Der Info-Cache wird
+für diesen Start deaktiviert. Es wird kein Core gewechselt.
+
+Auf dem Gerät zuerst einen manuellen Savestate mit F9 erstellen und mit F10 laden,
+danach Bildschirmzeit-Ende sowie Wiederaufnahme nach Herunterfahren prüfen.
+`paimenos-emulator-check` zeigt Core, Info-Pfad und RetroArch-Protokoll. Bleibt die
+Meldung bestehen, dieses Protokoll prüfen: Neben fehlenden Metadaten kann auch eine
+vom Core zurückgegebene Zustandsgröße von 0 das Speichern verhindern. Ein zuvor
+fehlgeschlagener Speichervorgang kann durch diesen Fix nicht nachgeholt werden.
