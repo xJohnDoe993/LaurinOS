@@ -1,4 +1,4 @@
-"""Validate a tagged build and attach its assets to a draft, never publish it."""
+"""Build a verified draft; publish only when explicitly requested."""
 import argparse
 import ast
 import hashlib
@@ -52,10 +52,32 @@ def find_release(endpoint, tag, run):
     raise ValueError('Zu viele Releases für die automatische Entwurfsprüfung.')
 
 
-def prepare(root, tag, repository, run=subprocess.run):
+def checked_reference(endpoint, tag, head, run):
+    reference = api(endpoint + '/git/ref/tags/' + tag, run, missing=True)
+    if reference:
+        target = reference['object']
+        for _ in range(8):
+            if target['type'] != 'tag':
+                break
+            target = api(endpoint + '/git/tags/' + target['sha'], run)['object']
+        if target['type'] != 'commit' or target['sha'] != head:
+            raise ValueError('GitHub-Tag zeigt nicht auf den gebauten Commit. Tag nicht verschieben; neuen Tag verwenden.')
+    return reference
+
+
+def complete_upload(release, assets):
+    uploaded = {item['name']: item for item in release['assets']}
+    return all(path.name in uploaded and uploaded[path.name]['state'] == 'uploaded'
+               and uploaded[path.name]['size'] == path.stat().st_size for path in assets)
+
+
+def prepare(root, tag, repository, run=subprocess.run, *, publish=False):
     version = checked_version(root, tag)
     if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository):
         raise ValueError('GH_REPO muss owner/repo enthalten.')
+    notes = root / 'docs/releases' / (version + '.md')
+    if publish and (not notes.is_file() or not notes.read_text().strip()):
+        raise ValueError('Veröffentlichung benötigt Release-Notizen: ' + str(notes))
     archive = root / 'dist' / ('PaimenOS-' + version + '.zip')
     checksum = archive.with_suffix('.zip.sha256')
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
@@ -67,15 +89,7 @@ def prepare(root, tag, repository, run=subprocess.run):
     assets = [archive, checksum]
     endpoint = 'repos/' + repository
     head = run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, check=True).stdout.strip()
-    reference = api(endpoint + '/git/ref/tags/' + tag, run, missing=True)
-    if reference:
-        target = reference['object']
-        for _ in range(8):
-            if target['type'] != 'tag':
-                break
-            target = api(endpoint + '/git/tags/' + target['sha'], run)['object']
-        if target['type'] != 'commit' or target['sha'] != head:
-            raise ValueError('GitHub-Tag zeigt nicht auf den gebauten Commit. Tag nicht verschieben; neuen Tag verwenden.')
+    reference = checked_reference(endpoint, tag, head, run)
     release = find_release(endpoint, tag, run)
     if release:
         if not release['draft']:
@@ -93,26 +107,37 @@ def prepare(root, tag, repository, run=subprocess.run):
     release = find_release(endpoint, tag, run)
     if release is None:
         raise ValueError('Release-Entwurf nach dem Upload nicht gefunden.')
-    uploaded = {item['name']: item for item in release['assets']}
-    if not release['draft'] or any(path.name not in uploaded
-                                  or uploaded[path.name]['state'] != 'uploaded'
-                                  or uploaded[path.name]['size'] != path.stat().st_size
-                                  for path in assets):
+    if not release['draft'] or not complete_upload(release, assets):
         raise ValueError('Upload nicht vollständig als Entwurf bestätigt. Release noch nicht veröffentlichen.')
+    if publish:
+        # Set the built commit explicitly, including drafts that do not have a tag yet.
+        run(['gh', 'release', 'edit', tag, '--repo', repository, '--target', head,
+             '--notes-file', str(notes), '--draft=false', '--prerelease=false', '--latest'], check=True)
+        release = find_release(endpoint, tag, run)
+        if (release is None or release['draft'] or release.get('prerelease', True)
+                or not complete_upload(release, assets)):
+            raise ValueError('Stabile Veröffentlichung mit beiden Dateien nicht bestätigt.')
+        if checked_reference(endpoint, tag, head, run) is None:
+            raise ValueError('GitHub-Tag nach Veröffentlichung nicht gefunden.')
     return release['html_url']
 
 
 def main():
-    parser = argparse.ArgumentParser(description='PaimenOS-Release als Entwurf vorbereiten.')
+    parser = argparse.ArgumentParser(description='PaimenOS-Release prüfen und vorbereiten.')
     parser.add_argument('tag')
     parser.add_argument('--check-version', action='store_true')
+    parser.add_argument('--publish', action='store_true',
+                        help='Nach vollständigem Upload mit docs/releases/VERSION.md stabil veröffentlichen.')
     args = parser.parse_args()
     if args.check_version:
         print('OK: Version ' + checked_version(ROOT, args.tag))
         return
-    url = prepare(ROOT, args.tag, os.environ.get('GH_REPO', ''))
-    message = ('Release-Entwurf mit ZIP und SHA-256 erstellt: ' + url
-               + '\nNach Geräteprüfung Release-Notizen ergänzen und auf GitHub veröffentlichen.\n')
+    url = prepare(ROOT, args.tag, os.environ.get('GH_REPO', ''), publish=args.publish)
+    if args.publish:
+        message = 'Stabiles Release mit ZIP und SHA-256 veröffentlicht: ' + url + '\n'
+    else:
+        message = ('Release-Entwurf mit ZIP und SHA-256 erstellt: ' + url
+                   + '\nNach Geräteprüfung Release-Notizen ergänzen und auf GitHub veröffentlichen.\n')
     print(message)
     if summary := os.environ.get('GITHUB_STEP_SUMMARY'):
         with Path(summary).open('a') as output:
