@@ -50,6 +50,18 @@ class RuntimeTests(unittest.TestCase):
             with patch.object(state, 'SETTINGS_FILE', str(path)):
                 with self.assertRaises(json.JSONDecodeError):state.read_settings()
                 self.assertEqual(path.read_text(), '{bad json')
+
+    def test_numeric_strings_remain_compatible_and_normalize_to_integers(self):
+        from datetime import date
+        with tempfile.TemporaryDirectory(dir=ROOT.parent) as folder:
+            path = Path(folder) / 'settings.json'
+            path.write_text(json.dumps(dict(state.DEFAULTS, pin='1234',
+                last_used_date=str(date.today()), daily_limit_minutes='30',
+                bonus_minutes='5', today_used_seconds='65')))
+            with patch.object(state, 'SETTINGS_FILE', str(path)):
+                result = state.read_settings()
+                self.assertEqual(state.remaining_seconds(result), 2035)
+                self.assertEqual(json.loads(path.read_text())['daily_limit_minutes'], 30)
     def test_emulator_selection_aliases_dedup_and_invalid_input(self):
         self.assertEqual(emulator_catalog.selection('nes,gb,nes'), ['nes', 'gb'])
         self.assertEqual(emulator_catalog.selection('none'), [])

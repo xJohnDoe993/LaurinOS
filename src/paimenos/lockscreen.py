@@ -22,7 +22,11 @@ class LockScreen(QWidget):
         self.setWindowTitle(t('Zeit abgelaufen'))
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         
-        self.settings = load_settings()
+        try:
+            self.settings = load_settings()
+        except (OSError, ValueError, KeyError, TypeError):
+            # A broken settings file must not expose a running child app.
+            self.settings = {}
         bg_color = self.settings.get("bg_color", "#FF9F00")
 
         self.setStyleSheet(f"""
@@ -60,7 +64,7 @@ class LockScreen(QWidget):
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
 
-        sub_label = QLabel(t('Rufe deine Eltern, wenn du noch etwas Zeit brauchst.'), self)
+        sub_label = QLabel(t('Deine Apps bleiben geöffnet. Rufe deine Eltern zum Fortsetzen oder Speichern.'), self)
         sub_label.setFont(QFont("DejaVu Sans", 20))
         sub_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(sub_label)
@@ -88,10 +92,6 @@ class LockScreen(QWidget):
 
         layout.addStretch()
 
-        self.auto_shutdown_timer = QTimer(self)
-        self.auto_shutdown_timer.setSingleShot(True)
-        self.auto_shutdown_timer.timeout.connect(self.shutdown)
-        self.auto_shutdown_timer.start(600000)
         self.refresh_timer = QTimer(self)
         self.refresh_timer.timeout.connect(self.check_unlocked)
         self.refresh_timer.start(1000)
@@ -107,15 +107,24 @@ class LockScreen(QWidget):
         super().keyPressEvent(event)
 
     def check_unlocked(self):
-        current = read_settings()
-        left = remaining_seconds(current)
+        try:
+            current = read_settings()
+            left = remaining_seconds(current)
+        except (OSError, ValueError, KeyError, TypeError):
+            return
         if left is None or left > 0:
             QApplication.quit()
 
     def add_time_dialog(self):
-        self.auto_shutdown_timer.stop()
         self.refresh_timer.stop()
+        try:
+            self.request_bonus()
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            QMessageBox.warning(self, t('Datenfehler'), str(exc))
+        finally:
+            self.refresh_timer.start(1000)
 
+    def request_bonus(self):
         pin, ok_pin = QInputDialog.getText(
             self, t('🔒 Eltern-PIN'), t('Bitte Eltern-PIN eingeben:'), QLineEdit.Password
         )
@@ -139,11 +148,14 @@ class LockScreen(QWidget):
         elif ok_pin:
             QMessageBox.warning(self, t('Falsch'), t('Falscher PIN!'))
 
-        self.auto_shutdown_timer.start(600000)
-        self.refresh_timer.start(1000)
-
     def shutdown(self):
-        subprocess.run(["systemctl", "poweroff"])
+        answer = QMessageBox.question(
+            self, t('Herunterfahren?'),
+            t('Ungespeicherte Arbeiten können beim Ausschalten verloren gehen. '
+              'Zum Speichern zuerst Elternzeit hinzufügen. Trotzdem ausschalten?'),
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if answer == QMessageBox.Yes:
+            subprocess.run(["systemctl", "poweroff"])
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "runtime_api": 3,
-  "version": "0.65.0",
+  "version": "0.66.0",
   "components": {
     "shared": {
       "files": [
@@ -56,6 +56,7 @@
     "emulators": {
       "files": [
         "src/paimenos/emulators.py",
+        "src/paimenos/emulator_session.py",
         "src/paimenos/emulator_install.py",
         "src/paimenos/emulator_catalog.py",
         "src/paimenos/emulator_service.py",

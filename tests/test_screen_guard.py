@@ -58,6 +58,33 @@ class GuardTests(GuardFixture, unittest.TestCase):
         self.settings_file.unlink()
         self.assertTrue(screen_guard.child_access_blocked())
 
+    def test_invalid_time_values_block_access_without_rewriting_settings(self):
+        for key in ('daily_limit_minutes', 'bonus_minutes', 'today_used_seconds'):
+            for value in (None, 'broken', -1, False, 0.5, float('inf'), [], {}):
+                with self.subTest(key=key, value=value):
+                    data = dict(self.settings, **{key: value})
+                    original = json.dumps(data)
+                    self.settings_file.write_text(original)
+                    self.assertTrue(screen_guard.child_access_blocked())
+                    self.assertEqual(self.settings_file.read_text(), original)
+            data = dict(self.settings)
+            del data[key]
+            self.settings_file.write_text(json.dumps(data))
+            self.assertTrue(screen_guard.child_access_blocked())
+
+    def test_timer_keeps_running_and_opens_lock_when_settings_are_corrupt(self):
+        self.settings_file.write_text('{broken')
+        class EndLoop(Exception):
+            pass
+        with patch.object(timer.time, 'sleep', side_effect=[None, None, EndLoop]), \
+                patch.object(timer.time, 'monotonic', side_effect=[0, 1, 2]), \
+                patch.object(timer.subprocess, 'Popen') as spawn:
+            spawn.return_value.poll.return_value = None
+            with self.assertRaises(EndLoop):
+                timer.run_timer()
+            spawn.assert_called_once()
+        self.assertEqual(self.settings_file.read_text(), '{broken')
+
     def test_overlapping_parent_views_hold_priority_until_last_close(self):
         first, second = screen_guard.ViewGuard(), screen_guard.ViewGuard()
         try:
@@ -151,6 +178,40 @@ class WidgetGuardTests(GuardFixture, unittest.TestCase):
         self.windows.append(window)
         self.spawn.reset_mock()
         return window
+
+    def test_corrupt_settings_keep_lock_visible_and_recover_after_repair(self):
+        self.settings_file.write_text('{broken')
+        window = lockscreen.LockScreen()
+        self.windows.append(window)
+        window.showFullScreen()
+        with patch.object(QApplication, 'quit') as quit_app:
+            window.check_unlocked()
+            quit_app.assert_not_called()
+            self.assertTrue(screen_guard.protected_view_active())
+            self.assertTrue(window.isVisible())
+            self.save()
+            window.check_unlocked()
+            quit_app.assert_called_once()
+
+    def test_corrupt_settings_in_pin_dialog_restarts_refresh_without_auto_shutdown(self):
+        window = lockscreen.LockScreen()
+        self.windows.append(window)
+        self.settings_file.write_text('{broken')
+        with patch.object(lockscreen.QInputDialog, 'getText', return_value=('1234', True)), \
+                patch.object(lockscreen.QMessageBox, 'warning') as warning, \
+                patch.object(QApplication, 'quit') as quit_app:
+            window.add_time_dialog()
+            warning.assert_called_once()
+            quit_app.assert_not_called()
+        self.assertFalse(hasattr(window, 'auto_shutdown_timer'))
+        self.assertTrue(window.refresh_timer.isActive())
+
+    def test_corrupt_settings_hide_an_already_visible_child_menu(self):
+        window = self.child_menu()
+        window.showFullScreen()
+        self.settings_file.write_text('{broken')
+        window.update_clock_and_net()
+        self.assertFalse(window.isVisible())
 
     def overlay(self):
         with patch.object(close_overlay, 'FullscreenTracker'), \
@@ -327,6 +388,19 @@ class WidgetGuardTests(GuardFixture, unittest.TestCase):
             window.check_unlocked(); quit_app.assert_not_called()
             self.save(bonus_minutes=5)
             window.check_unlocked(); quit_app.assert_called_once()
+
+    def test_lock_never_automatically_shuts_down_and_requires_confirmation(self):
+        self.save(today_used_seconds=60)
+        window = lockscreen.LockScreen(); self.windows.append(window)
+        self.assertFalse(hasattr(window, 'auto_shutdown_timer'))
+        with patch.object(lockscreen.QMessageBox, 'question', return_value=lockscreen.QMessageBox.No), \
+                patch.object(lockscreen.subprocess, 'run') as run:
+            window.shutdown()
+            run.assert_not_called()
+        with patch.object(lockscreen.QMessageBox, 'question', return_value=lockscreen.QMessageBox.Yes), \
+                patch.object(lockscreen.subprocess, 'run') as run:
+            window.shutdown()
+            run.assert_called_once_with(['systemctl', 'poweroff'])
 
     def test_volume_overlay_never_covers_parent_view_or_expired_lock(self):
         reader, sender = socket.socketpair(socket.AF_UNIX, socket.SOCK_DGRAM)
