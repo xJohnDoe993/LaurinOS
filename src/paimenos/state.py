@@ -61,10 +61,14 @@ def update_settings(change=None):
         # Beschädigte Dateien nicht still durch Standardwerte überschreiben.
         before = json.dumps(data, sort_keys=True)
         for key in ("daily_limit_minutes", "bonus_minutes", "today_used_seconds"):
-            try:
-                data[key] = max(0, int(data[key]))
-            except (TypeError, ValueError):
-                data[key] = 0
+            value = saved.get(key)
+            # Zero means unlimited. Never turn corrupt/missing limits or usage
+            # into zero, truncate fractions, or accept bool as an integer.
+            if isinstance(value, str) and value.isascii() and value.isdigit():
+                value = int(value)
+            if type(value) is not int or value < 0:
+                raise ValueError(t('Ungültiger Bildschirmzeit-Wert: ') + key)
+            data[key] = value
         if not isinstance(data["disabled_apps"], list):
             data["disabled_apps"] = []
         data["pin"] = str(data["pin"])
