@@ -296,6 +296,8 @@ def launch(system, filename):
         region, inventory = ps1_preflight(game)
     for name in ('bios', 'saves', 'states'):
         (ROOT / name).mkdir(parents=True, exist_ok=True)
+    from paimenos.savestates import prepare_resume
+    state_base, resume_state, resume_marker = prepare_resume(ROOT / 'states', game)
     autoconfig = controllers.effective_autoconfig()
     cfg = ROOT / ('retroarch-paimenos-' + system + '.cfg')
     content = '\n'.join([
@@ -304,7 +306,8 @@ def launch(system, filename):
         'savestate_auto_index = "true"', 'savestate_max_keep = "0"',
         'autosave_interval = "10"',
         'stdin_cmd_enable = "true"', 'network_cmd_enable = "false"',
-        'savestate_auto_load = "' + ('false' if system == 'ps1' else 'true') + '"',
+        'savestate_auto_load = "' + ('true' if resume_state else 'false') + '"',
+        'auto_overrides_enable = "false"',
         'joypad_autoconfig_dir = ' + controllers.quote(autoconfig),
         'input_driver = "udev"', 'input_joypad_driver = "udev"',
         'input_player1_joypad_index = "0"', 'input_libretro_device_p1 = "1"',
@@ -349,7 +352,10 @@ def launch(system, filename):
         '\nRegion: ' + (PS1_REGIONS[region][0] if region else t('Nicht vorab erkannt')) +
         t('\nKonfiguration: ') + str(cfg) + '\n')
     log = ROOT / 'retroarch-last.log'
+    with (ROOT / 'last-launch.txt').open('a') as report:
+        report.write('Resume source: ' + (str(resume_state) if resume_state else 'none') + '\n'
+                     'Resume target: ' + str(state_base) + '.auto\n')
     log.write_text('')
     from paimenos.emulator_session import run_session
     return run_session(['/usr/bin/retroarch', '--verbose', '--log-file', str(log),
-                                 '-f', '-c', str(cfg), '-L', core, str(game)])
+                                 '-f', '-c', str(cfg), '--savestate', str(state_base), '-L', core, str(game)], resume_marker=resume_marker)
