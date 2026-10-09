@@ -9,6 +9,7 @@ from PyQt5.QtCore import Qt, QTimer, QSocketNotifier, QThread, QObject, pyqtSign
 from PyQt5.QtGui import QPainter, QColor, QFont, QPen
 from PyQt5.QtWidgets import QApplication, QWidget
 from paimenos.osd_state import KINDS, read_level, socket_folder
+from paimenos.screen_guard import child_access_blocked
 
 class LevelReader(QObject):
     finished = pyqtSignal(str, object)
@@ -34,7 +35,7 @@ class StatusOverlay(QWidget):
         self.busy = False
         self.setWindowTitle(t('PaimenOS Lautstärke / Helligkeit'))
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint |
-                            Qt.X11BypassWindowManagerHint | Qt.WindowDoesNotAcceptFocus |
+                            Qt.WindowDoesNotAcceptFocus |
                             Qt.WindowTransparentForInput)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
@@ -56,6 +57,13 @@ class StatusOverlay(QWidget):
         self.reader.finished.connect(self.updated)
         self.thread.finished.connect(self.reader.deleteLater)
         self.thread.start()
+        self.guard_timer = QTimer(self)
+        self.guard_timer.timeout.connect(self.check_guard)
+        self.guard_timer.start(250)
+
+    def check_guard(self):
+        if self.isVisible() and child_access_blocked():
+            self.hide()
 
     def receive(self, *args):
         for _ in range(256):
@@ -83,7 +91,8 @@ class StatusOverlay(QWidget):
     def updated(self, kind, result):
         self.busy = False
         # Bei raschem Wechsel von Lautstärke zu Helligkeit die neuere Anzeige bevorzugen.
-        if result is not None and (self.pending is None or self.pending == kind):
+        if (result is not None and not child_access_blocked()
+                and (self.pending is None or self.pending == kind)):
             self.kind = kind
             self.level, self.muted = result
             self.setAccessibleName((t('Lautstärke') if kind == 'volume' else t('Helligkeit')) +
@@ -140,6 +149,7 @@ class StatusOverlay(QWidget):
         p.drawText(QRectF(24, 82, 342, 20), Qt.AlignRight, '100 %')
 
     def shutdown(self):
+        self.guard_timer.stop()
         self.notifier.setEnabled(False)
         self.thread.quit()
         self.thread.wait(4000)

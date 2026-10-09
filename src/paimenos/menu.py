@@ -11,6 +11,8 @@ from paimenos.video import CameraVideoViewer
 from paimenos.diagnostics import collect_diagnostics, diagnostics_text, log_event
 from paimenos.state import read_settings, update_settings, atomic_json, remaining_seconds, app_with_current_title
 from paimenos.parent_ui import ParentDialog
+from paimenos.foreground import ForegroundGuard
+from paimenos.screen_guard import child_access_blocked, screen_time_expired, protected_view_active
 from paimenos.categories import CATEGORIES, available_categories, filter_category
 from paimenos.controller import ControllerReader
 from paimenos.network_status import NetworkStatus
@@ -1065,6 +1067,8 @@ class PaimenOSMenu(QWidget):
             return False
         if QApplication.applicationState() != Qt.ApplicationActive:
             return False
+        if child_access_blocked():
+            return False
         modal = QApplication.activeModalWidget()
         # Nur der Kinder-Farbwähler ist per Controller bedienbar, keine PIN/Eltern-Dialoge.
         if modal is not None:
@@ -1115,6 +1119,9 @@ class PaimenOSMenu(QWidget):
         super().closeEvent(event)
 
     def keyPressEvent(self, event):
+        if child_access_blocked():
+            event.accept()
+            return
         key = event.key()
 
         if key in (Qt.Key_Tab, Qt.Key_Backtab):
@@ -1161,22 +1168,67 @@ class PaimenOSMenu(QWidget):
         settings = load_json(SETTINGS_FILE)
         correct_pin = settings["pin"]
 
-        pin, ok = QInputDialog.getText(
-            self, t('🔒 Eltern-PIN'), t('Bitte Eltern-PIN eingeben:'), QLineEdit.Password
-        )
+        # Protect the PIN prompt as well as the authenticated parent view.
+        shield = QWidget()
+        shield.setObjectName('parentShield')
+        shield.setStyleSheet('QWidget#parentShield {background:#172335;}')
+        foreground = ForegroundGuard(shield)
+        shield.showFullScreen()
+        try:
+            pin, ok = QInputDialog.getText(
+                shield, t('🔒 Eltern-PIN'), t('Bitte Eltern-PIN eingeben:'), QLineEdit.Password
+            )
+            if ok and pin != correct_pin:
+                QMessageBox.warning(shield, t('Falsch'), t('Falscher PIN!'))
+        finally:
+            shield.hide()
+            foreground.release()
+            shield.deleteLater()
 
         if ok and pin == correct_pin:
             dlg = ParentDialog(self)
-            if dlg.exec_() == QDialog.Accepted:
-                self.reload_apps()
-        elif ok:
-            QMessageBox.warning(self, t('Falsch'), t('Falscher PIN!'))
+            try:
+                if dlg.exec_() == QDialog.Accepted:
+                    self.reload_apps()
+            finally:
+                dlg.deleteLater()
+        if screen_time_expired():
+            self.hide_child_views()
+
+    def hide_child_views(self):
+        browser = getattr(self, 'camera_browser', None)
+        if browser is not None and not sip.isdeleted(browser):
+            browser.hide()
+        self.hide()
+
+    def restore_child_view(self, target=None):
+        if child_access_blocked():
+            self.hide_child_views()
+            if target is not None and not sip.isdeleted(target):
+                target.hide()
+            return False
+        if target is None or sip.isdeleted(target):
+            target = self
+        self.showFullScreen()
+        target.showFullScreen()
+        target.raise_()
+        target.activateWindow()
+        return True
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if screen_time_expired() and not protected_view_active():
+            QTimer.singleShot(0, self.hide_child_views)
 
     def launch(self, item, return_window=None):
         if getattr(self, "active_process", None) is not None:
             return
         if item.get("command") == "__POWEROFF__":
             subprocess.Popen(["systemctl", "poweroff"], start_new_session=True)
+            return
+        if child_access_blocked():
+            if screen_time_expired() and not protected_view_active():
+                self.hide_child_views()
             return
         if item.get("command") == "__CAMERA__":
             dialog = getattr(self, "camera_browser", None)
@@ -1244,12 +1296,10 @@ class PaimenOSMenu(QWidget):
         self.active_process = None
         target = self.return_window
         self.return_window = None
+        if not self.restore_child_view(target):
+            return
         if target is None or sip.isdeleted(target):
             target = self
-        self.showFullScreen()
-        target.showFullScreen()
-        target.raise_()
-        target.activateWindow()
         if code not in self.expected_exit_codes:
             log_event(t('Anwendung'), t('Programm mit Fehlercode {value0} beendet.', value0=code))
             if code == 75 and self.active_is_webapp:
@@ -1264,9 +1314,7 @@ class PaimenOSMenu(QWidget):
             self.return_window = None
         browser.deleteLater()
         if getattr(self, "active_process", None) is None:
-            self.showFullScreen()
-            self.raise_()
-            self.activateWindow()
+            self.restore_child_view()
 
     def update_clock_and_net(self):
         self.time_label.setText(QTime.currentTime().toString("HH:mm"))
@@ -1295,7 +1343,7 @@ class PaimenOSMenu(QWidget):
         request_file = os.path.join(str(STATE_DIR), "paimenos-menu.raise")
         if os.path.exists(request_file):
             os.unlink(request_file)
-            if getattr(self, "active_process", None) is None:
+            if getattr(self, "active_process", None) is None and not child_access_blocked():
                 target = QApplication.activeModalWidget() or self
                 target.showFullScreen()
                 target.raise_()
@@ -1304,6 +1352,11 @@ class PaimenOSMenu(QWidget):
         current_media = has_media_attached()
 
         settings = load_json(SETTINGS_FILE)
+        if screen_time_expired() and not protected_view_active():
+            self.hide_child_views()
+        elif not child_access_blocked() and self.active_process is None and not self.isVisible():
+            # A parent can grant bonus time remotely while the menu is hidden.
+            self.restore_child_view()
         signature = (os.stat(APPS_FILE).st_mtime_ns if os.path.exists(APPS_FILE) else 0,
                      tuple(settings.get("disabled_apps", [])), settings.get("bg_color"), settings.get("category_tabs", False))
         config_changed = signature != self.config_signature

@@ -4,6 +4,7 @@ import os
 import shlex
 import shutil
 import subprocess
+from paimenos.foreground import ForegroundGuard
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor, QIcon, QPixmap
 from PyQt5.QtWidgets import (QDialog, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
@@ -287,6 +288,11 @@ class ParentDialog(QDialog):
         self.refresh_timer = QTimer(self)
         self.refresh_timer.timeout.connect(self.refresh)
         self.refresh_timer.start(3000)
+        self.foreground = ForegroundGuard(self)
+
+    def exec_(self):
+        self.showFullScreen()
+        return super().exec_()
 
     def perform(self, operation, message):
         try:

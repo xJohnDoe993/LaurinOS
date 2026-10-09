@@ -8,6 +8,7 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget
 from paimenos.webapp import BAR_HEIGHT, MENU_WIDTH
 from paimenos.fullscreen import FullscreenTracker
+from paimenos.screen_guard import child_access_blocked
 
 
 class CloseButtonOverlay(QWidget):
@@ -23,7 +24,7 @@ class CloseButtonOverlay(QWidget):
         except OSError:
             pass
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool |
-                            Qt.X11BypassWindowManagerHint | Qt.WindowDoesNotAcceptFocus)
+                            Qt.WindowDoesNotAcceptFocus)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         self.button = QPushButton(t('⌂ Zum Menü'), self)
@@ -48,10 +49,17 @@ class CloseButtonOverlay(QWidget):
     def place_button(self, *args):
         screen = QApplication.primaryScreen().geometry()
         height = BAR_HEIGHT - 20
+        # Openbox's global maximize rule must not enlarge this managed tool window.
+        self.setFixedSize(MENU_WIDTH, height)
         self.setGeometry(screen.right() - MENU_WIDTH - 11, screen.top() + 10, MENU_WIDTH, height)
         self.button.setGeometry(0, 0, MENU_WIDTH, height)
 
     def close_target(self):
+        # Recheck on click too: expiry can occur between two monitor ticks.
+        if child_access_blocked():
+            self.button.setEnabled(False)
+            self.hide()
+            return
         self.button.setEnabled(False)
         try:
             if self.pidfd is not None:
@@ -85,7 +93,9 @@ class CloseButtonOverlay(QWidget):
     def update_overlay(self):
         if not self.check_target():
             return
-        if self.fullscreen.is_fullscreen():
+        blocked = child_access_blocked()
+        self.button.setEnabled(not blocked)
+        if blocked or self.fullscreen.is_fullscreen():
             self.hide()
         elif not self.isVisible():
             # WA_ShowWithoutActivating bleibt gesetzt: das Video verliert

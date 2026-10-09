@@ -3,6 +3,7 @@ from paimenos.i18n import t, setup_qt
 from paimenos.paths import CONFIG_DIR
 import sys, os, json, subprocess
 from paimenos.state import read_settings, update_settings, remaining_seconds
+from paimenos.foreground import ForegroundGuard
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
@@ -94,6 +95,7 @@ class LockScreen(QWidget):
         self.refresh_timer = QTimer(self)
         self.refresh_timer.timeout.connect(self.check_unlocked)
         self.refresh_timer.start(1000)
+        self.foreground = ForegroundGuard(self)
 
     def closeEvent(self, event):
         event.ignore()

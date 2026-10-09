@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os, sys, time, subprocess, fcntl
 from paimenos.state import read_settings, update_settings, remaining_seconds
+from paimenos.screen_guard import protected_view_active
 
 LOCKSCREEN_SCRIPT = "/usr/local/lib/paimenos/current/run.py"
 
@@ -29,7 +30,7 @@ def main():
             previous += elapsed
         remaining = remaining_seconds(settings)
         if remaining == 0:
-            if lock_process is None or lock_process.poll() is not None:
+            if (lock_process is None or lock_process.poll() is not None) and not protected_view_active():
                 lock_process = subprocess.Popen([sys.executable, "-I", LOCKSCREEN_SCRIPT, "lockscreen"])
         elif lock_process is not None and lock_process.poll() is None:
             lock_process.terminate()
