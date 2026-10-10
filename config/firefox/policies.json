@@ -3,6 +3,13 @@
     "DNSOverHTTPS": { "Enabled": false, "Locked": true },
     "DisableTelemetry": true,
     "DisablePocket": true,
+    "DisableDeveloperTools": true,
+    "BlockAboutConfig": true,
+    "BlockAboutProfiles": true,
+    "DisablePrivateBrowsing": true,
+    "DisableFirefoxScreenshots": true,
+    "DisableSafeMode": true,
+    "PrintingEnabled": false,
     "ExtensionSettings": {
       "uBlock0@raymondhill.net": {
         "installation_mode": "normal_installed",

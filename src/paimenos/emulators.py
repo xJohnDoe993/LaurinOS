@@ -319,6 +319,10 @@ def launch(system, filename):
         'input_player1_joypad_index = "0"', 'input_libretro_device_p1 = "1"',
         'input_autodetect_enable = "true"', 'input_exit_emulator = "escape"',
         'input_menu_toggle = "f8"', 'input_save_state = "f9"', 'input_load_state = "f10"',
+        # F1-F3/F5/F6 steuern Lautstärke und Helligkeit (Openbox); RetroArch-Standards dafür freigeben.
+        'input_fps_toggle = "nul"', 'input_desktop_menu_toggle = "nul"', 'input_state_slot_decrease = "nul"',
+        # Standard-Stummschaltung liegt auf F9 und würde beim Speichern mit auslösen.
+        'input_audio_mute = "nul"',
         'savefile_directory = "' + str(ROOT / 'saves') + '"',
         'savestate_directory = ' + controllers.quote(state_base.parent),
         'sort_savestates_enable = "false"', 'savestates_in_content_dir = "false"',

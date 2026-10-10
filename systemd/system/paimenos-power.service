@@ -1,0 +1,25 @@
+[Unit]
+Description=PaimenOS Bereitschaft nach langem Leerlauf
+After=systemd-logind.service
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/local/lib/paimenos/current
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py power
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=5
+NoNewPrivileges=true
+# Root darf über logind ohne Polkit-Rückfrage schlafen; ältere systemd prüfen dafür CAP_SYS_BOOT.
+CapabilityBoundingSet=CAP_SYS_BOOT
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

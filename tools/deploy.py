@@ -194,6 +194,10 @@ def install_launchers(release, previous=None):
                     if target.is_symlink() and target.readlink() == expected:
                         target.unlink()
 
+OPTIONAL_SYSTEM_UNITS = ('paimenos-updates.service', 'paimenos-power.service')
+USER_UNITS = ('paimenos-menu.service', 'paimenos-timer.service', 'paimenos-media.service',
+              'paimenos-osd.service', 'paimenos-cursor.service', 'paimenos-idle.service')
+
 def apply_units(release, previous=None, unit_root=Path('/etc/systemd')):
     for scope in ('system', 'user'):
         destination_dir = unit_root / scope
@@ -211,8 +215,10 @@ def apply_units(release, previous=None, unit_root=Path('/etc/systemd')):
             shutil.copyfile(file, destination_dir / file.name)
             (destination_dir / file.name).chmod(0o644)
     subprocess.run(['systemctl', 'daemon-reload'], check=True)
-    if (release / 'systemd/system/paimenos-updates.service').is_file():
-        subprocess.run(['systemctl', 'enable', 'paimenos-updates.service'], check=True)
+    # Später hinzugekommene Systemdienste auch bei Backend-Updates aktivieren.
+    for unit in OPTIONAL_SYSTEM_UNITS:
+        if (release / 'systemd/system' / unit).is_file():
+            subprocess.run(['systemctl', 'enable', unit], check=True)
 
 def user_command(*args):
     try:
@@ -227,8 +233,7 @@ def user_command(*args):
 
 def restart_services():
     units = ['paimenos-wifi.service', 'paimenos-bluetooth.service', 'paimenos-emulators.service', 'paimenos-parent-web.service']
-    if (BASE / 'current/systemd/system/paimenos-updates.service').is_file():
-        units.append('paimenos-updates.service')
+    units += [unit for unit in OPTIONAL_SYSTEM_UNITS if (BASE / 'current/systemd/system' / unit).is_file()]
     subprocess.run(['systemctl', 'restart', *units], check=True)
     command = user_command('daemon-reload')
     if command:
@@ -239,7 +244,9 @@ def restart_services():
     for unit in units:
         subprocess.run(['systemctl', 'is-active', '--quiet', unit], check=True)
     if command:
-        for unit in ['paimenos-menu.service', 'paimenos-timer.service', 'paimenos-media.service', 'paimenos-osd.service', 'paimenos-cursor.service']:
+        for unit in USER_UNITS:
+            if not (BASE / 'current/systemd/user' / unit).is_file():
+                continue
             subprocess.run(user_command('is-active', '--quiet', unit), check=True)
 
 def activate(base, release, *, initial=False, units=False, live=True, package_progress=print, packages_prepared=False):

@@ -36,6 +36,15 @@ user_pref("browser.preonboarding.enabled", false);
 user_pref("browser.shell.checkDefaultBrowser", false);
 user_pref("browser.link.open_newwindow", 1);
 user_pref("browser.link.open_newwindow.restriction", 0);
+// Kinder sollen nicht versehentlich Entwicklerwerkzeuge (F12, Strg+Umschalt+I/J/C/K),
+// Cursor-Navigation (F7), Menüleiste (Alt), Drucken oder Bildschirmfotos öffnen.
+user_pref("devtools.policy.disabled", true);
+user_pref("devtools.chrome.enabled", false);
+user_pref("accessibility.browsewithcaret_shortcut.enabled", false);
+user_pref("accessibility.browsewithcaret", false);
+user_pref("ui.key.menuAccessKeyFocuses", false);
+user_pref("print.enabled", false);
+user_pref("screenshots.browser.component.enabled", false);
 '''
 
 

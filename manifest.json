@@ -36,7 +36,9 @@
         "src/paimenos/timer.py",
         "src/paimenos/media.py",
         "src/paimenos/screen_guard.py",
-        "src/paimenos/foreground.py"
+        "src/paimenos/foreground.py",
+        "src/paimenos/idle.py",
+        "src/paimenos/power.py"
       ]
     },
     "controller": {
@@ -216,10 +218,12 @@
         "systemd/system/paimenos-emulators.service",
         "systemd/system/paimenos-packages.service",
         "systemd/system/paimenos-parent-web.service",
+        "systemd/system/paimenos-power.service",
         "systemd/system/paimenos-updates.service",
         "systemd/system/paimenos-wifi-migration.service",
         "systemd/system/paimenos-wifi.service",
         "systemd/user/paimenos-cursor.service",
+        "systemd/user/paimenos-idle.service",
         "systemd/user/paimenos-media.service",
         "systemd/user/paimenos-menu.service",
         "systemd/user/paimenos-osd.service",

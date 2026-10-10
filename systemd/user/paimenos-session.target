@@ -1,3 +1,3 @@
 [Unit]
 Description=PaimenOS grafische Sitzung
-Wants=paimenos-menu.service paimenos-timer.service paimenos-media.service paimenos-cursor.service paimenos-osd.service
+Wants=paimenos-menu.service paimenos-timer.service paimenos-media.service paimenos-cursor.service paimenos-osd.service paimenos-idle.service

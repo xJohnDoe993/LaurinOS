@@ -22,11 +22,14 @@ install_repo_file systemd/system/paimenos-bluetooth.service /etc/systemd/system/
 
 install_repo_file systemd/system/paimenos-wifi.service /etc/systemd/system/paimenos-wifi.service
 
+install_repo_file systemd/system/paimenos-power.service /etc/systemd/system/paimenos-power.service
+
 systemctl daemon-reload
 systemctl enable paimenos-wifi.service
 systemctl enable paimenos-emulators.service
 systemctl enable paimenos-updates.service
 systemctl enable paimenos-bluetooth.service
+systemctl enable paimenos-power.service
 systemctl enable paimenos-parent-web.service >/dev/null 2>&1 || true
 
 # Datei wurde ersetzt: ein laufender Dienst muss den neuen Code laden.

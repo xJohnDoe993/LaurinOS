@@ -6,7 +6,7 @@
   --toolbarbutton-hover-background: #405878;
   --toolbarbutton-active-background: #506989;
 }
-:root[inFullscreen] #navigator-toolbox,
+/* Nur Videos im Vollbild; F11 darf Zurück/Weiter nicht verschwinden lassen. */
 :root[inDOMFullscreen] #navigator-toolbox {
   display: none !important;
   visibility: collapse !important;

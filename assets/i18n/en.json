@@ -1217,7 +1217,7 @@
   "⏳ Restzeit: {rem_min} Min.": "⏳ Time left: {rem_min} min",
   "⏳ Restzeit: {value0} Min.": "⏳ Time left: {value0} min",
   "⏸ Pause": "⏸ Pause",
-  "⏻ Herunterfahren": "⏻ Shut down",
+  "Herunterfahren": "Shut down",
   "▶ Wiedergabe": "▶ Play",
   "⛶ Vollbild": "⛶ Full screen",
   "➕ Zeit hinzufügen (Eltern)": "➕ Add time (Parents)",

@@ -18,7 +18,7 @@ amixer sset Headphone unmute 80% || true
 if systemctl --user import-environment DISPLAY XAUTHORITY DBUS_SESSION_BUS_ADDRESS PATH XDG_CURRENT_DESKTOP XDG_DATA_DIRS; then
     dbus-update-activation-environment --systemd DISPLAY XAUTHORITY DBUS_SESSION_BUS_ADDRESS XDG_CURRENT_DESKTOP XDG_DATA_DIRS || true
     systemctl --user daemon-reload
-    systemctl --user reset-failed paimenos-menu.service paimenos-timer.service paimenos-media.service paimenos-cursor.service paimenos-osd.service
+    systemctl --user reset-failed paimenos-menu.service paimenos-timer.service paimenos-media.service paimenos-cursor.service paimenos-osd.service paimenos-idle.service
     systemctl --user start paimenos-session.target
 else
     /usr/bin/python3 -I /usr/local/lib/paimenos/current/tools/language.py "PaimenOS: systemd-Benutzersitzung fehlt; siehe Geräte-Diagnose." >&2
