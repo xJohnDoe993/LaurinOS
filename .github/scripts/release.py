@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import time
 import tomllib
 import zipfile
 
@@ -71,7 +72,18 @@ def complete_upload(release, assets):
                and uploaded[path.name]['size'] == path.stat().st_size for path in assets)
 
 
-def prepare(root, tag, repository, run=subprocess.run, *, publish=False):
+def uploaded_release(endpoint, tag, assets, run, sleep, attempts=10, delay=3):
+    # GitHub lists a freshly created draft only after a short delay.
+    for attempt in range(attempts):
+        release = find_release(endpoint, tag, run)
+        if release is not None and complete_upload(release, assets):
+            return release
+        if attempt + 1 < attempts:
+            sleep(delay)
+    return release
+
+
+def prepare(root, tag, repository, run=subprocess.run, *, publish=False, sleep=time.sleep):
     version = checked_version(root, tag)
     if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository):
         raise ValueError('GH_REPO muss owner/repo enthalten.')
@@ -104,7 +116,7 @@ def prepare(root, tag, repository, run=subprocess.run, *, publish=False):
     else:
         run(['gh', 'release', 'create', tag, *map(str, assets), '--repo', repository,
              '--target', head, '--draft', '--title', 'PaimenOS ' + version, '--generate-notes'], check=True)
-    release = find_release(endpoint, tag, run)
+    release = uploaded_release(endpoint, tag, assets, run, sleep)
     if release is None:
         raise ValueError('Release-Entwurf nach dem Upload nicht gefunden.')
     if not release['draft'] or not complete_upload(release, assets):
