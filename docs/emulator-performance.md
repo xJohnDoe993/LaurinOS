@@ -1,5 +1,9 @@
 # Sparsame Emulator-Darstellung
 
+> Die hier beschriebenen Werte entsprechen dem Hardware-Profil `low` (Standard).
+> Die anderen Profile ändern Auflösung und einzelne aufwendige Optionen, siehe
+> [Hardware-Profile](hardware-profiles.md).
+
 Das Profil `efficient-v1` ist eine konservative Ausgangsbasis für Notebooks wie
 ein ThinkPad T450 (i5-5300U / Intel HD 5500) und neuere Geräte. Es ist keine
 Benchmark-basierte Vollgeschwindigkeitsgarantie: CPU-Kühlung, Grafiktreiber, Core
