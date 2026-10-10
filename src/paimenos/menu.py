@@ -1327,6 +1327,12 @@ class PaimenOSMenu(QWidget):
                 cmd[0] = find_program(cmd[0]) or cmd[0]
         if cmd and (item.get("id") == "tuxpaint" or os.path.basename(cmd[0]) == "tuxpaint"):
             cmd = tuxpaint_command(cmd[0], cmd[1:])
+        if cmd and item.get("id") == "supertuxkart":
+            # STK creates its config on the first run; apply the hardware profile once afterwards.
+            try:
+                hardware_profile.apply_stk(hardware_profile.current(), only_pending=True)
+            except (OSError, ValueError) as exc:
+                log_event(t('Anwendung'), 'SuperTuxKart: ' + str(exc))
         if not cmd:
             return
         self.return_window = return_window

@@ -1372,5 +1372,7 @@
   "Profil (1-4, Enter = Vorschlag): ": "Profile (1-4, Enter = suggestion): ",
   "PAIMENOS_HARDWARE_PROFILE muss ultra-low, low, medium oder high sein.": "PAIMENOS_HARDWARE_PROFILE must be ultra-low, low, medium or high.",
   "Hardware-Profil: {value0}": "Hardware profile: {value0}",
-  "Hinweis: App-Einstellungen für das Hardware-Profil konnten nicht vollständig gesetzt werden.": "Note: app settings for the hardware profile could not be fully applied."
+  "Hinweis: App-Einstellungen für das Hardware-Profil konnten nicht vollständig gesetzt werden.": "Note: app settings for the hardware profile could not be fully applied.",
+  "SuperTuxKart läuft gerade. Bitte schließen und den Befehl erneut ausführen.": "SuperTuxKart is running. Please close it and run the command again.",
+  "SuperTuxKart-Einstellungen angepasst: {value0}": "SuperTuxKart settings updated: {value0}"
 }

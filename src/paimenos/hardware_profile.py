@@ -170,6 +170,117 @@ def apply_luanti(profile, home=None):
     return changed
 
 
+# SuperTuxKart (config version 8, see the attribute comments STK writes into config.xml).
+# enable_high_definition_textures is a bit field: bit 0 on/off, bit 1 "set by user" so
+# STK does not replace the value with its own default.
+STK = {
+    'ultra-low': {
+        'Video': {'max_fps': '60', 'enable_dynamic_lights': 'false', 'enable_glow': 'false', 'enable_bloom': 'false',
+                  'enable_light_shaft': 'false', 'enable_dof': 'false', 'ssr': 'false', 'hq_mipmap': 'false',
+                  'enable_high_definition_textures': '2', 'max_texture_size': '256', 'scale_rtts_factor': '0.750000'},
+        'GFX': {'particles-effecs': '1', 'animated-characters': 'false', 'geometry-level': '0', 'anisotropic': '0',
+                'motionblur_enabled': 'false', 'mlaa': 'false', 'ssao': 'false', 'light_scatter': 'false',
+                'shadows_resolution': '0', 'pcss': 'false', 'Degraded_IBL': 'true'},
+    },
+    'low': {
+        'Video': {'max_fps': '60', 'enable_dynamic_lights': 'false', 'enable_glow': 'false', 'enable_bloom': 'false',
+                  'enable_light_shaft': 'false', 'enable_dof': 'false', 'ssr': 'false', 'hq_mipmap': 'false',
+                  'enable_high_definition_textures': '2', 'max_texture_size': '512', 'scale_rtts_factor': '1.000000'},
+        'GFX': {'particles-effecs': '1', 'animated-characters': 'true', 'geometry-level': '1', 'anisotropic': '2',
+                'motionblur_enabled': 'false', 'mlaa': 'false', 'ssao': 'false', 'light_scatter': 'false',
+                'shadows_resolution': '0', 'pcss': 'false', 'Degraded_IBL': 'true'},
+    },
+    'medium': {
+        'Video': {'max_fps': '120', 'enable_dynamic_lights': 'true', 'enable_glow': 'true', 'enable_bloom': 'false',
+                  'enable_light_shaft': 'false', 'enable_dof': 'false', 'ssr': 'false', 'hq_mipmap': 'true',
+                  'enable_high_definition_textures': '3', 'max_texture_size': '512', 'scale_rtts_factor': '1.000000'},
+        'GFX': {'particles-effecs': '2', 'animated-characters': 'true', 'geometry-level': '2', 'anisotropic': '4',
+                'motionblur_enabled': 'false', 'mlaa': 'false', 'ssao': 'false', 'light_scatter': 'true',
+                'shadows_resolution': '0', 'pcss': 'false', 'Degraded_IBL': 'true'},
+    },
+    'high': {
+        'Video': {'max_fps': '120', 'enable_dynamic_lights': 'true', 'enable_glow': 'true', 'enable_bloom': 'true',
+                  'enable_light_shaft': 'true', 'enable_dof': 'false', 'ssr': 'false', 'hq_mipmap': 'true',
+                  'enable_high_definition_textures': '3', 'max_texture_size': '512', 'scale_rtts_factor': '1.000000'},
+        'GFX': {'particles-effecs': '2', 'animated-characters': 'true', 'geometry-level': '3', 'anisotropic': '8',
+                'motionblur_enabled': 'false', 'mlaa': 'true', 'ssao': 'true', 'light_scatter': 'true',
+                'shadows_resolution': '512', 'pcss': 'false', 'Degraded_IBL': 'false'},
+    },
+}
+STK_CONFIGS = ('.var/app/net.supertuxkart.SuperTuxKart/config/supertuxkart', '.config/supertuxkart')
+
+
+def set_xml_attributes(text, element, values):
+    """Change attributes of one start tag, keeping comments and layout of STK's file."""
+    match = re.search(r'<' + element + r'(\s[^<>]*)?>', text)
+    if match is None:
+        return text
+    tag = match.group(0)
+    for key, value in values.items():
+        pattern = r'(\s' + re.escape(key) + r'=")[^"]*(")'
+        if re.search(pattern, tag):
+            tag = re.sub(pattern, lambda m: m.group(1) + value + m.group(2), tag)
+        else:
+            tag = tag[:-1].rstrip() + '\n        ' + key + '="' + value + '"\n    >'
+    return text[:match.start()] + tag + text[match.end():]
+
+
+def stk_files(home):
+    for folder in STK_CONFIGS:
+        base = home / folder
+        if not base.is_dir() or any(p.is_symlink() for p in (base, *base.parents) if home in p.parents):
+            continue
+        for conf in sorted(base.glob('config-*/config.xml')):
+            if not conf.is_symlink() and conf.is_file():
+                yield conf
+
+
+def _applied_file(home):
+    return home / '.local/state/paimenos/hardware-profile-applied.json'
+
+
+def _read_applied(home):
+    import json
+    try:
+        data = json.loads(_applied_file(home).read_text(encoding='utf-8'))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def apply_stk(profile, home=None, only_pending=False):
+    """Only edits files STK created itself; STK writes the full file on its first exit."""
+    import json
+    home = Path(home or Path.home())
+    applied, changed = _read_applied(home), []
+    for conf in stk_files(home):
+        if only_pending and applied.get(str(conf)) == profile:
+            continue
+        text = conf.read_text(encoding='utf-8')
+        if '<stkconfig' not in text:
+            continue
+        updated = text
+        for element, values in STK[profile].items():
+            updated = set_xml_attributes(updated, element, values)
+        if updated != text:
+            temporary = conf.with_name('.config.xml.paimenos')
+            temporary.write_text(updated, encoding='utf-8')
+            os.replace(temporary, conf)
+            changed.append(conf)
+        applied[str(conf)] = profile
+    if applied != _read_applied(home):
+        marker = _applied_file(home)
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text(json.dumps(applied, indent=1), encoding='utf-8')
+    return changed
+
+
+def stk_running():
+    import subprocess
+    return subprocess.run(['pgrep', '-u', str(os.getuid()), '-x', 'supertuxkart'],
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+
+
 def luanti_running():
     import subprocess
     return subprocess.run(['pgrep', '-u', str(os.getuid()), '-x', '(minetest|luanti|luanti\\.bin)'],
@@ -203,12 +314,17 @@ def main(argv):
         print(describe(argv[1]))
     elif argv == ['--apply']:
         # Runs as the kids user; emulators and web apps read the profile at every start.
+        # Both games write their settings on exit and would undo the change while running.
         if luanti_running():
-            # Luanti writes minetest.conf on exit and would undo the change.
             print(t('Luanti läuft gerade. Bitte schließen und den Befehl erneut ausführen.'), file=sys.stderr)
-            return
-        for path in apply_luanti(current()):
-            print(t('Luanti-Einstellungen angepasst: {value0}', value0=path))
+        else:
+            for path in apply_luanti(current()):
+                print(t('Luanti-Einstellungen angepasst: {value0}', value0=path))
+        if stk_running():
+            print(t('SuperTuxKart läuft gerade. Bitte schließen und den Befehl erneut ausführen.'), file=sys.stderr)
+        else:
+            for path in apply_stk(current()):
+                print(t('SuperTuxKart-Einstellungen angepasst: {value0}', value0=path))
     else:
         raise SystemExit('hardware_profile --detect|--current|--describe PROFILE|--apply')
 

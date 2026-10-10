@@ -105,6 +105,63 @@ class ApplyTests(unittest.TestCase):
         self.assertEqual(hp.firefox_preferences('high'), '')
 
 
+class SuperTuxKartTests(unittest.TestCase):
+    FIXTURE = Path(__file__).resolve().parent / 'fixtures/stk-config-v8.xml'
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.home = Path(self.tmp.name)
+        self.conf = self.home / '.var/app/net.supertuxkart.SuperTuxKart/config/supertuxkart/config-0.10/config.xml'
+        self.conf.parent.mkdir(parents=True)
+        self.conf.write_text(self.FIXTURE.read_text())
+
+    def attributes(self, element):
+        import xml.etree.ElementTree as ET
+        return ET.parse(self.conf).getroot().find(element).attrib
+
+    def test_ultra_low_changes_only_graphics_and_keeps_the_rest(self):
+        self.assertEqual(hp.apply_stk('ultra-low', self.home), [self.conf])
+        video, gfx = self.attributes('Video'), self.attributes('GFX')
+        self.assertEqual(video['enable_dynamic_lights'], 'false')
+        self.assertEqual(video['enable_high_definition_textures'], '2')
+        self.assertEqual(video['scale_rtts_factor'], '0.750000')
+        self.assertEqual(gfx['geometry-level'], '0')
+        self.assertEqual(gfx['animated-characters'], 'false')
+        # Untouched: resolution, render driver, unrelated settings, comments.
+        self.assertEqual(video['real_width'], '1024')
+        self.assertEqual(video['render_driver'], 'opengl')
+        self.assertEqual(gfx['swap-interval-vsync'], '1')
+        text = self.conf.read_text()
+        self.assertIn('<kart value="tux" />', text)
+        self.assertIn('Bit flag: bit 0 = enabled/disabled', text)
+        self.assertEqual(text.count('max_fps='), 1)
+
+    def test_high_enables_effects(self):
+        hp.apply_stk('high', self.home)
+        video, gfx = self.attributes('Video'), self.attributes('GFX')
+        self.assertEqual(video['enable_bloom'], 'true')
+        self.assertEqual(gfx['shadows_resolution'], '512')
+        self.assertEqual(gfx['Degraded_IBL'], 'false')
+
+    def test_pending_mode_respects_in_game_changes_until_the_profile_changes(self):
+        hp.apply_stk('low', self.home)
+        self.conf.write_text(self.conf.read_text().replace('geometry-level="1"', 'geometry-level="2"'))
+        self.assertEqual(hp.apply_stk('low', self.home, only_pending=True), [])
+        self.assertIn('geometry-level="2"', self.conf.read_text())
+        self.assertEqual(hp.apply_stk('medium', self.home, only_pending=True), [self.conf])
+
+    def test_missing_config_or_links_are_left_alone(self):
+        self.conf.unlink()
+        self.assertEqual(hp.apply_stk('low', self.home), [])
+        self.assertFalse(self.conf.exists())
+        target = self.home / 'target.xml'
+        target.write_text(self.FIXTURE.read_text())
+        self.conf.symlink_to(target)
+        self.assertEqual(hp.apply_stk('low', self.home), [])
+        self.assertIn('enable_dynamic_lights="true"', target.read_text())
+
+
 class EmulatorProfileTests(unittest.TestCase):
     def test_low_profile_keeps_previous_efficient_defaults(self):
         self.assertEqual(video.core_settings('psp', 'low')['ppsspp_internal_resolution'], '480x272')

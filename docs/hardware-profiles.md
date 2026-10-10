@@ -41,6 +41,7 @@ kann das Profil nicht ändern. Fehlt die Datei oder ist sie ungültig, gilt `low
 | PSP | 480×272, ohne anisotrope Filterung, Auto-Frameskip | 480×272, 2× AF | 960×544, 4× AF | 1440×816, 8× AF | nächster Spielstart |
 | Dolphin | 1× | 1× | 1× | 2× | nächster Spielstart |
 | Luanti | Sichtweite 50, 30 FPS, ohne Wolken/Partikel/Shader | Sichtweite 80, 45 FPS | Sichtweite 140, 3D-Wolken, wehende Pflanzen | Sichtweite 240, dynamische Schatten, Kantenglättung | sofort (`minetest.conf`) |
+| SuperTuxKart | ohne dynamische Beleuchtung, einfache Geometrie, keine animierten Figuren, kleine Texturen, 75 % Effektauflösung | ohne dynamische Beleuchtung, 2× AF | dynamische Beleuchtung, Glow, Lichtstreuung, HD-Texturen, 4× AF | zusätzlich Bloom, Lichtstrahlen, Schatten, SSAO, MLAA, 8× AF | sofort bzw. vor dem nächsten Start |
 | Firefox-Webapps | 1 Inhaltsprozess, keine Animationen/weiches Scrollen, 30 FPS | 2 Prozesse, keine Animationen | 4 Prozesse | Firefox-Standard | nächster Webapp-Start |
 | Kindermenü | ohne Hintergrundkreise, einfacher Kachelschatten | volle Effekte | volle Effekte | volle Effekte | nächste Anmeldung |
 
@@ -60,18 +61,32 @@ Profilwechsel, bricht die Übernahme ab, weil Luanti die Datei beim Beenden
 überschreiben würde; danach den Befehl erneut ausführen. Ältere Schlüssel wie
 `enable_shaders` ignorieren neuere Luanti-Versionen.
 
+### SuperTuxKart
+
+Geändert werden nur einzelne Attribute der Elemente `<Video>` und `<GFX>` in einer
+`config.xml`, die STK selbst angelegt hat (Format `stkconfig version="8"`, geprüft
+mit einer Datei von einem echten Gerät). Kommentare, Auflösung, Steuerung und alle
+anderen Einstellungen bleiben unverändert. Es wird nie eine eigene Datei erzeugt:
+Vor dem allerersten Start existiert keine Konfiguration, dann gelten die STK-Standards.
+Das Kindermenü wendet das Profil deshalb einmalig vor dem nächsten STK-Start an.
+Welches Profil bereits übernommen wurde, steht in
+`~/.local/state/paimenos/hardware-profile-applied.json`; eigene Änderungen im Spiel
+bleiben so bis zum nächsten Profilwechsel erhalten. Berücksichtigt werden Flatpak
+(`~/.var/app/net.supertuxkart.SuperTuxKart/config/supertuxkart/config-*/`) und Debian
+(`~/.config/supertuxkart/config-*/`). Läuft STK, wird nicht geändert, weil STK die
+Datei beim Beenden vollständig neu schreibt.
+
 ## Nicht abgedeckt
 
-- **SuperTuxKart** und **GCompris** bringen eigene Grafikstufen bzw. Automatik mit.
-  Ihre Konfigurationsformate werden erst nach einer Prüfung auf echten Geräten
-  eingebunden, damit keine ungültigen Dateien entstehen.
+- **GCompris** bringt eine eigene Automatik mit; das Konfigurationsformat wird erst
+  nach einer Prüfung auf echten Geräten eingebunden.
 - Tux Paint, LibreOffice, GIMP, Geany und VLC haben keine nennenswerten
   Grafikstufen.
 - System-Einstellungen (TLP, ZRAM, Auflösung) bleiben unabhängig vom Profil.
 
 ## Geräteprüfung
 
-Je Profil ein N64- und ein PSP-Spiel sowie Luanti fünf Minuten spielen und
+Je Profil ein N64- und ein PSP-Spiel sowie Luanti und SuperTuxKart fünf Minuten spielen und
 Framerate, Ton und Lüfter beobachten. Nach `sudo paimenos-hardware-profile high`
 und Rückkehr zu `low` müssen eigene Luanti-Einstellungen außerhalb der Tabelle
 erhalten bleiben.
