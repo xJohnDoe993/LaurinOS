@@ -9,7 +9,7 @@ from paimenos.emulator_catalog import CATALOG
 def video_settings(system):
     if system not in CATALOG:
         raise ValueError('Unknown emulator system')
-    pixel_art = system not in ('ps1', 'n64', 'psp')
+    pixel_art = system not in ('ps1', 'n64', 'psp', 'dolphin')
     return {
         'video_driver': 'gl',
         'video_windowed_fullscreen': 'true',
@@ -57,6 +57,22 @@ def core_settings(system):
         }
         return {prefix + key: value for prefix in ('mupen64plus', 'mupen64plus-next')
                 for key, value in values.items()}
+    if system == 'dolphin':
+        import platform
+        return {
+            # Current Dolphin libretro options use numeric enum values.
+            'dolphin_cpu_core': '4' if platform.machine().lower() in ('aarch64', 'arm64') else '1',
+            'dolphin_main_cpu_thread': 'enabled',
+            'dolphin_renderer': 'Hardware',
+            'dolphin_dsp_hle': 'enabled',
+            'dolphin_efb_scale': '1',
+            'dolphin_aspect_ratio': '0',
+            'dolphin_anti_aliasing': '0',
+            'dolphin_max_anisotropy': '0',
+            'dolphin_shader_compilation_mode': '0',
+            'dolphin_widescreen_hack': 'disabled',
+            'dolphin_load_custom_textures': 'disabled',
+        }
     if system == 'psp':
         return {
             'ppsspp_cpu_core': 'JIT',

@@ -1300,5 +1300,13 @@
   "Ungültiger Bildschirmzeit-Wert: ": "Invalid screen-time value: ",
   "Deine Apps bleiben geöffnet. Rufe deine Eltern zum Fortsetzen oder Speichern.": "Your apps stay open. Ask your parents to continue or save your work.",
   "Herunterfahren?": "Shut down?",
-  "Ungespeicherte Arbeiten können beim Ausschalten verloren gehen. Zum Speichern zuerst Elternzeit hinzufügen. Trotzdem ausschalten?": "Unsaved work may be lost when shutting down. Ask your parents to add time so you can save first. Shut down anyway?"
+  "Ungespeicherte Arbeiten können beim Ausschalten verloren gehen. Zum Speichern zuerst Elternzeit hinzufügen. Trotzdem ausschalten?": "Unsaved work may be lost when shutting down. Ask your parents to add time so you can save first. Shut down anyway?",
+  "Dolphin ist optional und anspruchsvoll: Leistung hängt stark vom Spiel ab. GameCube-Controller werden über das Gamepad abgebildet; Wii-Spiele können zusätzliche Bewegungssteuerung benötigen. Systemdateien werden automatisch installiert.": "Dolphin is optional and demanding: performance varies greatly by game. GameCube controls are mapped to the gamepad; Wii games may require additional motion controls. System assets are installed automatically.",
+  "Dolphin-Zusatzdateien sind unvollständig.": "Dolphin assets are incomplete.",
+  "Dolphin-Zusatzdateien werden eingerichtet …": "Setting up Dolphin assets …",
+  "Dolphin-Zusatzdateien überschreiten das Größenlimit.": "Dolphin assets exceed the size limit.",
+  "Formate stehen bei der jeweiligen Konsole. PS1: CUE zusammen mit allen BIN-Tracks und gegebenenfalls der passenden SBI-Datei auswählen; alternativ CHD/PBP. ZIP muss genau ein Spiel enthalten, Dateien direkt im Hauptverzeichnis. Maximal 1 GB insgesamt (PSP: 2 GB, Dolphin: 9 GB), auch entpackt. Bei älteren PS1-Cores bevorzugt CUE/BIN verwenden. PSP-Zusatzdateien werden automatisch installiert, ein PSP-BIOS ist nicht nötig.": "Formats are listed for each console. PS1: select the CUE with all BIN tracks and the matching SBI file if needed, or use CHD/PBP. A ZIP must contain exactly one game, with files directly in its root directory. Up to 1 GB total (PSP: 2 GB, Dolphin: 9 GB), including extracted files. Prefer CUE/BIN for older PS1 cores. PSP assets are installed automatically; no PSP BIOS is needed.",
+  "Unerwarteter Inhalt der Dolphin-Zusatzdateien.": "Unexpected content in Dolphin assets.",
+  "Ungültiger Pfad in den Dolphin-Zusatzdateien.": "Invalid path in Dolphin assets.",
+  "Zusatzdateien fehlen": "System assets missing"
 }

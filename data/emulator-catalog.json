@@ -114,6 +114,21 @@
         ".pbp",
         ".chd"
       ]
+    },
+    "dolphin": {
+      "name": "GameCube / Wii (Dolphin)",
+      "core": "dolphin",
+      "packages": [
+        "libretro-dolphin"
+      ],
+      "extensions": [
+        ".iso",
+        ".gcm",
+        ".rvz",
+        ".wbfs",
+        ".gcz",
+        ".ciso"
+      ]
     }
   },
   "recommended": [

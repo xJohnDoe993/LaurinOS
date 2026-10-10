@@ -45,7 +45,7 @@ with open(secret_file, encoding='utf-8') as handle:
 if len(app.secret_key) < 32:
     raise ValueError(t('Web-Sitzungsschlüssel fehlt oder ist beschädigt.'))
 app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Strict',
-                  PERMANENT_SESSION_LIFETIME=timedelta(minutes=30), MAX_CONTENT_LENGTH=2049 * 1024 * 1024)
+                  PERMANENT_SESSION_LIFETIME=timedelta(minutes=30), MAX_CONTENT_LENGTH=(9 * 1024 + 1) * 1024 * 1024)
 attempts = {}
 attempts_lock = threading.Lock()
 
@@ -595,5 +595,5 @@ def diagnostics_download():
 if __name__ == '__main__':
     from waitress import serve
     serve(app, host=HOST, port=PORT, threads=4, connection_limit=32,
-          channel_timeout=300, max_request_body_size=2049 * 1024 * 1024,
+          channel_timeout=300, max_request_body_size=app.config['MAX_CONTENT_LENGTH'],
           max_request_header_size=16384, expose_tracebacks=False)

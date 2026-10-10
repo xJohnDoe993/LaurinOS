@@ -26,7 +26,7 @@ from contextlib import contextmanager
 
 ROOT = Path('/usr/local/lib/libretro')
 PROFILES = Path('/usr/local/share/paimenos/retroarch-autoconfig')
-from paimenos.emulator_catalog import CATALOG, core_path, selection, status, RECOMMENDED, SHARED_SYSTEM, psp_assets_ready
+from paimenos.emulator_catalog import CATALOG, core_path, selection, status, RECOMMENDED, SHARED_SYSTEM, psp_assets_ready, dolphin_assets_ready
 CORES = {item['core'] + '_libretro.so': item['name'] for item in CATALOG.values()}
 ARCHES = {'amd64': ('x86_64', 2, 62), 'arm64': ('aarch64', 2, 183)}
 
@@ -173,6 +173,54 @@ def install_psp_assets():
             shutil.rmtree(backup)
 
 
+def install_dolphin_assets():
+    if dolphin_assets_ready():
+        return
+    archive = download('https://buildbot.libretro.com/assets/system/Dolphin.zip')
+    SHARED_SYSTEM.mkdir(parents=True, exist_ok=True)
+    SHARED_SYSTEM.chmod(0o755)
+    with tempfile.TemporaryDirectory(prefix='.dolphin-', dir=SHARED_SYSTEM) as temp:
+        stage = Path(temp) / 'dolphin-emu'; stage.mkdir()
+        with zipfile.ZipFile(io.BytesIO(archive)) as z:
+            members = z.infolist()
+            if len(members) > 10000 or sum(m.file_size for m in members) > 128 * 1024 * 1024:
+                raise ValueError(t('Dolphin-Zusatzdateien überschreiten das Größenlimit.'))
+            for member in members:
+                path = PurePosixPath(member.filename)
+                if path.is_absolute() or '..' in path.parts or '\\' in member.filename or (member.external_attr >> 16) & 0o170000 == 0o120000:
+                    raise ValueError(t('Ungültiger Pfad in den Dolphin-Zusatzdateien.'))
+                parts = list(path.parts)
+                if not parts or parts[0] != 'dolphin-emu':
+                    raise ValueError(t('Unerwarteter Inhalt der Dolphin-Zusatzdateien.'))
+                target = stage.joinpath(*parts[1:])
+                if member.is_dir():
+                    target.mkdir(parents=True, exist_ok=True)
+                else:
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    with z.open(member) as source, target.open('xb') as dest:
+                        shutil.copyfileobj(source, dest)
+        if not (stage / 'Sys/GC/dsp_coef.bin').is_file() or not (stage / 'Sys/GC/dsp_rom.bin').is_file() or not any((stage / 'Sys/GameSettings').glob('*.ini')):
+            raise ValueError(t('Dolphin-Zusatzdateien sind unvollständig.'))
+        for path in stage.rglob('*'):
+            path.chmod(0o755 if path.is_dir() else 0o644)
+        stage.chmod(0o755)
+        target = SHARED_SYSTEM / 'dolphin-emu'
+        # Ein unvollständiger früherer Download wird ersetzt, Spiele liegen separat.
+        backup = SHARED_SYSTEM / '.dolphin-emu-previous'
+        if backup.exists():
+            shutil.rmtree(backup)
+        if target.exists():
+            os.replace(target, backup)
+        try:
+            os.replace(stage, target)
+        except Exception:
+            if backup.exists():
+                os.replace(backup, target)
+            raise
+        if backup.exists():
+            shutil.rmtree(backup)
+
+
 @contextmanager
 def installation_lock():
     fd = os.open('/run/paimenos-emulator-install.lock', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
@@ -236,6 +284,9 @@ def install_selected(keys, report=lambda message, **fields: print(message, flush
                 if key == 'psp':
                     report(t('PSP-Zusatzdateien werden eingerichtet …'))
                     install_psp_assets()
+                if key == 'dolphin':
+                    report(t('Dolphin-Zusatzdateien werden eingerichtet …'))
+                    install_dolphin_assets()
                 results[key] = {'ok': True, 'message': t('Installiert')}
                 report(item['name'] + t(' ist bereit.'))
             except Exception as exc:
@@ -267,7 +318,7 @@ def choose_setup(value=None, tty=None):
     try:
         tty.write(t('\nEmulatoren auswählen (vorhandene werden nie entfernt)\n'))
         for index, (key, item) in enumerate(CATALOG.items(), 1):
-            tty.write(f" {index:2d}) {'[x]' if key in defaults else '[ ]'} {item['name']}" + (t(' – Leistung spielabhängig') if key in ('n64', 'psp') else '') + '\n')
+            tty.write(f" {index:2d}) {'[x]' if key in defaults else '[ ]'} {item['name']}" + (t(' – Leistung spielabhängig') if key in ('n64', 'psp', 'dolphin') else '') + '\n')
         while True:
             tty.write(t('Nummern durch Leerzeichen trennen; Enter = markierte Auswahl, alle / keine / empfohlen: ')); tty.flush()
             answer = tty.readline()

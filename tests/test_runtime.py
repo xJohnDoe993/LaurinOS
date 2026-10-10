@@ -65,7 +65,7 @@ class RuntimeTests(unittest.TestCase):
     def test_emulator_selection_aliases_dedup_and_invalid_input(self):
         self.assertEqual(emulator_catalog.selection('nes,gb,nes'), ['nes', 'gb'])
         self.assertEqual(emulator_catalog.selection('none'), [])
-        self.assertEqual(len(emulator_catalog.selection('all')), 10)
+        self.assertEqual(len(emulator_catalog.selection('all')), 11)
         with self.assertRaises(ValueError):emulator_catalog.selection('unknown')
     def test_webapp_profile_gets_resource_css_and_preserves_preferences(self):
         with tempfile.TemporaryDirectory(dir=ROOT.parent) as folder:

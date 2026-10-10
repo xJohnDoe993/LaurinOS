@@ -12,3 +12,6 @@ the core serialization API. PaimenOS explicitly sets both libretro_directory to
 the loaded core's directory and libretro_info_path to the matching metadata.
 The info cache is disabled to avoid retaining a previous missing-info result.
 This does not add serialization support to a core or bypass its runtime check.
+
+Dolphin metadata was added from the same upstream repository on 2026-10-10,
+under the same MIT license. It is used when installed core information is absent.
