@@ -27,6 +27,7 @@ class FakeGitHub:
         self.incomplete = False
         self.ignore_publish = False
         self.publish_sha = 'a' * 40
+        self.listing_delay = 0
     def __call__(self, command, **kwargs):
         self.calls.append(command)
         if command[0] == 'git':
@@ -37,6 +38,9 @@ class FakeGitHub:
             endpoint = command[2]
             if '/git/ref/' in endpoint: payload = self.reference
             elif '/git/tags/' in endpoint: payload = {'object': {'type': 'commit', 'sha': 'a' * 40}}
+            elif '/releases?' in endpoint and self.listing_delay:
+                self.listing_delay -= 1
+                payload = []
             elif '/releases?' in endpoint:
                 payload = [dict(self.release, tag_name='v0.63.0')] if self.release else []
             else: raise AssertionError(endpoint)
@@ -82,7 +86,9 @@ class GitHubReleaseTests(unittest.TestCase):
         self.github = FakeGitHub(self.root)
     def tearDown(self): self.temp.cleanup()
     def prepare(self, *, publish=False):
-        return release.prepare(self.root, 'v0.63.0', 'test/repo', self.github, publish=publish)
+        self.sleeps = []
+        return release.prepare(self.root, 'v0.63.0', 'test/repo', self.github, publish=publish,
+                               sleep=self.sleeps.append)
     def writes(self): return [call for call in self.github.calls if call[:2] == ['gh', 'release']]
     def test_new_release_attaches_both_assets_as_draft_at_built_commit(self):
         self.assertIn('/v0.63.0', self.prepare())
@@ -93,6 +99,14 @@ class GitHubReleaseTests(unittest.TestCase):
         self.assertIn(str(self.archive), command)
         self.assertIn(str(self.checksum), command)
         self.assertTrue(self.github.release['draft'])
+    def test_new_draft_listed_with_delay_is_awaited(self):
+        # Erste Abfrage vor dem Anlegen, zwei weitere ohne den neuen Entwurf.
+        self.github.listing_delay = 3
+        self.assertIn('/v0.63.0', self.prepare())
+        self.assertEqual(self.sleeps, [3, 3])
+        self.github.listing_delay = 99
+        self.github.release = None
+        with self.assertRaisesRegex(ValueError, 'nicht gefunden'): self.prepare()
     def test_empty_existing_draft_is_uploaded_without_replacing_notes(self):
         self.github.release = {'draft': True, 'assets': [], 'html_url': 'https://github.com/test/draft'}
         self.github.reference = {'object': {'type': 'commit', 'sha': 'a' * 40}}
