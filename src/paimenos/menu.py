@@ -18,13 +18,13 @@ from paimenos.controller import ControllerReader
 from paimenos.network_status import NetworkStatus
 from datetime import date
 from PyQt5 import sip
-from PyQt5.QtCore import QLocale, Qt, QTimer, QTime, QDate, QSize
-from PyQt5.QtGui import QFont, QIcon, QPixmap, QColor, QPainter, QImageReader, QKeySequence
+from PyQt5.QtCore import QLocale, Qt, QTimer, QTime, QDate, QSize, QPointF, QRectF
+from PyQt5.QtGui import QFont, QIcon, QPixmap, QColor, QPainter, QImageReader, QKeySequence, QLinearGradient, QPen
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QGridLayout, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QMessageBox, QInputDialog, QDialog,
     QCheckBox, QSpinBox, QFormLayout, QLineEdit, QScrollArea,
-    QAbstractScrollArea, QStackedWidget, QShortcut, QPlainTextEdit, QToolButton
+    QAbstractScrollArea, QStackedWidget, QShortcut, QPlainTextEdit, QToolButton, QStyle, QStyleOption
 )
 
 APPS_FILE = str(CONFIG_DIR / "apps.json")
@@ -33,6 +33,7 @@ ICONS_DIR = str(USER_DATA_DIR / "icons")
 WEBAPP_BASE = os.path.expanduser("~/.mozilla/paimenos-webapps")
 OVERLAY_SCRIPT = "/usr/local/lib/paimenos/current/run.py"
 
+GRID_SPACING = 14
 COLOR_PALETTE = [
     ("#FF9F00", t('🍊 Orange')),
     ("#34C759", t('🍏 Grün')),
@@ -148,20 +149,27 @@ def save_json(path, data):
         return False
 
 class PaimenOSTile(QPushButton):
+    # Fixed size including room for the painted shadow, lift and focus ring around the card.
+    WIDTH, HEIGHT, RADIUS = 232, 190, 30
+    CARD_MARGINS = (9, 10, 9, 14)
+
     def __init__(self, item, parent=None):
         super().__init__(parent)
         self.item = item
-        self.setFixedSize(220, 170)
+        self.setFixedSize(self.WIDTH, self.HEIGHT)
         self.setCursor(Qt.PointingHandCursor)
         self.setFocusPolicy(Qt.StrongFocus)
+        self.setAttribute(Qt.WA_Hover)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 16, 12, 12)
-        layout.setSpacing(8)
+        left, top, right, bottom = self.CARD_MARGINS
+        layout.setContentsMargins(left + 12, top + 14, right + 12, bottom + 10)
+        layout.setSpacing(6)
 
         self.icon_label = QLabel(self)
         self.icon_label.setAlignment(Qt.AlignCenter)
         self.icon_label.setStyleSheet("background: transparent; border: none;")
+        self.icon_label.setAttribute(Qt.WA_TransparentForMouseEvents)
 
         pixmap = self.load_tile_pixmap(item)
         if not pixmap.isNull():
@@ -170,26 +178,38 @@ class PaimenOSTile(QPushButton):
         self.title_label = QLabel(item.get("title", ""), self)
         self.title_label.setFont(QFont("DejaVu Sans", 15, QFont.Bold))
         self.title_label.setAlignment(Qt.AlignCenter)
-        self.title_label.setStyleSheet("color: white; background: transparent; border: none;")
+        self.title_label.setStyleSheet("color: #1d2b3a; background: transparent; border: none;")
+        self.title_label.setAttribute(Qt.WA_TransparentForMouseEvents)
 
         layout.addWidget(self.icon_label, 1)
         layout.addWidget(self.title_label, 0)
+        self.setStyleSheet("PaimenOSTile { background: transparent; border: none; }")
 
-        self.setStyleSheet("""
-            PaimenOSTile {
-                background: rgba(255, 255, 255, 0.22);
-                border: 3px solid rgba(255, 255, 255, 0.6);
-                border-radius: 20px;
-            }
-            PaimenOSTile:hover {
-                background: rgba(255, 255, 255, 0.40);
-                border: 4px solid #FFFFFF;
-            }
-            PaimenOSTile:focus {
-                background: rgba(255, 255, 255, 0.45);
-                border: 6px solid #FFFFFF;
-            }
-        """)
+    def paintEvent(self, event):
+        # Painted instead of QGraphicsDropShadowEffect: cheap enough for low-end devices.
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        focused, hovered, pressed = self.hasFocus(), self.underMouse(), self.isDown()
+        lift = 0 if pressed else 3 if (focused or hovered) else 0
+        left, top, right, bottom = self.CARD_MARGINS
+        card = QRectF(self.rect()).adjusted(left, top - lift, -right, -bottom - lift)
+        radius = self.RADIUS
+        painter.setPen(Qt.NoPen)
+        for spread, alpha in ((7, 10), (5, 14), (3, 20), (1, 28)):
+            painter.setBrush(QColor(20, 30, 50, alpha + (6 if lift else 0)))
+            painter.drawRoundedRect(card.adjusted(-spread, -spread + 4 + lift, spread, spread + 2 + lift),
+                                    radius + spread, radius + spread)
+        fill = QLinearGradient(card.topLeft(), card.bottomLeft())
+        fill.setColorAt(0, QColor(255, 255, 255))
+        fill.setColorAt(1, QColor(236, 240, 246) if pressed else QColor(244, 246, 250))
+        painter.setBrush(fill)
+        painter.drawRoundedRect(card, radius, radius)
+        if focused:
+            # Inside the card so the ring contrasts on every background colour.
+            painter.setPen(QPen(QColor("#172335"), 5))
+            painter.setBrush(Qt.NoBrush)
+            painter.drawRoundedRect(card.adjusted(2.5, 2.5, -2.5, -2.5), radius - 2.5, radius - 2.5)
+        painter.end()
 
     def load_tile_pixmap(self, item):
         icon_file = item.get("icon_file")
@@ -215,7 +235,7 @@ class PaimenOSTile(QPushButton):
             fallback.fill(Qt.transparent)
             painter = QPainter(fallback)
             painter.setRenderHint(QPainter.Antialiasing)
-            painter.setPen(QColor("white"))
+            painter.setPen(QColor("#1d2b3a"))
             painter.setFont(QFont("DejaVu Sans", 48))
             painter.drawText(fallback.rect(), Qt.AlignCenter, icon_text)
             painter.end()
@@ -225,12 +245,14 @@ class PaimenOSTile(QPushButton):
         fallback.fill(Qt.transparent)
         painter = QPainter(fallback)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.setBrush(QColor(255, 255, 255, 60))
+        title = item.get("title") or "?"
+        bubble = QColor(COLOR_PALETTE[sum(map(ord, title)) % len(COLOR_PALETTE)][0])
+        painter.setBrush(bubble)
         painter.setPen(Qt.NoPen)
-        painter.drawRoundedRect(0, 0, 100, 100, 20, 20)
+        painter.drawRoundedRect(0, 0, 100, 100, 30, 30)
         painter.setPen(QColor("white"))
         painter.setFont(QFont("DejaVu Sans", 42, QFont.Bold))
-        char = (item.get("title") or "?")[0].upper()
+        char = title[0].upper()
         painter.drawText(fallback.rect(), Qt.AlignCenter, char)
         painter.end()
         return fallback
@@ -738,7 +760,7 @@ class ColorPickerDialog(QDialog):
                 QPushButton {{
                     background-color: {hex_code};
                     color: white; font-size: 14px; font-weight: bold;
-                    border: {border_style}; border-radius: 12px;
+                    border: {border_style}; border-radius: 22px;
                 }}
                 QPushButton:hover, QPushButton:focus {{ border: 4px solid #FFF; }}
             """)
@@ -810,6 +832,8 @@ class PaimenOSMenu(QWidget):
         self.time_blocked = False
         self.setWindowTitle(t('PaimenOS Kinder-Menü'))
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setObjectName('kidsMenu')
+        self.setAttribute(Qt.WA_StyledBackground, True)
 
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(40, 20, 40, 30)
@@ -827,16 +851,19 @@ class PaimenOSMenu(QWidget):
 
         self.battery_label = QLabel()
         self.battery_label.setFont(QFont("DejaVu Sans", 18, QFont.Bold))
-        self.battery_label.setMinimumWidth(105)
-        self.battery_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+        self.battery_label.setAlignment(Qt.AlignCenter)
         self.battery_label.setToolTip(t('Akku'))
-        top_layout.addWidget(self.battery_label)
+        self.battery_label.setObjectName('chip')
+        top_layout.addSpacing(18)
+        top_layout.addWidget(self.battery_label, 0, Qt.AlignVCenter)
 
         top_layout.addStretch()
 
         self.timer_info_label = QLabel()
         self.timer_info_label.setFont(QFont("DejaVu Sans", 16, QFont.Bold))
-        top_layout.addWidget(self.timer_info_label)
+        self.timer_info_label.setObjectName('chip')
+        top_layout.addWidget(self.timer_info_label, 0, Qt.AlignVCenter)
+        top_layout.addSpacing(6)
 
         color_btn = QPushButton(t('🎨 Farbe'))
         color_btn.setObjectName("colorBtn")
@@ -861,15 +888,17 @@ class PaimenOSMenu(QWidget):
         self.selected_category = 'all'
         self.visible_categories = ['all']
         self.category_bar = QWidget()
+        self.category_bar.setObjectName('categoryBar')
         category_layout = QHBoxLayout(self.category_bar)
-        category_layout.setContentsMargins(0, 4, 0, 4)
+        category_layout.setContentsMargins(0, 8, 0, 6)
+        category_layout.setSpacing(10)
         category_layout.addStretch()
         self.category_buttons = {}
         for key, title in CATEGORIES:
             btn = QPushButton()
             btn.setIcon(QIcon(os.path.expanduser('~/.local/share/paimenos/icons/category-' + key + '.svg')))
-            btn.setIconSize(QSize(38, 38))
-            btn.setFixedSize(76, 62)
+            btn.setIconSize(QSize(36, 36))
+            btn.setFixedSize(84, 60)
             btn.setToolTip(title)
             btn.setAccessibleName(title)
             btn.setCheckable(True)
@@ -887,8 +916,9 @@ class PaimenOSMenu(QWidget):
         self.app_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.app_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.app_scroll.setFocusPolicy(Qt.StrongFocus)
+        self.app_scroll.viewport().setObjectName('appViewport')
         self.app_scroll.setStyleSheet("""
-            QScrollArea { background: transparent; border: none; }
+            QScrollArea, QWidget#appViewport { background: transparent; border: none; }
             QScrollBar:vertical {
                 background: rgba(255,255,255,0.18); width: 18px; margin: 4px 0 4px 8px; border-radius: 9px;
             }
@@ -901,10 +931,12 @@ class PaimenOSMenu(QWidget):
         """)
 
         self.app_container = QWidget()
+        self.app_container.setObjectName('appContainer')
         self.grid_layout = QGridLayout(self.app_container)
-        self.grid_layout.setContentsMargins(4, 10, 12, 12)
-        self.grid_layout.setHorizontalSpacing(24)
-        self.grid_layout.setVerticalSpacing(24)
+        # Tiles carry their own shadow margin, so the visible gap is larger than the spacing.
+        self.grid_layout.setContentsMargins(0, 4, 8, 8)
+        self.grid_layout.setHorizontalSpacing(GRID_SPACING)
+        self.grid_layout.setVerticalSpacing(GRID_SPACING)
         self.app_scroll.setWidget(self.app_container)
         self.main_layout.addWidget(self.app_scroll, 1)
         self.app_buttons = []
@@ -935,25 +967,52 @@ class PaimenOSMenu(QWidget):
     def apply_theme(self):
         settings = load_json(SETTINGS_FILE)
         bg_color = settings.get("bg_color", "#FF9F00")
+        base = QColor(bg_color)
+        if not base.isValid():
+            base = QColor("#FF9F00")
+        top, bottom = base.lighter(114).name(), base.darker(110).name()
 
+        # Dialogs opened from the menu keep the plain colour; only the menu gets the gradient.
         self.setStyleSheet(f"""
             QWidget {{ background: {bg_color}; }}
+            QWidget#kidsMenu {{ background: qlineargradient(x1:0, y1:0, x2:0.35, y2:1, stop:0 {top}, stop:1 {bottom}); }}
+            QWidget#kidsMenu > QLabel, QWidget#categoryBar, QWidget#appContainer {{ background: transparent; }}
             QLabel {{ color: white; }}
-            QPushButton#parentBtn {{
-                background: rgba(0, 0, 0, 0.3); color: white; border: 3px solid white; border-radius: 20px; font-size: 18px; font-weight: bold;
+            QLabel#chip {{
+                background: rgba(255, 255, 255, 0.24); border: 2px solid rgba(255, 255, 255, 0.45);
+                border-radius: 23px; padding: 6px 18px; min-height: 30px;
             }}
-            QPushButton#parentBtn:hover {{ background: rgba(0, 0, 0, 0.5); }}
+            QPushButton#parentBtn {{
+                background: rgba(0, 0, 0, 0.28); color: white; border: 2px solid rgba(255, 255, 255, 0.8);
+                border-radius: 25px; padding: 0 20px; font-size: 18px; font-weight: bold;
+            }}
+            QPushButton#parentBtn:hover {{ background: rgba(0, 0, 0, 0.45); }}
             QPushButton#colorBtn {{
-                background: rgba(255, 255, 255, 0.3); color: white; border: 3px solid white; border-radius: 20px; font-size: 18px; font-weight: bold;
+                background: rgba(255, 255, 255, 0.3); color: white; border: 2px solid rgba(255, 255, 255, 0.8);
+                border-radius: 25px; padding: 0 20px; font-size: 18px; font-weight: bold;
             }}
             QPushButton#colorBtn:hover {{ background: rgba(255, 255, 255, 0.5); color: #333; }}
             QPushButton#parentBtn:focus, QPushButton#colorBtn:focus {{ border: 4px solid #FFE66D; }}
         """)
+        self.update()
 
         try:
             subprocess.Popen(["/usr/bin/xsetroot", "-solid", bg_color])
         except Exception:
             pass
+
+    def paintEvent(self, event):
+        option = QStyleOption()
+        option.initFrom(self)
+        painter = QPainter(self)
+        self.style().drawPrimitive(QStyle.PE_Widget, option, painter, self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setPen(Qt.NoPen)
+        w, h = self.width(), self.height()
+        for x, y, size, alpha in ((0.93, 0.06, 0.20, 30), (0.02, 0.98, 0.26, 24), (0.62, 1.04, 0.14, 18)):
+            painter.setBrush(QColor(255, 255, 255, alpha))
+            painter.drawEllipse(QPointF(w * x, h * y), w * size, w * size)
+        painter.end()
 
     def open_color_picker(self):
         dlg = ColorPickerDialog(self)
@@ -1010,7 +1069,7 @@ class PaimenOSMenu(QWidget):
         for key, btn in self.category_buttons.items():
             btn.setVisible(key in self.visible_categories)
             btn.setChecked(key == self.selected_category)
-            btn.setStyleSheet('background:white;border:4px solid #172335;border-radius:16px;' if key == self.selected_category else 'background:rgba(255,255,255,0.65);border:2px solid transparent;border-radius:16px;')
+            btn.setStyleSheet('background:white;border:4px solid #172335;border-radius:30px;' if key == self.selected_category else 'background:rgba(255,255,255,0.6);border:2px solid rgba(255,255,255,0.75);border-radius:30px;')
         visible_apps = filter_category(visible_apps, self.selected_category)
 
         visible_apps.sort(key=lambda item: (
@@ -1020,7 +1079,7 @@ class PaimenOSMenu(QWidget):
         for row in range(self.grid_layout.rowCount()):
             self.grid_layout.setRowStretch(row, 0)
         available_width = QApplication.primaryScreen().availableGeometry().width() - 100
-        self.grid_columns = min(4, max(1, (available_width + 24) // 244))
+        self.grid_columns = min(4, max(1, (available_width + GRID_SPACING) // (PaimenOSTile.WIDTH + GRID_SPACING)))
         for i, item in enumerate(visible_apps):
             tile = PaimenOSTile(item)
             tile.clicked.connect(lambda checked=False, x=item: self.launch(x))
@@ -1348,6 +1407,7 @@ class PaimenOSMenu(QWidget):
         if battery is None:
             self.battery_label.clear()
             self.battery_label.setToolTip("")
+            self.battery_label.hide()
         else:
             capacity, charging = battery
             if capacity >= 80:
@@ -1360,6 +1420,7 @@ class PaimenOSMenu(QWidget):
                 icon = "🪫"
             prefix = "⚡ " if charging else ""
             self.battery_label.setText(f"{prefix}{icon} {capacity}%")
+            self.battery_label.show()
             self.battery_label.setToolTip(
                 t('Akku: {value0}%', value0=capacity) + (t(' – wird geladen') if charging else "")
             )
@@ -1407,6 +1468,7 @@ class PaimenOSMenu(QWidget):
             self.timer_info_label.setText(t('⏳ Restzeit: {value0} Min.', value0=rem_min))
         else:
             self.timer_info_label.setText("")
+        self.timer_info_label.setVisible(bool(self.timer_info_label.text()))
 
 def report_exception(kind, value, trace):
     # Qt-Slot-Ausnahmen nachvollziehbar machen, statt das Menü still zu beenden.
