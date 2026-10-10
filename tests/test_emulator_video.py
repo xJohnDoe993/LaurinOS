@@ -27,7 +27,7 @@ class VideoProfileTests(unittest.TestCase):
                 self.assertEqual(config['sort_savestates_enable'], '"false"')
                 for key in ('rewind_enable', 'run_ahead_enabled', 'preemptive_frames_enable', 'video_shader_enable'):
                     self.assertEqual(config[key], '"false"')
-                is_3d = system in ('ps1', 'n64', 'psp')
+                is_3d = system in ('ps1', 'n64', 'psp', 'dolphin')
                 self.assertEqual(config['video_smooth'], '"true"' if is_3d else '"false"')
                 self.assertEqual(config['video_scale_integer'], '"false"' if is_3d else '"true"')
                 if is_3d:

@@ -62,15 +62,29 @@ def psp_assets_ready():
     return (assets / 'ppge_atlas.zim').is_file() and (assets / 'lang').is_dir() and (assets / 'flash0/font').is_dir()
 
 
+def dolphin_assets_ready():
+    folder = SHARED_SYSTEM / 'dolphin-emu' / 'Sys'
+    return ((folder / 'GC/dsp_coef.bin').is_file() and (folder / 'GC/dsp_rom.bin').is_file()
+            and any((folder / 'GameSettings').glob('*.ini')))
+
+
+def assets_ready(system):
+    if system == 'psp':
+        return psp_assets_ready()
+    if system == 'dolphin':
+        return dolphin_assets_ready()
+    return True
+
+
 def status():
     frontend = bool(shutil.which('retroarch'))
     result = []
     for key, item in CATALOG.items():
         core = bool(core_path(key))
-        assets = key != 'psp' or psp_assets_ready()
+        assets = assets_ready(key)
         ready = frontend and core and assets
-        reason = t('Installiert') if ready else (t('PSP-Zusatzdateien fehlen') if frontend and core and not assets else t('Noch nicht installiert'))
-        hint = t('Niedrige Auflösung voreingestellt; Leistung hängt vom Spiel ab.') if key in ('n64', 'psp') else t('Für ältere Notebooks geeignet.')
+        reason = t('Installiert') if ready else (t('Zusatzdateien fehlen') if frontend and core and not assets else t('Noch nicht installiert'))
+        hint = t('Niedrige Auflösung voreingestellt; Leistung hängt vom Spiel ab.') if key in ('n64', 'psp', 'dolphin') else t('Für ältere Notebooks geeignet.')
         result.append(dict(id=key, name=item['name'], ready=ready, reason=reason, hint=hint,
                            formats=' / '.join(ext[1:].upper() for ext in item['extensions'])))
     return result

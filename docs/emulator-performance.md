@@ -60,3 +60,48 @@ am Gerät messen; diese erhöhen die interne Pixelzahl ungefähr auf das Vierfac
 Optionsnamen und Werte am 10.10.2026 mit den Quellen abgeglichen. Lokale Tests
 prüfen die erzeugten Startkonfigurationen aller unterstützten Systeme; sie messen
 keine echte Emulator-Performance.
+
+## Dolphin: optionale GameCube-/Wii-Unterstützung
+
+Im Elternbackend unter **Emulatoren → GameCube / Wii (Dolphin) → Nachinstallieren**
+oder als `dolphin` im Setup auswählbar. Nicht Teil der empfohlenen Standardauswahl.
+Der vorhandene Installationsdienst verwendet den Libretro-Core und installiert
+`Dolphin.zip` vom offiziellen Buildbot nach
+`/usr/local/share/paimenos/retroarch-system/dolphin-emu/Sys`.
+Fehlende Zusatzdateien lassen sich auch bei bereits vorhandenem Core nachinstallieren.
+Die Sys-Dateien enthalten insbesondere die spielbezogenen Kompatibilitätseinstellungen.
+
+Unterstützte Einzelabbilder: ISO, GCM, RVZ, WBFS, GCZ und CISO; maximal 9 GiB pro
+Spiel, auch nach ZIP-Entpackung. ZIP enthält wie bisher genau ein Spiel ohne
+Unterordner. Mehrdisc-Playlists und WiiWare-/WAD-Installation sind nicht Teil dieser
+Integration. Der Upload erfolgt über den vorhandenen begrenzten Datenstrom.
+
+Dolphin erhält native interne Auflösung (1×), Hardware-Rendering über OpenGL,
+JIT (x86-64 bzw. ARM64), Dual-Core und DSP-HLE. Keine Kantenglättung, anisotrope
+Filterung, HD-Texturen oder Breitbild-Hacks. Das Seitenverhältnis wird automatisch
+vom Core gewählt. Synchroner Shader-Aufbau spart die Last von Ubershaders, kann
+beim ersten Auftreten eines Effekts aber kurz ruckeln. Die Optionen entsprechen
+dem aktuellen Libretro-Dolphin-Quellcode mit numerischen Enum-Werten; alte
+Distro-Core-Builds können andere Optionen verwenden und müssen separat geprüft
+werden. Es werden keine aggressiven EFB-Kompatibilitätshacks erzwungen.
+
+Ein Gamepad wird bei GameCube als Controller verwendet. Bei Wii ist standardmäßig
+eine emulierte Wiimote aktiv. Nunchuk, Classic Controller oder Bewegungs-/Zeiger-
+Steuerung müssen je Spiel ggf. im RetroArch-Schnellmenü (F8) unter Steuerung
+angepasst werden. Eine echte Wiimote wird nicht automatisch gekoppelt.
+
+Bildschirmzeit-Pause und Savestate-Wiederaufnahme laufen über den bestehenden
+Supervisor. Spielstände liegen im eigenen Spielverzeichnis unter saves, Core-
+Systemdateien separat im gemeinsamen Systemverzeichnis. Tests prüfen die
+Integration, nicht das Laden realer GameCube-/Wii-Savestates.
+
+Auf einem i5-5300U/HD 5500 ist Vollgeschwindigkeit nicht für alle Spiele zu erwarten.
+Vor Freigabe am Gerät ein GameCube- und ein Wii-Spiel mit Ton/Controller prüfen,
+danach Bildschirmzeit-Pause, Bonuszeit, Herunterfahren/Wiederaufnahme und reguläres
+Beenden. Auch aktuelle Grafiktreiber und Kühlung beeinflussen die Leistung.
+
+Quellen:
+- https://docs.libretro.com/library/dolphin/
+- https://github.com/libretro/dolphin/blob/master/Source/Core/DolphinLibretro/Common/Options.cpp
+- https://github.com/libretro/dolphin/blob/master/Source/Core/DolphinLibretro/Common/Options.h
+- https://github.com/libretro/dolphin/blob/master/Source/Core/DolphinLibretro/Input.cpp

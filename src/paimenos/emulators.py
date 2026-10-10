@@ -161,7 +161,7 @@ def status():
     return catalog.status()
 
 def ready(system):
-    return bool(shutil.which('retroarch') and core_path(system) and (system != 'psp' or catalog.psp_assets_ready()))
+    return bool(shutil.which('retroarch') and core_path(system) and catalog.assets_ready(system))
 
 
 def copy_bounded(source, target, limit):
@@ -225,7 +225,7 @@ def upload_game(system, title, uploads):
         raise ValueError(t('Bitte eine gültige Konsole auswählen.'))
     if not ready(system):
         raise ValueError(t('Dieser Emulator ist noch nicht bereit. Bitte oben im Elternbackend installieren.'))
-    limit = 2 * LIMIT if system == 'psp' else LIMIT
+    limit = (9 if system == 'dolphin' else 2 if system == 'psp' else 1) * LIMIT
     title = title.strip()
     if not title or len(title) > 80 or any(ord(c) < 32 for c in title):
         raise ValueError(t('Bitte einen Spielnamen mit höchstens 80 Zeichen eingeben.'))
@@ -319,7 +319,7 @@ def launch(system, filename):
         'savefile_directory = "' + str(ROOT / 'saves') + '"',
         'savestate_directory = ' + controllers.quote(state_base.parent),
         'sort_savestates_enable = "false"', 'savestates_in_content_dir = "false"',
-        'system_directory = "' + str(catalog.SHARED_SYSTEM if system == 'psp' else ROOT / 'bios') + '"',
+        'system_directory = "' + str(catalog.SHARED_SYSTEM if system in ('psp', 'dolphin') else ROOT / 'bios') + '"',
         'sort_savefiles_by_content_enable = "true"', 'sort_savestates_by_content_enable = "false"',
         'input_player1_a = "x"', 'input_player1_b = "z"', 'input_player1_x = "s"',
         'input_player1_y = "a"', 'input_player1_l = "q"', 'input_player1_r = "w"',
