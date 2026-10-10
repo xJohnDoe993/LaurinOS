@@ -25,6 +25,11 @@ class VideoProfileTests(unittest.TestCase):
                 self.assertEqual(config['video_vsync'], '"true"')
                 self.assertEqual(config['savestate_auto_load'], '"false"')
                 self.assertEqual(config['sort_savestates_enable'], '"false"')
+                # Openbox nutzt F1-F3/F5/F6 für Lautstärke und Helligkeit.
+                for key in ('input_fps_toggle', 'input_desktop_menu_toggle', 'input_state_slot_decrease', 'input_audio_mute'):
+                    self.assertEqual(config[key], '"nul"')
+                self.assertFalse({'"f1"', '"f2"', '"f3"', '"f5"', '"f6"'} & set(config.values()))
+                self.assertEqual(list(config.values()).count('"f9"'), 1)
                 for key in ('rewind_enable', 'run_ahead_enabled', 'preemptive_frames_enable', 'video_shader_enable'):
                     self.assertEqual(config[key], '"false"')
                 is_3d = system in ('ps1', 'n64', 'psp', 'dolphin')
