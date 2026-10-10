@@ -112,7 +112,7 @@ def render(body, title=None, section='dashboard'):
     title = t('Übersicht') if title is None else title
     field = '<input type="hidden" name="csrf_token" value="' + csrf_token() + '">'
     body = re.sub(r'(<form\b[^>]*method="post"[^>]*>)', lambda m: m.group(1) + field, body)
-    nav = [(t('Übersicht'), 'dashboard'), ('Apps', 'apps_page'), (t('Emulatoren'), 'emulators_page'), (t('Bildschirmzeit'), 'time_page'),
+    nav = [(t('Übersicht'), 'dashboard'), ('Apps', 'apps_page'), (t('Emulatoren'), 'emulators_page'), (t('USB-Backups'), 'backups_page'), (t('Bildschirmzeit'), 'time_page'),
            (t('WLAN'), 'wifi_page'), ('Bluetooth', 'bluetooth_page'), ('Controller', 'controllers_page'), ('Updates', 'updates_page'), (t('Einstellungen'), 'settings_page'), (t('Diagnose'), 'diagnostics_page')]
     return render_template_string(BASE, body=body, title=title, section=section,
                                   authenticated=logged_in(), navigation=nav)
@@ -583,6 +583,42 @@ def wifi_action():
 def diagnostics_page():
     body = render_template_string(_template('diagnostics.html'), text=diagnostics_text(collect_diagnostics()))
     return render(body, t('Diagnose'), 'diagnostics_page')
+
+
+@app.route('/backups', methods=['GET', 'POST'])
+@login_required
+def backups_page():
+    from paimenos import backups
+    if request.method == 'POST':
+        try:
+            action = request.form.get('action', '')
+            if action == 'restore' and request.form.get('confirm') != 'yes':
+                raise ValueError(t('Bitte das Ersetzen vorhandener Dateien bestätigen.'))
+            backups.start(action, request.form.get('device', ''), request.form.getlist('groups'),
+                          request.form.get('backup', ''))
+            flash(t('Backup-Vorgang gestartet.'))
+        except (ValueError, OSError) as exc:
+            flash(str(exc), 'error')
+        return redirect(url_for('backups_page', device=request.form.get('device', '')))
+    devices = backups.drives()
+    selected = request.args.get('device') or (devices[0]['id'] if devices else '')
+    found = []
+    if selected:
+        try:
+            found = backups.available(selected)
+        except (ValueError, OSError) as exc:
+            flash(str(exc), 'error')
+    labels = {'roms': t('ROMs und Menüeinträge'), 'saves': t('Spielstände und Savestates'), 'bios': t('BIOS-Dateien')}
+    return render(render_template_string(_template('backups.html'), devices=devices,
+                  selected=selected, found=found, labels=labels, job=backups.job_status()),
+                  t('USB-Backups'), 'backups_page')
+
+
+@app.route('/backups/status')
+@login_required
+def backups_status():
+    from paimenos.backups import job_status
+    return jsonify(job_status())
 
 
 @app.route('/diagnostics/download')

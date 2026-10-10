@@ -55,6 +55,7 @@
     },
     "emulators": {
       "files": [
+        "src/paimenos/backups.py",
         "src/paimenos/emulators.py",
         "src/paimenos/emulator_video.py",
         "src/paimenos/emulator_session.py",
@@ -77,6 +78,7 @@
         "assets/parent-web/app-delete.html",
         "assets/parent-web/app-form.html",
         "assets/parent-web/apps.html",
+        "assets/parent-web/backups.html",
         "assets/parent-web/base.html",
         "assets/parent-web/bluetooth-page.html",
         "assets/parent-web/bonus-buttons.html",

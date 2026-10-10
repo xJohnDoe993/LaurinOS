@@ -1,0 +1,33 @@
+<section class="panel"><h1>{{ t('USB-Backups') }}</h1>
+<p>{{ t('USB-Medium anschließen und laufende Spiele beenden. ROMs, Spielstände und BIOS-Dateien können getrennt gesichert werden. Das Medium wird nicht formatiert.') }}</p>
+<p>{{ t('Backups sind unverschlüsselt. Während des Vorgangs das Gerät und das USB-Medium nicht ausschalten oder trennen. Danach das Medium im Kindermenü sicher auswerfen.') }}</p>
+<div id="backup-status" role="status">{{ job.message }}</div><progress id="backup-progress" max="100" value="0" style="width:100%"></progress>
+{% if job.recovery_needed %}<form method="post"><input type="hidden" name="action" value="recover"><button>{{ t('Unterbrochene Wiederherstellung reparieren') }}</button></form>{% endif %}
+<form method="get"><label>{{ t('USB-Medium') }}</label><select name="device">{% for d in devices %}<option value="{{ d.id }}" {{ 'selected' if d.id==selected else '' }}>{{ d.label }} · {{ (d.free / 1073741824)|round(1) }} GiB {{ t('frei') }}</option>{% endfor %}</select><div class="actions"><button>{{ t('Medien und Backups neu einlesen') }}</button></div></form>
+{% if not devices %}<p>{{ t('Kein eingebundenes USB-Medium erkannt. Bitte anschließen und erneut einlesen.') }}</p>{% endif %}</section>
+{% if devices %}<section class="panel"><h2>{{ t('Backup erstellen') }}</h2><form method="post"><input type="hidden" name="action" value="create"><input type="hidden" name="device" value="{{ selected }}">
+{% for key,label in labels.items() %}<label class="check"><input type="checkbox" name="groups" value="{{ key }}" checked>{{ label }}</label>{% endfor %}
+<button data-backup-action {{ 'disabled' if job.status=='running' else '' }}>{{ t('Auf USB sichern') }}</button></form></section>{% endif %}
+<section class="panel"><h2>{{ t('Erkannte Backups') }}</h2><p>{{ t('Beim Wiederherstellen werden gleichnamige Dateien ersetzt; zusätzliche vorhandene Dateien bleiben erhalten. Die Prüfsummen werden vor der Übernahme geprüft. Emulatoren müssen auf diesem Gerät separat installiert sein.') }}</p>
+{% for b in found %}<section class="card"><h3>{{ b.date }}</h3><p>{{ (b.size / 1073741824)|round(2) }} GiB</p><form method="post"><input type="hidden" name="action" value="restore"><input type="hidden" name="device" value="{{ selected }}"><input type="hidden" name="backup" value="{{ b.id }}">
+{% for key in b.groups %}<label class="check"><input type="checkbox" name="groups" value="{{ key }}" checked>{{ labels[key] }}</label>{% endfor %}
+<label class="check"><input type="checkbox" name="confirm" value="yes" required>{{ t('Vorhandene Dateien der Auswahl dürfen ersetzt werden.') }}</label><button data-backup-action {{ 'disabled' if job.status=='running' else '' }}>{{ t('Auswahl wiederherstellen') }}</button></form></section>
+{% else %}<p>{{ t('Keine vollständigen PaimenOS-Backups auf diesem Medium gefunden.') }}</p>{% endfor %}</section>
+<script>
+(() => {
+ let wasRunning = {{ (job.status=='running')|tojson }};
+ async function poll() {
+  try {
+   const response = await fetch({{ url_for('backups_status')|tojson }}, {cache:'no-store'});
+   if (!response.ok) return;
+   const job = await response.json();
+   document.getElementById('backup-status').textContent = job.message;
+   document.getElementById('backup-progress').value = job.total ? Math.min(100, 100*job.done/job.total) : 0;
+   document.querySelectorAll('[data-backup-action]').forEach(b => b.disabled = job.status === 'running');
+   if (wasRunning && job.status !== 'running') { location.reload(); return; }
+   wasRunning = job.status === 'running';
+  } catch (_) { /* Retain the last visible status; retry on next poll. */ }
+ }
+ setInterval(poll, 2000);
+})();
+</script>
