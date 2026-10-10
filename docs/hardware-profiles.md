@@ -35,17 +35,20 @@ kann das Profil nicht ändern. Fehlt die Datei oder ist sie ungültig, gilt `low
 
 | Bereich | ultra-low | low | medium | high | Wirksam |
 |---|---|---|---|---|---|
-| RetroArch allgemein | Threaded Video, 96 ms Audio-Puffer | wie bisher | wie low | wie low | nächster Spielstart |
+| RetroArch allgemein | Threaded Video, 96 ms Audio-Puffer (außer Dolphin) | wie bisher | wie low | wie low | nächster Spielstart |
 | PS1 interne Auflösung | 1× | 1× | 2× | 4×, PGXP (nur Speicher) | nächster Spielstart |
 | N64 | nativ, ohne Framebuffer-Emulation | nativ | 2× (640×480) | 3× (960×720) | nächster Spielstart |
 | PSP | 480×272, ohne anisotrope Filterung, Auto-Frameskip | 480×272, 2× AF | 960×544, 4× AF | 1440×816, 8× AF | nächster Spielstart |
-| Dolphin | 1× | 1× | 1× | 2× | nächster Spielstart |
+| Dolphin | 1×, ohne Threaded Video | 1× | 1× | 1× | nächster Spielstart |
 | Luanti | Sichtweite 50, 30 FPS, ohne Wolken/Partikel/Shader | Sichtweite 80, 45 FPS | Sichtweite 140, 3D-Wolken, wehende Pflanzen | Sichtweite 240, dynamische Schatten, Kantenglättung | sofort (`minetest.conf`) |
 | SuperTuxKart | ohne dynamische Beleuchtung, einfache Geometrie, keine animierten Figuren, kleine Texturen, 75 % Effektauflösung | ohne dynamische Beleuchtung, 2× AF | dynamische Beleuchtung, Glow, Lichtstreuung, HD-Texturen, 4× AF | zusätzlich Bloom, Lichtstrahlen, Schatten, SSAO, MLAA, 8× AF | sofort bzw. vor dem nächsten Start |
 | Firefox-Webapps | 1 Inhaltsprozess, keine Animationen/weiches Scrollen, 30 FPS | 2 Prozesse, keine Animationen | 4 Prozesse | Firefox-Standard | nächster Webapp-Start |
 | Kindermenü | ohne Hintergrundkreise, einfacher Kachelschatten | volle Effekte | volle Effekte | volle Effekte | nächste Anmeldung |
 
 Ohne Framebuffer-Emulation (N64, `ultra-low`) können einzelne Spieleffekte fehlen.
+Dolphin bleibt in allen Profilen bei nativer Auflösung, 64 ms Audio-Puffer und ohne
+Threaded Video: Mit 2× fiel Zelda Twilight Princess auf einem Gerät unter 30 FPS mit
+gestörtem Ton.
 Auto-Frameskip (PSP, `ultra-low`) hält die Geschwindigkeit, lässt aber Bilder aus.
 
 ### Luanti
