@@ -1,16 +1,19 @@
-"""Conservative display defaults for Broadwell-class laptops and newer.
+"""Display defaults per parent-chosen hardware profile.
 
-No CPU generation guessing: resolution stays at console scale, with cheap GPU
-presentation. See docs/emulator-performance.md for trade-offs and sources.
+'low' is the conservative Broadwell-class baseline (console resolution, cheap GPU
+presentation). Other profiles only change resolution and a few costly options.
+See docs/emulator-performance.md and docs/hardware-profiles.md.
 """
 from paimenos.emulator_catalog import CATALOG
+from paimenos import hardware_profile
 
 
-def video_settings(system):
+def video_settings(system, profile=None):
     if system not in CATALOG:
         raise ValueError('Unknown emulator system')
+    profile = profile or hardware_profile.current()
     pixel_art = system not in ('ps1', 'n64', 'psp', 'dolphin')
-    return {
+    values = {
         'video_driver': 'gl',
         'video_windowed_fullscreen': 'true',
         'video_force_aspect': 'true',
@@ -34,25 +37,32 @@ def video_settings(system):
         'run_ahead_enabled': 'false',
         'preemptive_frames_enable': 'false',
     }
+    if profile == 'ultra-low':
+        # A video thread hides slow GPU drivers on old CPUs; costs about one frame of latency.
+        values.update(video_threaded='true', audio_latency='96')
+    return values
 
 
-def core_settings(system):
+def core_settings(system, profile=None):
+    step = hardware_profile.level(profile)  # 0 ultra-low, 1 low, 2 medium, 3 high
     if system == 'ps1':
+        resolution = ('1x(native)', '1x(native)', '2x', '4x')[step]
         return {
-            'beetle_psx_internal_resolution': '1x(native)',
+            'beetle_psx_internal_resolution': resolution,
             'beetle_psx_skip_bios': 'disabled',
-            'beetle_psx_pgxp_mode': 'disabled',
+            'beetle_psx_pgxp_mode': 'memory only' if step == 3 else 'disabled',
             'beetle_psx_cd_fastload': '2x(native)',
-            'mednafen_psx_internal_resolution': '1x(native)',
+            'mednafen_psx_internal_resolution': resolution,
             'mednafen_psx_skip_bios': 'disabled',
         }
     if system == 'n64':
         values = {
             '-rdp-plugin': 'gliden64', '-rsp-plugin': 'hle',
             '-cpucore': 'dynamic_recompiler', '-aspect': '4:3',
-            '-43screensize': '320x240', '-169screensize': '640x360',
-            '-EnableNativeResFactor': '1', '-MultiSampling': '0',
-            '-EnableFBEmulation': 'True', '-txEnhancementMode': 'None',
+            '-43screensize': ('320x240', '320x240', '640x480', '960x720')[step], '-169screensize': '640x360',
+            '-EnableNativeResFactor': ('1', '1', '2', '3')[step], '-MultiSampling': '0',
+            # Framebuffer emulation costs most on weak GPUs; a few effects may then be missing.
+            '-EnableFBEmulation': 'False' if step == 0 else 'True', '-txEnhancementMode': 'None',
             '-txHiresEnable': 'False',
         }
         return {prefix + key: value for prefix in ('mupen64plus', 'mupen64plus-next')
@@ -65,7 +75,7 @@ def core_settings(system):
             'dolphin_main_cpu_thread': 'enabled',
             'dolphin_renderer': 'Hardware',
             'dolphin_dsp_hle': 'enabled',
-            'dolphin_efb_scale': '1',
+            'dolphin_efb_scale': '2' if step == 3 else '1',
             'dolphin_aspect_ratio': '0',
             'dolphin_anti_aliasing': '0',
             'dolphin_max_anisotropy': '0',
@@ -76,18 +86,18 @@ def core_settings(system):
     if system == 'psp':
         return {
             'ppsspp_cpu_core': 'JIT',
-            'ppsspp_internal_resolution': '480x272',
+            'ppsspp_internal_resolution': ('480x272', '480x272', '960x544', '1440x816')[step],
             'ppsspp_backend': 'opengl',
             # Legacy core builds used a different backend key.
             'ppsspp_rendering_mode': 'OpenGL',
             'ppsspp_software_rendering': 'disabled',
             'ppsspp_texture_scaling_level': 'disabled',
-            'ppsspp_texture_anisotropic_filtering': '2x',
+            'ppsspp_texture_anisotropic_filtering': ('off', '2x', '4x', '8x')[step],
             'ppsspp_texture_deposterize': 'disabled',
             'ppsspp_texture_shader': 'disabled',
             'ppsspp_texture_replacement': 'disabled',
             'ppsspp_frameskip': 'disabled',
-            'ppsspp_auto_frameskip': 'disabled',
+            'ppsspp_auto_frameskip': 'enabled' if step == 0 else 'disabled',
         }
     if system not in CATALOG:
         raise ValueError('Unknown emulator system')

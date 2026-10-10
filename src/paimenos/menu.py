@@ -16,6 +16,7 @@ from paimenos.screen_guard import child_access_blocked, screen_time_expired, pro
 from paimenos.categories import CATEGORIES, available_categories, filter_category
 from paimenos.controller import ControllerReader
 from paimenos.network_status import NetworkStatus
+from paimenos import hardware_profile
 from datetime import date
 from PyQt5 import sip
 from PyQt5.QtCore import QLocale, Qt, QTimer, QTime, QDate, QSize, QPointF, QRectF
@@ -151,6 +152,7 @@ def save_json(path, data):
 class PaimenOSTile(QPushButton):
     # Fixed size including room for the painted shadow, lift and focus ring around the card.
     WIDTH, HEIGHT, RADIUS = 232, 190, 30
+    LIGHT = False
     CARD_MARGINS = (9, 10, 9, 14)
 
     def __init__(self, item, parent=None):
@@ -195,7 +197,9 @@ class PaimenOSTile(QPushButton):
         card = QRectF(self.rect()).adjusted(left, top - lift, -right, -bottom - lift)
         radius = self.RADIUS
         painter.setPen(Qt.NoPen)
-        for spread, alpha in ((7, 10), (5, 14), (3, 20), (1, 28)):
+        # Ultra-low devices get one shadow layer instead of four.
+        layers = ((2, 40),) if PaimenOSTile.LIGHT else ((7, 10), (5, 14), (3, 20), (1, 28))
+        for spread, alpha in layers:
             painter.setBrush(QColor(20, 30, 50, alpha + (6 if lift else 0)))
             painter.drawRoundedRect(card.adjusted(-spread, -spread + 4 + lift, spread, spread + 2 + lift),
                                     radius + spread, radius + spread)
@@ -971,6 +975,7 @@ class PaimenOSMenu(QWidget):
         if not base.isValid():
             base = QColor("#FF9F00")
         top, bottom = base.lighter(114).name(), base.darker(110).name()
+        PaimenOSTile.LIGHT = hardware_profile.current() == 'ultra-low'
 
         # Dialogs opened from the menu keep the plain colour; only the menu gets the gradient.
         self.setStyleSheet(f"""
@@ -1006,6 +1011,9 @@ class PaimenOSMenu(QWidget):
         option.initFrom(self)
         painter = QPainter(self)
         self.style().drawPrimitive(QStyle.PE_Widget, option, painter, self)
+        if PaimenOSTile.LIGHT:
+            painter.end()
+            return
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setPen(Qt.NoPen)
         w, h = self.width(), self.height()
@@ -1319,6 +1327,12 @@ class PaimenOSMenu(QWidget):
                 cmd[0] = find_program(cmd[0]) or cmd[0]
         if cmd and (item.get("id") == "tuxpaint" or os.path.basename(cmd[0]) == "tuxpaint"):
             cmd = tuxpaint_command(cmd[0], cmd[1:])
+        if cmd and item.get("id") == "supertuxkart":
+            # STK creates its config on the first run; apply the hardware profile once afterwards.
+            try:
+                hardware_profile.apply_stk(hardware_profile.current(), only_pending=True)
+            except (OSError, ValueError) as exc:
+                log_event(t('Anwendung'), 'SuperTuxKart: ' + str(exc))
         if not cmd:
             return
         self.return_window = return_window

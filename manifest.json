@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "runtime_api": 3,
-  "version": "0.66.1",
+  "version": "0.67.0",
   "components": {
     "shared": {
       "files": [
@@ -16,6 +16,7 @@
         "src/paimenos/fullscreen.py",
         "src/paimenos/webapp.py",
         "src/paimenos/osd_state.py",
+        "src/paimenos/hardware_profile.py",
         "run.py",
         "assets/webapp.css",
         "assets/i18n/en.json",
@@ -127,6 +128,7 @@
         "bin/paimenos-volume-down",
         "bin/paimenos-volume-mute",
         "bin/paimenos-volume-up",
+        "sbin/paimenos-hardware-profile",
         "sbin/paimenos-wlan-handoff"
       ]
     },

@@ -8,6 +8,9 @@ chown -R "${KIDS_USER}:${KIDS_USER}" "${KIDS_HOME}/.config" "${KIDS_HOME}/.local
 chmod -R 755 "${ICONS_DIR}"
 chmod 0755 "${KIDS_HOME}"
 chmod 0700 "${KIDS_HOME}/.mozilla/paimenos-webapps"
+# App-Einstellungen passend zum Hardware-Profil (z. B. Luanti) vor dem ersten Start.
+runuser -u "$KIDS_USER" -- env HOME="$KIDS_HOME" /usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py hardware_profile --apply || \
+    echo "$(paimenos_text 'Hinweis: App-Einstellungen für das Hardware-Profil konnten nicht vollständig gesetzt werden.')" >&2
 
 systemctl set-default graphical.target >/dev/null 2>&1 || true
 systemctl enable lightdm >/dev/null 2>&1 || true

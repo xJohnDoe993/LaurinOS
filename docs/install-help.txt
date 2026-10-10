@@ -11,6 +11,8 @@ Danach muss resolvectl status unter Global die DNS Domain ~. anzeigen.
 Apps: PAIMENOS_APPS="2 6 9" (leer: interaktiv, 13: keine)
 Paketquelle: PAIMENOS_APP_SOURCE=flathub|debian
 Emulatoren: PAIMENOS_EMULATORS=empfohlen|all|none|nes,snes,gb,gba,...
+Hardware-Profil: PAIMENOS_HARDWARE_PROFILE=ultra-low|low|medium|high
+Später ändern: sudo paimenos-hardware-profile
 TLP/ZRAM/System-/App-Updates: PAIMENOS_ENABLE_TLP, PAIMENOS_ENABLE_ZRAM,
 PAIMENOS_ENABLE_AUTO_UPDATES, PAIMENOS_ENABLE_APP_UPDATES jeweils 0|1.
 Automatischer Neustart: PAIMENOS_REBOOT=1 (Standard: 0).

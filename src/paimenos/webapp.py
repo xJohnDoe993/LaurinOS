@@ -3,6 +3,7 @@ from paimenos.i18n import t, browser_locale
 import json
 import os
 from paimenos.paths import ASSETS_DIR
+from paimenos import hardware_profile
 import tempfile
 
 BAR_HEIGHT = 64
@@ -75,7 +76,7 @@ def prepare_profile(profile_dir, template):
         'user_pref("intl.locale.requested", ' + json.dumps(browser_locale()) + ');\n'
         'user_pref("intl.accept_languages", ' + json.dumps(languages) + ');\n')
     write_text(user_path, current.rstrip() + '\n' + BEGIN + '\n'
-               + PREFERENCES + locale_preferences + END + '\n')
+               + PREFERENCES + locale_preferences + hardware_profile.firefox_preferences() + END + '\n')
     chrome_path = os.path.join(profile_dir, 'chrome', 'userChrome.css')
     current = read_text(chrome_path)
     if CHROME_IMPORT not in current:

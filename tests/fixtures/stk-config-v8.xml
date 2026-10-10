@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<stkconfig version="8" >
+
+    <!-- Kart to select by default (the last used kart) -->
+    <kart value="tux" />
+
+    <!-- Video Settings
+             max_fps : Maximum fps, should be at least 60
+             enable_high_definition_textures : Enable high definition textures. Bit flag: bit 0 = enabled/disabled; bit 1 = set by user/set as default
+             enable_dynamic_lights : Enable Dynamic Lights
+             scale_rtts_factor : Custom value for RTTs resolution. Value should be smaller or equal to 1.0 -->
+    <Video
+        real_width="1024"
+        real_height="768"
+        width="1024"
+        height="768"
+        fullscreen="false"
+        prev_real_width="1024"
+        prev_real_height="768"
+        prev_fullscreen="false"
+        remember_window_location="false"
+        window_x="-1"
+        window_y="-1"
+        show_fps="false"
+        show_story_mode_timer="true"
+        show_speedrun_timer="false"
+        max_fps="120"
+        force_legacy_device="false"
+        split_screen_horizontally="true"
+        enable_texture_compression="true"
+        enable_high_definition_textures="1"
+        enable_glow="false"
+        enable_bloom="false"
+        enable_light_shaft="false"
+        enable_dynamic_lights="true"
+        enable_dof="false"
+        old_driver_popup="true"
+        scale_rtts_factor="1.000000"
+        max_texture_size="512"
+        ssr="false"
+        hq_mipmap="false"
+        font_size="3.000000"
+        render_driver="opengl"
+        vulkan_fullscreen_desktop="true"
+        non_ge_fullscreen_desktop="false"
+    >
+    </Video>
+
+    <!-- Graphics Quality Settings
+             particles-effecs : Particles effects: 0 disabled, 1 only important, 2 enabled
+             geometry-level : Geometry quality 0=lowest level, no details; 5=everything is displayed
+             shadows_resolution : Shadow resolution (0 = disabled
+             Degraded_IBL : Disable specular IBL -->
+    <GFX
+        particles-effecs="2"
+        christmas-mode="0"
+        easter-ear-mode="0"
+        animated-characters="true"
+        geometry-level="2"
+        anisotropic="4"
+        swap-interval-vsync="1"
+        motionblur_enabled="false"
+        mlaa="false"
+        ssao="false"
+        light_scatter="false"
+        shadows_resolution="0"
+        pcss="false"
+        Degraded_IBL="true"
+    >
+    </GFX>
+
+    <!-- Name of the skin to use -->
+    <skin_name value="classic" />
+
+</stkconfig>

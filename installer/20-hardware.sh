@@ -5,6 +5,43 @@
 # ---------------------------------------------------------------------------
 echo "$(paimenos_text 'Laptop-Werkzeuge und sichere Energiesparregeln ...')"
 
+# Hardware-Profil: grobe Grafik-/Leistungsstufe für Emulatoren, Luanti, Webapps und Menü.
+# Später änderbar mit: sudo paimenos-hardware-profile
+HARDWARE_PROFILE_FILE=/etc/paimenos/hardware-profile
+HARDWARE_PROFILES=(ultra-low low medium high)
+hardware_profile_tool() {
+    /usr/bin/python3 -I /usr/local/lib/paimenos/current/run.py hardware_profile "$@"
+}
+HARDWARE_PROFILE="${PAIMENOS_HARDWARE_PROFILE:-}"
+if [[ -z "$HARDWARE_PROFILE" && "$RESUME" == 1 && -f "$HARDWARE_PROFILE_FILE" ]]; then
+    HARDWARE_PROFILE=$(hardware_profile_tool --current)
+    echo "$(paimenos_text 'Vorhandenes Hardware-Profil wird beibehalten: {value0}' "$HARDWARE_PROFILE")"
+fi
+if [[ -z "$HARDWARE_PROFILE" ]]; then
+    HARDWARE_SUGGESTION=$(hardware_profile_tool --detect || echo low)
+    echo
+    echo "$(paimenos_text 'Hardware-Profil wählen (steuert Grafik- und Leistungseinstellungen der Apps):')"
+    for index in "${!HARDWARE_PROFILES[@]}"; do
+        echo "  $((index + 1))) ${HARDWARE_PROFILES[$index]} – $(hardware_profile_tool --describe "${HARDWARE_PROFILES[$index]}")"
+    done
+    echo "$(paimenos_text 'Vorschlag für dieses Gerät: {value0}' "$HARDWARE_SUGGESTION")"
+    read -r -p "$(paimenos_text 'Profil (1-4, Enter = Vorschlag): ')" HARDWARE_CHOICE
+    case "$HARDWARE_CHOICE" in
+        '') HARDWARE_PROFILE=$HARDWARE_SUGGESTION ;;
+        [1-4]) HARDWARE_PROFILE=${HARDWARE_PROFILES[$((HARDWARE_CHOICE - 1))]} ;;
+        *) echo "$(paimenos_text 'Ungültige Auswahl.')" >&2; exit 1 ;;
+    esac
+fi
+case "$HARDWARE_PROFILE" in
+    ultra-low|low|medium|high) ;;
+    *) echo "$(paimenos_text 'PAIMENOS_HARDWARE_PROFILE muss ultra-low, low, medium oder high sein.')" >&2; exit 1 ;;
+esac
+install -d -m 0755 /etc/paimenos
+printf '%s\n' "$HARDWARE_PROFILE" > "${HARDWARE_PROFILE_FILE}.new"
+chmod 0644 "${HARDWARE_PROFILE_FILE}.new"
+mv -f "${HARDWARE_PROFILE_FILE}.new" "$HARDWARE_PROFILE_FILE"
+echo "$(paimenos_text 'Hardware-Profil: {value0}' "$HARDWARE_PROFILE")"
+
 package_installed() {
     [[ "$(dpkg-query -W -f='${Status}' "$1" 2>/dev/null || true)" == "install ok installed" ]]
 }

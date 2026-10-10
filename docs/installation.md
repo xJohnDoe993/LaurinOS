@@ -112,6 +112,7 @@ sudo env PAIMENOS_APPS="2 6 9 11" \
 | `PAIMENOS_APPS` | Leer: interaktive Auswahl. Nummern aus dem Setup; `13`: keine nativen Apps |
 | `PAIMENOS_APP_SOURCE` | Leer: interaktiv; `flathub` oder `debian` |
 | `PAIMENOS_EMULATORS` | Leer: interaktiv; `empfohlen`, `all`, `none` oder IDs mit Kommas |
+| `PAIMENOS_HARDWARE_PROFILE` | Leer: interaktiv mit Vorschlag; `ultra-low`, `low`, `medium` oder `high` (siehe [Hardware-Profile](hardware-profiles.md)) |
 | `PAIMENOS_ENABLE_TLP` | `1` / `0`, Standard `1` |
 | `PAIMENOS_ENABLE_ZRAM` | `1` / `0`, Standard `1` |
 | `PAIMENOS_ENABLE_AUTO_UPDATES` | Debian-Sicherheitsupdates, Standard `1` |
