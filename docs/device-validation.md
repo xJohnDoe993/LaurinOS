@@ -11,6 +11,7 @@ Die lokale Prüfung mit `tools/check.py` deckt Syntax, Paketimporte, Ressourcen,
 - Webapps zeigen Zurück/Weiter und schließen ohne fehlerhafte Absturzmeldung. Vollbildvideos prüfen.
 - Akku, Uhr, F1–F3, F5/F6, Hardware-Lautstärke/-Helligkeitstasten und OSD prüfen.
 - Bluetooth koppelt den Controller; Menüsteuerung, Belegungsassistent und Cursor-Ausblenden funktionieren. Den auf dem T450 bislang zuverlässigen D-Input-Modus zuerst verwenden.
+- Energiesparen: Bluetooth-Controller 5 Minuten nicht bedienen. Er wird getrennt und verbindet sich per Home-/Start-Taste wieder; Kopfhörer bleiben verbunden. 30 Minuten ohne Eingabe und Ton führen zur Bereitschaft. Aufwachen per Einschalttaste/Deckel prüfen: Das Gerät darf dabei nicht ausschalten (`HandlePowerKey`). Ein laufendes Video mit Ton, ein Backend-Update und eine USB-Sicherung verhindern die Bereitschaft.
 - WLAN kann scannen, verbinden und gespeicherte Verbindungen verwalten. Erweiterte Einstellungen öffnen den NetworkManager-Editor.
 - Kamera-/SD-/USB-Bilder werden angezeigt; Tux Paint startet ein gewähltes Bild und beendet sich ohne CameraBrowser-Fehler.
 - Kamera-/SD-/USB-Videos (mindestens MP4/H.264 und MOV/MJPEG) erscheinen als Videokacheln. Wiedergabe mit Ton, Pause, Zeitleiste, Lautstärke und Clipwechsel prüfen; Bilder wechseln weiterhin nur zwischen Bildern, Tux Paint erhält keine Videodatei.

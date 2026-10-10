@@ -23,6 +23,9 @@ install_repo_file systemd/user/paimenos-timer.service /etc/systemd/user/paimenos
 
 install_repo_file systemd/user/paimenos-media.service /etc/systemd/user/paimenos-media.service
 
+# Trennt unbenutzte Bluetooth-Controller und meldet Leerlauf für paimenos-power.
+install_repo_file systemd/user/paimenos-idle.service /etc/systemd/user/paimenos-idle.service
+
 # Sitzungsweit und unabhängig von Bluetooth/Controller; Mausbewegung zeigt ihn wieder.
 install_repo_file systemd/user/paimenos-cursor.service /etc/systemd/user/paimenos-cursor.service
 

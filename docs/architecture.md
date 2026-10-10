@@ -52,3 +52,11 @@ Die vorhandenen v59-Funktionsbereiche wurden zunächst als eigenständige Python
 Seit 0.61.0 sprechen die authentifizierten Backend-Routen über den lokalen Update-Socket mit `update_service.py`. Der Prüfdienst holt ausschließlich Metadaten aus dem festgelegten GitHub-Repo. Ein Klick startet einen separaten Systemd-Worker, der den Release-Download mit `release_source.py` prüft und anschließend das vorhandene Deployment unter den gemeinsamen Wartungssperren aufruft. Der Prüfdienst kann beim Aktivieren des neuen Releases neu starten, ohne den Worker zu beenden.
 
 `manifest.json` beschreibt die gemeinsam aktualisierbaren Komponenten. Jede installierte Version enthält `installed.json` mit Herkunftsversion und SHA-256 pro Komponentendatei. Nach einem Teilupdate können Komponenten unterschiedliche Versionen haben. Der Hash im Release-Verzeichnis bezeichnet die Kombination dieser Komponenten.
+
+## Energiesparen
+
+Der Benutzerdienst `paimenos-idle` (`idle.py`) liest Gamepad-Ereignisse nur mit, ohne sie abzufangen. Ein Bluetooth-Controller ohne Tastendruck oder deutliche Stick-/Steuerkreuzbewegung wird nach 5 Minuten über die vorhandene Bluetooth-Verwaltung getrennt. Die Kopplung bleibt erhalten. Die meisten Controller schalten sich danach selbst aus und verbinden sich per Home-/Start-Taste wieder. Der Bluetooth-Adapter selbst bleibt eingeschaltet, sonst könnte sich der Controller nicht mehr selbst verbinden.
+
+Gibt es 30 Minuten lang weder Tastatur-/Maus-/Touchpad-Eingaben (X-Leerlaufzeit) noch Gamepad-Eingaben, Tonwiedergabe oder eine laufende USB-Sicherung, setzt der Dienst den logind-IdleHint der Kindersitzung. Der Root-Dienst `paimenos-power` (`power.py`) versetzt das Gerät dann in Bereitschaft (Suspend-to-RAM). Er verzichtet darauf, wenn Wartungssperren oder Update-/Paket-Units aktiv sind oder ein Programm den Ruhezustand per logind-Inhibitor blockiert. Ruhezustand auf Festplatte (Hibernation) ist nicht vorgesehen, da PaimenOS nur ZRAM-Swap einrichtet. CPU-C-States verwaltet der Kernel ohnehin selbst. Weil die Entscheidung über den IdleHint läuft, ist keine Polkit-Regel nötig; Backend-Updates liefern die Funktion daher vollständig aus.
+
+Bekannte Grenzen: Eine Bedienung des Web-Elternbereichs vom Handy aus zählt nicht als Aktivität. Spiele, die dauerhaft Ton ausgeben, halten das Gerät wach.
