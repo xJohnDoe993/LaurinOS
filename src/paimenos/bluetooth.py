@@ -105,12 +105,14 @@ class BluetoothController:
         for path, interfaces in objects.items():
             if ADAPTER in interfaces:
                 props = interfaces[ADAPTER]
-                adapters.append(dict(path=str(path), name=str(props.get('Alias', props.get(t('Name'), 'Bluetooth'))),
+                adapters.append(dict(path=str(path), name=str(props.get('Alias', props.get('Name', 'Bluetooth'))),
                                      powered=bool(props.get('Powered')), discovering=bool(props.get('Discovering'))))
             if DEVICE in interfaces:
                 props = interfaces[DEVICE]
                 devices.append(dict(path=str(path), adapter=str(props.get('Adapter', '')),
-                    name=str(props.get('Alias', props.get(t('Name'), props.get('Address', t('Unbekanntes Gerät')))))[:160],
+                    name=str(props.get('Alias', props.get('Name', props.get('Address', t('Unbekanntes Gerät')))))[:160],
+                    # BlueZ only sets Name when the device reports one; the Alias then falls back to the address.
+                    named=bool(str(props.get('Name', '')).strip()),
                     address=str(props.get('Address', '')), icon=str(props.get('Icon', '')),
                     paired=bool(props.get('Paired')), connected=bool(props.get('Connected')),
                     trusted=bool(props.get('Trusted'))))

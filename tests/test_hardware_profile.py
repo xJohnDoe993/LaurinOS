@@ -177,7 +177,11 @@ class EmulatorProfileTests(unittest.TestCase):
         self.assertEqual(video.core_settings('psp', 'medium')['ppsspp_internal_resolution'], '960x544')
         self.assertEqual(video.core_settings('n64', 'high')['mupen64plus-next-EnableNativeResFactor'], '3')
         self.assertEqual(video.core_settings('ps1', 'high')['beetle_psx_internal_resolution'], '4x')
-        self.assertEqual(video.core_settings('dolphin', 'high')['dolphin_efb_scale'], '2')
+        # Dolphin stays at native resolution and without threaded video in every profile.
+        for profile in hp.PROFILES:
+            self.assertEqual(video.core_settings('dolphin', profile)['dolphin_efb_scale'], '1')
+            self.assertEqual(video.video_settings('dolphin', profile)['video_threaded'], 'false')
+            self.assertEqual(video.video_settings('dolphin', profile)['audio_latency'], '64')
 
     def test_profile_file_is_read_when_no_profile_is_given(self):
         with tempfile.TemporaryDirectory() as tmp:

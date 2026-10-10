@@ -2,7 +2,7 @@
 from paimenos.i18n import t
 import json
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QWidget, QScrollArea, QComboBox, QLineEdit, QMessageBox
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QWidget, QScrollArea, QComboBox, QLineEdit, QMessageBox, QCheckBox
 from paimenos.images import TaskSignals, submit_task
 from paimenos.bluetooth import bluetooth_request
 from paimenos.parent_ui import STYLE, button, label
@@ -15,6 +15,8 @@ def plain_label(text, muted=False):
 
 
 class ParentBluetooth(QDialog):
+    remember_hide_unnamed = True
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(t('Bluetooth-Geräte'))
@@ -51,6 +53,10 @@ class ParentBluetooth(QDialog):
         self.prompt_box.hide(); layout.addWidget(self.prompt_box)
         self.cancel_button = button(t('Laufenden Vorgang abbrechen'), lambda:self.run('cancel'), secondary=True)
         self.cancel_button.hide(); layout.addWidget(self.cancel_button)
+        self.hide_unnamed = QCheckBox(t('Geräte ohne Namen ausblenden (nur Bluetooth-Adresse)'))
+        self.hide_unnamed.setChecked(ParentBluetooth.remember_hide_unnamed)
+        self.hide_unnamed.toggled.connect(self.hide_unnamed_changed)
+        layout.addWidget(self.hide_unnamed)
         self.devices = QScrollArea(); self.devices.setWidgetResizable(True); layout.addWidget(self.devices, 1)
         row = QHBoxLayout()
         row.addWidget(plain_label(t('Suche endet nach 30 Sekunden. Kopplungen bleiben gespeichert.'), True), 1)
@@ -120,6 +126,13 @@ class ParentBluetooth(QDialog):
         if self.state and self.state['prompt'] and self.state['prompt']['kind'] != 'display':
             self.run('answer', prompt_id=self.state['prompt']['id'], accept='1', value=self.pin.text())
 
+    def hide_unnamed_changed(self, checked):
+        # Remembered while the menu runs; paired devices are never hidden.
+        ParentBluetooth.remember_hide_unnamed = checked
+        if self.state:
+            self.signature = None
+            self.render(self.state)
+
     def remove(self, device):
         if self.confirm(t('Gerät entfernen?'), t('„{value0}“ entfernen? Danach muss das Gerät erneut gekoppelt werden.', value0=device['name'])):
             self.run('remove', device=device['path'])
@@ -165,16 +178,20 @@ class ParentBluetooth(QDialog):
                     self.pin.setFocus()
         else:
             self.prompt_id = ''
-        signature = json.dumps([self.adapters.currentData(), state['devices'], busy], sort_keys=True)
+        signature = json.dumps([self.adapters.currentData(), state['devices'], busy, self.hide_unnamed.isChecked()], sort_keys=True)
         if signature == self.signature:
             return
         self.signature = signature
         position = self.devices.verticalScrollBar().value()
         content = QWidget(); layout = QVBoxLayout(content)
         visible = [d for d in state['devices'] if d['adapter'] == self.adapters.currentData()]
+        hidden = [d for d in visible if not d['paired'] and d.get('named') is False and self.hide_unnamed.isChecked()]
+        visible = [d for d in visible if d not in hidden]
         for paired, heading in ((True, t('Gespeicherte Geräte')), (False, t('Gefundene Geräte'))):
             title = plain_label(heading); title.setStyleSheet('font-size:18px;font-weight:bold;'); layout.addWidget(title)
             matching = [d for d in visible if d['paired'] == paired]
+            if not paired and hidden:
+                layout.addWidget(plain_label(t('{value0} Gerät(e) ohne Namen ausgeblendet.', value0=len(hidden)), True))
             if not matching:
                 layout.addWidget(plain_label(t('Noch keine Geräte gekoppelt.') if paired else t('„Geräte suchen“ starten und Kopplungsmodus am Gerät aktivieren.'), True))
             for device in matching:

@@ -1374,5 +1374,22 @@
   "Hardware-Profil: {value0}": "Hardware profile: {value0}",
   "Hinweis: App-Einstellungen für das Hardware-Profil konnten nicht vollständig gesetzt werden.": "Note: app settings for the hardware profile could not be fully applied.",
   "SuperTuxKart läuft gerade. Bitte schließen und den Befehl erneut ausführen.": "SuperTuxKart is running. Please close it and run the command again.",
-  "SuperTuxKart-Einstellungen angepasst: {value0}": "SuperTuxKart settings updated: {value0}"
+  "SuperTuxKart-Einstellungen angepasst: {value0}": "SuperTuxKart settings updated: {value0}",
+  " Gerät(e) ohne Namen ausgeblendet.": " device(s) without a name hidden.",
+  "Abweichende Release-Quelle: Installation nur im Web-Elternbereich möglich.": "Different release source: installation is only possible in the web parent area.",
+  "Anfrage fehlgeschlagen": "Request failed",
+  "Controller testen und kalibrieren: im Web-Elternbereich unter „Controller“.": "Test and calibrate controllers in the web parent area under “Controller”.",
+  "Geräte ohne Namen ausblenden (nur Bluetooth-Adresse)": "Hide devices without a name (Bluetooth address only)",
+  "Installiert: ": "Installed: ",
+  "Neueste Version: ": "Latest version: ",
+  "PaimenOS-Updates": "PaimenOS updates",
+  "Release-Notizen": "Release notes",
+  "Systeminformationen ansehen und für die Fehlersuche exportieren.": "View system information and export it for troubleshooting.",
+  "USB-Medien werden gesucht …": "Looking for USB drives …",
+  "USB-Medium anschließen und laufende Spiele und Apps beenden. Das Medium wird nicht formatiert. Backups sind unverschlüsselt.": "Connect a USB drive and close running games and apps. The drive will not be formatted. Backups are not encrypted.",
+  "Update-Dienst nicht erreichbar": "Update service unavailable",
+  "Verbindungen": "Connections",
+  "Version {value0} installieren? Benötigte Debian-Pakete werden bei Bedarf nachinstalliert. Apps und Spiele vorher schließen. Die PaimenOS-Dienste und die Kindersitzung starten neu.": "Install version {value0}? Required Debian packages are installed if needed. Close apps and games first. The PaimenOS services and the kids session will restart.",
+  "{value0} Gerät(e) ohne Namen ausgeblendet.": "{value0} device(s) without a name hidden.",
+  "{value0} GiB": "{value0} GiB"
 }

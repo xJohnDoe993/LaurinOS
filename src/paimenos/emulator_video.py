@@ -37,8 +37,9 @@ def video_settings(system, profile=None):
         'run_ahead_enabled': 'false',
         'preemptive_frames_enable': 'false',
     }
-    if profile == 'ultra-low':
+    if profile == 'ultra-low' and system != 'dolphin':
         # A video thread hides slow GPU drivers on old CPUs; costs about one frame of latency.
+        # Not for Dolphin: its own CPU/GPU threads already run in parallel and timing/audio suffer.
         values.update(video_threaded='true', audio_latency='96')
     return values
 
@@ -75,7 +76,9 @@ def core_settings(system, profile=None):
             'dolphin_main_cpu_thread': 'enabled',
             'dolphin_renderer': 'Hardware',
             'dolphin_dsp_hle': 'enabled',
-            'dolphin_efb_scale': '2' if step == 3 else '1',
+            # Native resolution in every profile: 2x dropped Twilight Princess below 30 FPS
+            # with crackling audio even on 'high' devices.
+            'dolphin_efb_scale': '1',
             'dolphin_aspect_ratio': '0',
             'dolphin_anti_aliasing': '0',
             'dolphin_max_anisotropy': '0',

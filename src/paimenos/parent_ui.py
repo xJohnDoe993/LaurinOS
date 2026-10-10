@@ -280,10 +280,14 @@ class ParentDialog(QDialog):
         self.color_dirty = False
         self.app_signature = None
         self.app_rows = {}
+        # Same order as the web navigation: child, connections, system (no emulators here).
         self.build_overview()
-        self.build_apps()
         self.build_time()
+        self.build_apps()
+        self.build_connections()
+        self.build_system()
         self.build_settings()
+        self.build_diagnostics()
         self.refresh()
         self.refresh_timer = QTimer(self)
         self.refresh_timer.timeout.connect(self.refresh)
@@ -333,7 +337,7 @@ class ParentDialog(QDialog):
         time_card.addWidget(label(t('Bonuszeit wirkt nur bei einem gesetzten Tageslimit.'), True))
         apps_card = card(layout, t('Apps für den Kinderbereich'))
         self.apps_summary = label(''); apps_card.addWidget(self.apps_summary)
-        apps_card.addWidget(button(t('Apps verwalten'), lambda: self.tabs.setCurrentIndex(1), secondary=True))
+        apps_card.addWidget(button(t('Apps verwalten'), lambda: self.tabs.setCurrentWidget(self.apps_page), secondary=True))
         tools = card(layout, t('Gerät & Hilfe'))
         row = QHBoxLayout()
         row.addWidget(button(t('WLAN / Netzwerke'), self.open_wifi, secondary=True))
@@ -370,6 +374,7 @@ class ParentDialog(QDialog):
     def build_apps(self):
         page = QWidget(); layout = QVBoxLayout(page)
         self.tabs.addTab(page, 'Apps')
+        self.apps_page = page
         row = QHBoxLayout()
         self.search = QLineEdit(); self.search.setPlaceholderText(t('Name oder Startbefehl suchen …'))
         self.search.setAccessibleName(t('Apps durchsuchen')); self.search.textChanged.connect(self.filter_apps)
@@ -511,6 +516,10 @@ class ParentDialog(QDialog):
         color_card.addWidget(self.category_tabs_input)
         color_card.addWidget(label(t('Alles, Webapps, Spiele und Produktiv. Leere Kategorien verschwinden; Schultertasten wechseln die Ansicht.'), True))
         layout.addWidget(button(t('Einstellungen speichern'), self.save_settings))
+        layout.addStretch()
+
+    def build_connections(self):
+        page, layout = scroll_page(); self.tabs.addTab(page, t('Verbindungen'))
         wifi_card = card(layout, t('WLAN & Internet'))
         wifi_card.addWidget(label(t('Netzwerke suchen, verbinden und gespeicherte WLANs verwalten.'), True))
         wifi_card.addWidget(button(t('WLAN verwalten'), self.open_wifi, secondary=True))
@@ -518,6 +527,22 @@ class ParentDialog(QDialog):
         bluetooth_card.addWidget(label(t('Controller, Kopfhörer und Tastaturen suchen, koppeln und verbinden.'), True))
         bluetooth_card.addWidget(label(t('Nach dem Verbinden: Steuerkreuz oder linker Stick zum Wählen, Bestätigungstaste zum Öffnen. Start öffnet Farbe / Eltern, die rechte Taste geht zurück. Der Elternbereich bleibt PIN-geschützt.'), True))
         bluetooth_card.addWidget(button(t('Bluetooth verwalten'), self.open_bluetooth, secondary=True))
+        controller_card = card(layout, 'Controller')
+        # Calibration reads the controller the menu itself is driven by; it stays in the web area.
+        controller_card.addWidget(label(t('Controller testen und kalibrieren: im Web-Elternbereich unter „Controller“.'), True))
+        layout.addStretch()
+
+    def build_system(self):
+        from paimenos.parent_ui_system import BackupsTab, UpdatesTab
+        self.backups_tab, self.updates_tab = BackupsTab(self), UpdatesTab(self)
+        self.tabs.addTab(self.backups_tab, t('USB-Backups'))
+        self.tabs.addTab(self.updates_tab, 'Updates')
+
+    def build_diagnostics(self):
+        page, layout = scroll_page(); self.tabs.addTab(page, t('Diagnose'))
+        diag = card(layout, t('Geräte-Diagnose'))
+        diag.addWidget(label(t('Systeminformationen ansehen und für die Fehlersuche exportieren.'), True))
+        diag.addWidget(button(t('Geräte-Diagnose'), self.open_diagnostics, secondary=True))
         layout.addStretch()
 
     def choose_color(self):
@@ -584,4 +609,7 @@ class ParentDialog(QDialog):
     def done(self, result):
         if hasattr(self, 'refresh_timer'):
             self.refresh_timer.stop()
+        for tab in (getattr(self, 'backups_tab', None), getattr(self, 'updates_tab', None)):
+            if tab is not None:
+                tab.stop()
         super().done(result)
