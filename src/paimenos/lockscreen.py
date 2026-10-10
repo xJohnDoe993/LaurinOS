@@ -4,8 +4,8 @@ from paimenos.paths import CONFIG_DIR
 import sys, os, json, subprocess
 from paimenos.state import read_settings, update_settings, remaining_seconds
 from paimenos.foreground import ForegroundGuard
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QFont
+from PyQt5.QtCore import QSize, Qt, QTimer
+from PyQt5.QtGui import QFont, QIcon, QPixmap
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QInputDialog, QMessageBox, QLineEdit
@@ -15,6 +15,16 @@ SETTINGS_FILE = str(CONFIG_DIR / "settings.json")
 
 def load_settings():
     return read_settings()
+
+# Wie assets/icons/poweroff.svg, aber weiß für den roten Knopf.
+POWER_SVG = b'''<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+<g fill="none" stroke="#FFFFFF" stroke-width="24" stroke-linecap="round">
+<path d="M 74 59 A 88 88 0 1 0 182 59"/><path d="M 128 28 V 108"/></g></svg>'''
+
+def power_icon():
+    pixmap = QPixmap()
+    pixmap.loadFromData(POWER_SVG, 'SVG')
+    return QIcon(pixmap)
 
 class LockScreen(QWidget):
     def __init__(self):
@@ -81,8 +91,11 @@ class LockScreen(QWidget):
 
         btn_layout.addSpacing(30)
 
-        shutdown_btn = QPushButton(t('⏻ Herunterfahren'), self)
+        shutdown_btn = QPushButton(t('Herunterfahren'), self)
         shutdown_btn.setObjectName("shutdownBtn")
+        # Die Standardschriften enthalten kein ⏻; das Projektsymbol weiß auf dem roten Knopf.
+        shutdown_btn.setIcon(power_icon())
+        shutdown_btn.setIconSize(QSize(36, 36))
         shutdown_btn.setCursor(Qt.PointingHandCursor)
         shutdown_btn.clicked.connect(self.shutdown)
         btn_layout.addWidget(shutdown_btn)
