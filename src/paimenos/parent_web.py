@@ -608,9 +608,8 @@ def backups_page():
             found = backups.available(selected)
         except (ValueError, OSError) as exc:
             flash(str(exc), 'error')
-    labels = {'roms': t('ROMs und Menüeinträge'), 'saves': t('Spielstände und Savestates'), 'bios': t('BIOS-Dateien')}
-    return render(render_template_string(_template('backups.html'), devices=devices,
-                  selected=selected, found=found, labels=labels, job=backups.job_status()),
+    return render(render_template_string(_template('backups.html'), devices=devices, selected=selected,
+                  found=found, labels=backups.labels(), offered=backups.offered(), job=backups.job_status()),
                   t('USB-Backups'), 'backups_page')
 
 

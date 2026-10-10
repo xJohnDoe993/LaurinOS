@@ -1,17 +1,18 @@
 # USB-Backups im Elternbackend
 
 1. USB-Medium anschließen und im Kindermenü einbinden lassen. Es wird nicht formatiert.
-2. Alle Emulatoren beenden. Im Elternbackend **USB-Backups** öffnen und das Medium auswählen.
-3. ROMs mit Menüeinträgen, Spielstände/Savestates und/oder BIOS-Dateien auswählen.
+2. Alle Emulatoren und Apps beenden. Im Elternbackend **USB-Backups** öffnen und das Medium auswählen.
+3. ROMs mit Menüeinträgen, Spielstände/Savestates, BIOS-Dateien, Spielstände und
+   Einstellungen einzelner Apps und/oder eigene Dateien auswählen.
 4. **Auf USB sichern** starten und den Abschluss abwarten. Danach im Kindermenü sicher auswerfen.
 
 Erkannte vollständige Backups werden nach Auswahl des Mediums auf derselben Seite
 angeboten. Für die Wiederherstellung Inhalte auswählen und das Ersetzen bestehender
 Dateien bestätigen. Zusätzliche lokale Dateien bleiben erhalten. ROM-Menüeinträge
 werden hinzugefügt bzw. anhand ihrer ID aktualisiert; Startbefehle werden lokal neu
-aufgebaut. Emulatoren/Core-Systemdateien sind auf dem Zielgerät separat zu installieren.
-Eltern-PIN, Browserprofile, Bildschirmzeit und sonstige Einstellungen sind nicht Teil
-dieser Backup-Version. Backups sind unverschlüsselt.
+aufgebaut. Emulatoren/Core-Systemdateien und Apps sind auf dem Zielgerät separat zu
+installieren. Eltern-PIN, Browserprofile/Web-Apps, Bildschirmzeit und sonstige
+PaimenOS-Einstellungen sind nicht Teil dieser Backup-Version. Backups sind unverschlüsselt.
 
 ## Format und Verhalten
 
@@ -23,6 +24,22 @@ dieser Backup-Version. Backups sind unverschlüsselt.
 - Spielstände: `saves` und `states` im selben Emulator-Verzeichnis, einschließlich
   Wiederaufnahme-Kennzeichnung; zusätzlich `~/.config/retroarch/states` für ältere Zustände.
 - BIOS: `~/.local/share/paimenos/emulators/bios`.
+- App-Daten (je App eine Auswahl, nur angeboten, wenn lokal Daten existieren): die
+  Ordner aus `data/app-data-catalog.json`, z. B. Luanti-Welten, Tux-Paint-Bilder,
+  SuperTuxKart-/GCompris-Fortschritt und Einstellungen von LibreOffice, GIMP, Geany
+  und VLC. Flatpak-Apps werden über `~/.var/app/<App-ID>` ohne `cache` gesichert,
+  Debian-Apps über ihre üblichen Ordner. Beide Varianten werden an ihren ursprünglichen
+  Ort zurückgeschrieben; ein Wechsel zwischen Flatpak und Debian-Paket migriert nichts.
+  Orte ohne gesicherte Dateien werden beim Wiederherstellen nicht angelegt.
+- Eigene Dateien (standardmäßig nicht angehakt): XDG-Ordner Dokumente, Bilder, Musik
+  und Videos laut `~/.config/user-dirs.dirs`, sonst `Dokumente`/`Documents` usw.
+- In App- und eigenen Ordnern werden Verknüpfungen und Sonderdateien übersprungen
+  (die Anzahl wird angezeigt) statt das ganze Backup abzubrechen. Lokale Verknüpfungen
+  bleiben bei einer Wiederherstellung als Verknüpfung erhalten und werden nie verfolgt.
+- Läuft eine ausgewählte App noch (`pgrep`), werden Backup und Wiederherstellung
+  abgewiesen. Überlappende Ordner (z. B. Dokumente in einem App-Ordner) werden abgelehnt.
+- Backups mit App-Daten oder eigenen Dateien werden von älteren PaimenOS-Versionen
+  nicht angezeigt.
 - Auflistung benötigt nur das begrenzte Manifest; Inhaltsprüfsummen werden bei der
   Wiederherstellung geprüft. Ein sichtbares Backup ist daher noch kein bestandener
   vollständiger Integritätstest.
@@ -61,9 +78,11 @@ Wiederherstellungsjournal bleiben erkennbar.
 
 ## Geräteprüfung
 
-Auf einem USB-Stick alle drei Kategorien sichern, einzelne lokale Test-Spielstände
+Auf einem USB-Stick alle Kategorien sichern, einzelne lokale Test-Spielstände
 ändern und nur Spielstände zurückholen. Danach ROMs inklusive Menüeinträgen auf einer
-zweiten Installation prüfen. Zusätzlich FAT32 mit einer ROM >4 GiB, zu wenig freien
+zweiten Installation prüfen. Für App-Daten eine Luanti-Welt (Flatpak und Debian)
+und ein Tux-Paint-Bild sichern, ändern und zurückholen; mit geöffneter App muss der
+Vorgang abgewiesen werden. Zusätzlich FAT32 mit einer ROM >4 GiB, zu wenig freien
 Platz, Abziehen während des Schreibens und Reparatur nach Dienst-Neustart testen.
 Automatische Tests verwenden temporäre Dateisysteme und simulierte USB-Erkennung;
 ein physischer USB-/Stromausfalltest ist damit nicht ersetzt.

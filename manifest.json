@@ -64,6 +64,7 @@
         "src/paimenos/emulator_catalog.py",
         "src/paimenos/emulator_service.py",
         "data/emulator-catalog.json",
+        "data/app-data-catalog.json",
         "data/libretro-info/COPYING",
         "data/libretro-info/README.md",
         "data/libretro-info/bsnes_mercury_performance_libretro.info",
