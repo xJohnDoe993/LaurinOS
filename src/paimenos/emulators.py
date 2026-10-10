@@ -1,4 +1,5 @@
 from paimenos.i18n import t
+from paimenos.backups import protect_data
 import glob
 import hashlib
 import json
@@ -220,6 +221,7 @@ def validate_game(folder, system):
         raise ValueError(t('Dieses Format benötigt nur eine ROM-Datei.'))
     return entry.name
 
+@protect_data
 def upload_game(system, title, uploads):
     if system not in SYSTEMS:
         raise ValueError(t('Bitte eine gültige Konsole auswählen.'))
@@ -282,6 +284,7 @@ def upload_game(system, title, uploads):
             raise
     return app_id
 
+@protect_data
 def launch(system, filename):
     if system not in SYSTEMS:
         raise ValueError(t('Unbekannter Emulator.'))
