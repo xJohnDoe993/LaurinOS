@@ -49,6 +49,14 @@ class BrowserTests(unittest.TestCase):
                                config.find('user_pref("browser.startup.page", 3)'))
             for pref in ('resume_from_crash', 'resume_session_once', 'resuming_after_os_restart'):
                 self.assertIn(f'user_pref("browser.sessionstore.{pref}", false);', config)
+            # Irritierende Tastenkürzel (F12, F7, Alt, Strg+P, Strg+Umschalt+S) bleiben wirkungslos.
+            for line in ('"devtools.policy.disabled", true', '"accessibility.browsewithcaret_shortcut.enabled", false',
+                         '"ui.key.menuAccessKeyFocuses", false', '"print.enabled", false',
+                         '"screenshots.browser.component.enabled", false'):
+                self.assertIn('user_pref(' + line + ');', config)
+            style = (profile / 'chrome/paimenos-webapp.css').read_text()
+            self.assertNotIn(':root[inFullscreen] #navigator-toolbox', style)
+            self.assertIn(':root[inDOMFullscreen] #navigator-toolbox', style)
             for name in ('cookies.sqlite', 'sessionstore.jsonlz4', 'cache2/entries/site'):
                 self.assertEqual((profile / name).read_bytes(), b'keep')
             paths = [profile / 'user.js', profile / 'chrome/userChrome.css', profile / 'chrome/paimenos-webapp.css']
