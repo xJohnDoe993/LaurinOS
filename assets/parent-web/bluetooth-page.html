@@ -5,7 +5,7 @@
 <section id="bt-prompt" class="panel" aria-labelledby="bt-prompt-title" hidden><div class="eyebrow">{{ t('Kopplung bestätigen') }}</div><h2 id="bt-prompt-title">{{ t('Bluetooth-Anfrage') }}</h2><p id="bt-prompt-text"></p><p id="bt-code" class="metric" style="letter-spacing:5px"></p><div id="bt-input-wrap"><label for="bt-input">{{ t('Code / PIN des Geräts') }}</label><input id="bt-input" autocomplete="off" maxlength="16"></div><div class="actions"><button id="bt-accept">{{ t('Bestätigen') }}</button><button id="bt-reject" class="danger">{{ t('Abbrechen') }}</button></div><p class="hint">{{ t('Nur bestätigen, wenn dies dein ausgewähltes Gerät ist. Die Anfrage läuft automatisch ab.') }}</p></section>
 <section id="bt-operation" class="panel" hidden><div class="row"><p id="bt-operation-text" role="status"></p><button id="bt-cancel" class="secondary">{{ t('Vorgang abbrechen') }}</button></div></section>
 <section><h2>{{ t('Gespeicherte Geräte') }}</h2><p class="muted">{{ t('Gekoppelte Geräte bleiben gespeichert. Einschalten und bei Bedarf erneut verbinden.') }}</p><div id="bt-saved" class="grid"></div></section>
-<section style="margin-top:28px"><h2>{{ t('Gefundene Geräte') }}</h2><p class="muted">{{ t('Bei mehreren gleichnamigen Geräten hilft die Bluetooth-Adresse beim Unterscheiden.') }}</p><div id="bt-found" class="grid"></div></section>
+<section style="margin-top:28px"><h2>{{ t('Gefundene Geräte') }}</h2><p class="muted">{{ t('Bei mehreren gleichnamigen Geräten hilft die Bluetooth-Adresse beim Unterscheiden.') }}</p><label class="check"><input type="checkbox" id="bt-hide-unnamed" checked>{{ t('Geräte ohne Namen ausblenden (nur Bluetooth-Adresse)') }}</label><p id="bt-hidden-count" class="hint" hidden></p><div id="bt-found" class="grid"></div></section>
 <noscript><p class="flash error">{{ t('Für die Bluetooth-Verwaltung bitte JavaScript im Browser aktivieren.') }}</p></noscript>
 <script>
 (() => {
@@ -14,6 +14,8 @@
   const csrf = {{ csrf_token()|tojson }};
   const $ = id => document.getElementById(id);
   let state = null, sending = false, polling = false, stopped = false, promptId = '', deviceSignature = '', revision = 0;
+  const hideUnnamed = $('bt-hide-unnamed');
+  try { hideUnnamed.checked = localStorage.getItem('paimenos-bt-hide-unnamed') !== '0'; } catch (_) { /* Default: hide. */ }
   function notice(text, error = false) {
     $('bt-notice').hidden = !text;
     $('bt-notice').textContent = text;
@@ -116,12 +118,17 @@
     $('bt-adapter-status').textContent = !data.available ? PaimenTranslate('Bluetooth-Dienst nicht verfügbar.') :
       !adapter ? PaimenTranslate('Kein Bluetooth-Adapter gefunden. Bei Bedarf USB-Bluetooth-Adapter anschließen.') :
       !adapter.powered ? PaimenTranslate('Bluetooth ist ausgeschaltet.') : data.scan ? PaimenTranslate('Suche läuft … Gerät in den Kopplungsmodus versetzen.') : PaimenTranslate('Bluetooth ist eingeschaltet.');
-    const deviceKey = JSON.stringify([select.value, data.devices, busy]);
+    const deviceKey = JSON.stringify([select.value, data.devices, busy, hideUnnamed.checked]);
     if (deviceKey !== deviceSignature) {
       deviceSignature = deviceKey;
       ['bt-saved', 'bt-found'].forEach(id => clear($(id)));
-      data.devices.filter(device => device.adapter === select.value).forEach(device =>
+      // Paired devices always stay visible; only unknown found devices without a name are hidden.
+      const adapterDevices = data.devices.filter(device => device.adapter === select.value);
+      const hidden = adapterDevices.filter(device => !device.paired && device.named === false && hideUnnamed.checked);
+      adapterDevices.filter(device => !hidden.includes(device)).forEach(device =>
         $(device.paired ? 'bt-saved' : 'bt-found').append(deviceCard(device)));
+      $('bt-hidden-count').hidden = !hidden.length;
+      $('bt-hidden-count').textContent = hidden.length + PaimenTranslate(' Gerät(e) ohne Namen ausgeblendet.');
       if (!$('bt-saved').children.length) $('bt-saved').append(element('p', PaimenTranslate('Noch keine Geräte gekoppelt.'), 'empty'));
       if (!$('bt-found').children.length) $('bt-found').append(element('p', data.scan ? PaimenTranslate('Geräte werden gesucht …') : PaimenTranslate('„Geräte suchen“ starten und Kopplungsmodus am Gerät aktivieren.'), 'empty'));
     }
@@ -162,6 +169,10 @@
     finally { polling = false; }
   }
   $('bt-adapter').addEventListener('change', () => { if (state) render(state); });
+  hideUnnamed.addEventListener('change', () => {
+    try { localStorage.setItem('paimenos-bt-hide-unnamed', hideUnnamed.checked ? '1' : '0'); } catch (_) { /* Not remembered. */ }
+    if (state) render(state, false);
+  });
   $('bt-power').addEventListener('click', () => {
     const adapter = state.adapters.find(a => a.path === $('bt-adapter').value);
     if (adapter?.powered && state.devices.some(d => d.adapter === adapter.path && d.connected) &&

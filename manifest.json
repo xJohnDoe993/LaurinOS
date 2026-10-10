@@ -28,6 +28,7 @@
         "src/paimenos/menu.py",
         "src/paimenos/video.py",
         "src/paimenos/parent_ui.py",
+        "src/paimenos/parent_ui_system.py",
         "src/paimenos/status_overlay.py",
         "src/paimenos/close_overlay.py",
         "src/paimenos/browser.py",

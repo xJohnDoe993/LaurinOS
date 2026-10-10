@@ -112,8 +112,10 @@ def render(body, title=None, section='dashboard'):
     title = t('Übersicht') if title is None else title
     field = '<input type="hidden" name="csrf_token" value="' + csrf_token() + '">'
     body = re.sub(r'(<form\b[^>]*method="post"[^>]*>)', lambda m: m.group(1) + field, body)
-    nav = [(t('Übersicht'), 'dashboard'), ('Apps', 'apps_page'), (t('Emulatoren'), 'emulators_page'), (t('USB-Backups'), 'backups_page'), (t('Bildschirmzeit'), 'time_page'),
-           (t('WLAN'), 'wifi_page'), ('Bluetooth', 'bluetooth_page'), ('Controller', 'controllers_page'), ('Updates', 'updates_page'), (t('Einstellungen'), 'settings_page'), (t('Diagnose'), 'diagnostics_page')]
+    # Grouped like the local parent area: child, connections, system.
+    nav = [[(t('Übersicht'), 'dashboard'), (t('Bildschirmzeit'), 'time_page'), ('Apps', 'apps_page'), (t('Emulatoren'), 'emulators_page')],
+           [(t('WLAN'), 'wifi_page'), ('Bluetooth', 'bluetooth_page'), ('Controller', 'controllers_page')],
+           [(t('USB-Backups'), 'backups_page'), ('Updates', 'updates_page'), (t('Einstellungen'), 'settings_page'), (t('Diagnose'), 'diagnostics_page')]]
     return render_template_string(BASE, body=body, title=title, section=section,
                                   authenticated=logged_in(), navigation=nav)
 
