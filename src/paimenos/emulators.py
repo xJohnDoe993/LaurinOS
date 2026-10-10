@@ -326,32 +326,15 @@ def launch(system, filename):
         'input_player1_start = "enter"', 'input_player1_select = "rshift"']) + '\n'
     if core_info is not None:
         content += 'libretro_info_path = ' + controllers.quote(core_info) + '\n'
-    if system == 'ps1':
-        options = ROOT / 'ps1-paimenos-options.cfg'
-        options.write_text('beetle_psx_internal_resolution = "1x(native)"\n'
-                           'beetle_psx_skip_bios = "disabled"\n'
-                           'beetle_psx_pgxp_mode = "disabled"\n'
-                           'beetle_psx_cd_fastload = "2x(native)"\n'
-                           'mednafen_psx_internal_resolution = "1x(native)"\n'
-                           'mednafen_psx_skip_bios = "disabled"\n')
-        content += 'video_driver = "gl"\nvideo_shader_enable = "false"\n'
-        content += 'core_options_path = "' + str(options) + '"\n'
-        content += 'auto_overrides_enable = "false"\nauto_remaps_enable = "false"\n'
-    if system in ('n64', 'psp'):
+    from paimenos.emulator_video import video_settings, core_settings, config_lines
+    content += config_lines(video_settings(system))
+    values = core_settings(system)
+    if values:
         options = ROOT / (system + '-paimenos-options.cfg')
-        if system == 'n64':
-            # Beide Schlüsselpräfixe decken ältere und aktuelle Core-Versionen ab.
-            values = {prefix + key: value for prefix in ('mupen64plus', 'mupen64plus-next')
-                      for key, value in [('-rdp-plugin', 'gliden64'), ('-rsp-plugin', 'hle'),
-                                         ('-43screensize', '320x240'), ('-169screensize', '640x360'), ('-MultiSampling', '0')]}
-        else:
-            values = {'ppsspp_cpu_core': 'jit', 'ppsspp_internal_resolution': '480x272',
-                      'ppsspp_rendering_mode': 'OpenGL', 'ppsspp_texture_scaling_level': '1',
-                      'ppsspp_texture_anisotropic_filtering': 'off', 'ppsspp_frameskip': '0'}
-        options.write_text(''.join(key + ' = "' + value + '"\n' for key, value in values.items()))
-        content += 'video_driver = "gl"\nvideo_shader_enable = "false"\n'
-        content += 'core_options_path = "' + str(options) + '"\n'
-        content += 'auto_overrides_enable = "false"\n'
+        options.write_text(config_lines(values))
+        content += 'core_options_path = ' + controllers.quote(options) + '\n'
+    if system == 'ps1':
+        content += 'auto_remaps_enable = "false"\n'
     cfg.write_text(content)
     (ROOT / 'last-launch.txt').write_text(t('Zeit: ') + datetime.now().isoformat(timespec='seconds') +
         '\nSystem: ' + system + t('\nSpiel: ') + str(game) + '\nCore: ' + core +
@@ -359,6 +342,7 @@ def launch(system, filename):
         t('\nKonfiguration: ') + str(cfg) + '\n')
     log = ROOT / 'retroarch-last.log'
     with (ROOT / 'last-launch.txt').open('a') as report:
+        report.write('Video profile: efficient-v1; core aspect; native rendering\n')
         report.write('Core info: ' + (str(core_info) if core_info else 'not found') + '\n')
         report.write('Previous session: ' + (resume_marker.read_text() if resume_marker.exists() else 'legacy/unknown') + '\n')
         report.write('Resume source: ' + (str(resume_state) if resume_state else 'none') + '\n'

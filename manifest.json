@@ -56,6 +56,7 @@
     "emulators": {
       "files": [
         "src/paimenos/emulators.py",
+        "src/paimenos/emulator_video.py",
         "src/paimenos/emulator_session.py",
         "src/paimenos/savestates.py",
         "src/paimenos/emulator_install.py",
