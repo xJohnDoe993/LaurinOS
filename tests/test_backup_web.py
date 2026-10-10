@@ -52,3 +52,14 @@ class BackupWebTests(unittest.TestCase):
         self.assertIn('name="confirm"', page)
         self.assertIn('name="csrf_token"', page)
         self.assertNotIn('<script>bad</script>', page)
+
+    def test_page_offers_app_groups_and_personal_files_unchecked(self):
+        self.auth()
+        with patch.object(self.b, 'drives', return_value=[{'id':'usb','label':'Stick','free':1024}]), \
+                patch.object(self.b, 'available', return_value=[{'id':'backup-id','date':'today','groups':['app-minetest'],'size':1}]), \
+                patch.object(self.b, 'offered', return_value=['roms', 'saves', 'bios', 'app-tuxpaint', 'files']):
+            page = self.client.get('/backups').get_data(as_text=True)
+        self.assertIn('value="app-tuxpaint" checked>Tux Paint', page)
+        self.assertIn('value="app-minetest" checked>Luanti (Minetest)', page)
+        self.assertIn('value="files">', page)
+        self.assertNotIn('value="app-gimp"', page)

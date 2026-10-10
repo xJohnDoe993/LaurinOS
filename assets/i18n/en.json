@@ -1333,7 +1333,7 @@
   "ROMs und Menüeinträge": "ROMs and menu entries",
   "Spielstände und Savestates": "Game saves and save states",
   "BIOS-Dateien": "BIOS files",
-  "USB-Medium anschließen und laufende Spiele beenden. ROMs, Spielstände und BIOS-Dateien können getrennt gesichert werden. Das Medium wird nicht formatiert.": "Connect a USB drive and close running games. ROMs, saves and BIOS files can be backed up separately. The drive will not be formatted.",
+  "USB-Medium anschließen und laufende Spiele und Apps beenden. ROMs, Spielstände, BIOS-Dateien, App-Daten und eigene Dateien können getrennt gesichert werden. Das Medium wird nicht formatiert.": "Connect a USB drive and close running games and apps. ROMs, saves, BIOS files, app data and personal files can be backed up separately. The drive will not be formatted.",
   "Backups sind unverschlüsselt. Während des Vorgangs das Gerät und das USB-Medium nicht ausschalten oder trennen. Danach das Medium im Kindermenü sicher auswerfen.": "Backups are not encrypted. Do not shut down or disconnect the device or USB drive during the operation. Afterwards, safely eject the drive from the children's menu.",
   "Unterbrochene Wiederherstellung reparieren": "Repair interrupted restore",
   "USB-Medium": "USB drive",
@@ -1343,8 +1343,15 @@
   "Backup erstellen": "Create backup",
   "Auf USB sichern": "Back up to USB",
   "Erkannte Backups": "Detected backups",
-  "Beim Wiederherstellen werden gleichnamige Dateien ersetzt; zusätzliche vorhandene Dateien bleiben erhalten. Die Prüfsummen werden vor der Übernahme geprüft. Emulatoren müssen auf diesem Gerät separat installiert sein.": "Restoring replaces files with matching names; additional existing files are kept. Checksums are verified before activation. Emulators must be installed separately on this device.",
+  "Beim Wiederherstellen werden gleichnamige Dateien ersetzt; zusätzliche vorhandene Dateien bleiben erhalten. Die Prüfsummen werden vor der Übernahme geprüft. Emulatoren und Apps müssen auf diesem Gerät separat installiert sein.": "Restoring replaces files with matching names; additional existing files are kept. Checksums are verified before activation. Emulators and apps must be installed separately on this device.",
   "Vorhandene Dateien der Auswahl dürfen ersetzt werden.": "Existing files in the selection may be replaced.",
   "Auswahl wiederherstellen": "Restore selection",
-  "Keine vollständigen PaimenOS-Backups auf diesem Medium gefunden.": "No complete PaimenOS backups found on this drive."
+  "Keine vollständigen PaimenOS-Backups auf diesem Medium gefunden.": "No complete PaimenOS backups found on this drive.",
+  "Spielstände und Einstellungen von Apps": "App saves and settings",
+  "Eigene Dateien": "Personal files",
+  "Eigene Dateien (Dokumente, Bilder, Musik, Videos)": "Personal files (documents, pictures, music, videos)",
+  "Bitte zuerst diese Apps beenden: {value0}": "Please close these apps first: {value0}",
+  "Ein Sicherungsordner liegt außerhalb des Benutzerordners.": "A backup folder is outside the home folder.",
+  "Sicherungsordner überschneiden sich. Bitte Ordnereinstellungen prüfen.": "Backup folders overlap. Please check the folder settings.",
+  "{value0} Verknüpfungen oder Sonderdateien wurden übersprungen.": "{value0} links or special files were skipped."
 }

@@ -1,0 +1,81 @@
+{
+  "minetest": {
+    "title": "Luanti (Minetest)",
+    "process": "(minetest|minetestserver|luanti|luantiserver|luanti\\.bin)",
+    "locations": {
+      "flatpak": {"path": ".var/app/org.luanti.luanti", "exclude": ["cache"]},
+      "minetest": {"path": ".minetest"},
+      "luanti": {"path": ".luanti"}
+    }
+  },
+  "tuxpaint": {
+    "title": "Tux Paint",
+    "process": "tuxpaint",
+    "locations": {
+      "data": {"path": ".tuxpaint"}
+    }
+  },
+  "supertuxkart": {
+    "title": "SuperTuxKart",
+    "process": "supertuxkart",
+    "locations": {
+      "flatpak": {"path": ".var/app/net.supertuxkart.SuperTuxKart", "exclude": ["cache"]},
+      "config": {"path": ".config/supertuxkart"},
+      "data": {"path": ".local/share/supertuxkart"}
+    }
+  },
+  "supertux": {
+    "title": "SuperTux",
+    "process": "supertux2?",
+    "locations": {
+      "data": {"path": ".local/share/supertux2"}
+    }
+  },
+  "gcompris": {
+    "title": "GCompris",
+    "process": "gcompris(-qt)?",
+    "locations": {
+      "flatpak": {"path": ".var/app/org.kde.gcompris", "exclude": ["cache"]},
+      "config": {"path": ".config/gcompris"},
+      "data": {"path": ".local/share/gcompris"},
+      "qtdata": {"path": ".local/share/GCompris"}
+    }
+  },
+  "tuxmath": {
+    "title": "Tux Math",
+    "process": "tuxmath",
+    "locations": {
+      "data": {"path": ".tuxmath"}
+    }
+  },
+  "libreoffice": {
+    "title": "LibreOffice",
+    "process": "(soffice\\.bin|oosplash)",
+    "locations": {
+      "flatpak": {"path": ".var/app/org.libreoffice.LibreOffice", "exclude": ["cache"]},
+      "config": {"path": ".config/libreoffice"}
+    }
+  },
+  "gimp": {
+    "title": "GIMP",
+    "process": "gimp(-[0-9.]+)?",
+    "locations": {
+      "flatpak": {"path": ".var/app/org.gimp.GIMP", "exclude": ["cache"]},
+      "config": {"path": ".config/GIMP"}
+    }
+  },
+  "geany": {
+    "title": "Geany",
+    "process": "geany",
+    "locations": {
+      "config": {"path": ".config/geany"}
+    }
+  },
+  "vlc": {
+    "title": "VLC",
+    "process": "vlc",
+    "locations": {
+      "config": {"path": ".config/vlc"}
+    }
+  }
+}

@@ -12,10 +12,11 @@ import secrets
 import shlex
 import shutil
 import stat
+import subprocess
 import threading
 
 from paimenos.i18n import t
-from paimenos.paths import USER_DATA_DIR, STATE_DIR
+from paimenos.paths import DATA_DIR, USER_DATA_DIR, STATE_DIR
 from paimenos import media, parent
 from paimenos.emulator_catalog import CATALOG
 from paimenos.state import atomic_json
@@ -23,16 +24,87 @@ from paimenos.state import atomic_json
 ROOT = USER_DATA_DIR / 'emulators'
 CHUNK = 64 * 1024 * 1024  # FAT32-compatible, even for large disc images.
 MANIFEST_LIMIT = 16 * 1024 * 1024
-GROUPS = {'roms': ('roms',), 'saves': ('saves', 'states', 'legacy_states'), 'bios': ('bios',)}
+APP_CATALOG = json.loads((DATA_DIR / 'app-data-catalog.json').read_text(encoding='utf-8'))
+# XDG name plus German/English defaults when user-dirs.dirs is missing.
+USER_FOLDERS = {'documents': ('DOCUMENTS', 'Dokumente', 'Documents'), 'pictures': ('PICTURES', 'Bilder', 'Pictures'),
+                'music': ('MUSIC', 'Musik', 'Music'), 'videos': ('VIDEOS', 'Videos', 'Videos')}
+GROUPS = {'roms': ('roms',), 'saves': ('saves', 'states', 'legacy_states'), 'bios': ('bios',),
+          **{'app-' + app: tuple(f'app.{app}.{loc}' for loc in info['locations'])
+             for app, info in APP_CATALOG.items()},
+          'files': tuple('files.' + kind for kind in USER_FOLDERS)}
+# Top-level folders that are neither backed up nor kept while staging (Flatpak caches).
+EXCLUDES = {f'app.{app}.{loc}': frozenset(spec.get('exclude', ()))
+            for app, info in APP_CATALOG.items() for loc, spec in info['locations'].items()}
 JOURNAL = STATE_DIR / 'backup-restore.json'
 JOB = {'status': 'idle', 'message': '', 'done': 0, 'total': 0}
 JOB_LOCK = threading.Lock()
 
 
+def lenient(key):
+    """App and personal folders skip links/special files instead of refusing the whole backup."""
+    return key.startswith(('app.', 'files.'))
+
+
+def user_folder(kind):
+    home = Path.home()
+    name, *defaults = USER_FOLDERS[kind]
+    try:
+        for line in (home / '.config/user-dirs.dirs').read_text(encoding='utf-8').splitlines():
+            match = re.fullmatch(rf'\s*XDG_{name}_DIR="\$HOME/([^"$\\]+)"\s*', line)
+            if match:
+                path = PurePosixPath(match.group(1).rstrip('/'))
+                if path.parts and not path.is_absolute() and '..' not in path.parts:
+                    return home / path
+    except (OSError, UnicodeDecodeError):
+        pass
+    return next((home / d for d in defaults if (home / d).is_dir()), home / defaults[-1])
+
+
 def targets():
+    home = Path.home()
     return {**{key: ROOT / key for key in ('roms', 'saves', 'states', 'bios')},
-            'legacy_states': Path.home() / '.config/retroarch/states',
-            'apps': Path(parent.APPS_FILE)}
+            'legacy_states': home / '.config/retroarch/states',
+            'apps': Path(parent.APPS_FILE),
+            **{f'app.{app}.{loc}': home / spec['path']
+               for app, info in APP_CATALOG.items() for loc, spec in info['locations'].items()},
+            **{'files.' + kind: user_folder(kind) for kind in USER_FOLDERS}}
+
+
+def labels():
+    return {'roms': t('ROMs und Menüeinträge'), 'saves': t('Spielstände und Savestates'), 'bios': t('BIOS-Dateien'),
+            **{'app-' + app: info['title'] for app, info in APP_CATALOG.items()},
+            'files': t('Eigene Dateien (Dokumente, Bilder, Musik, Videos)')}
+
+
+def offered():
+    """Emulator groups always; app and personal groups only when local data exists."""
+    dests = targets()
+    return [g for g in GROUPS if g in ('roms', 'saves', 'bios') or any(dests[k].is_dir() for k in GROUPS[g])]
+
+
+def check_running(groups):
+    titles = []
+    for group in groups:
+        if group.startswith('app-'):
+            info = APP_CATALOG[group[4:]]
+            found = subprocess.run(['pgrep', '-u', str(os.getuid()), '-x', info['process']],
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if found.returncode == 0:
+                titles.append(info['title'])
+    if titles:
+        raise ValueError(t('Bitte zuerst diese Apps beenden: {value0}', value0=', '.join(titles)))
+
+
+def check_separate(keys):
+    # Directory swaps must never contain one another, e.g. XDG folders pointing into app data.
+    dests = targets()
+    if any(lenient(key) and Path.home() not in dests[key].parents for key in keys):
+        raise ValueError(t('Ein Sicherungsordner liegt außerhalb des Benutzerordners.'))
+    paths = [dests[key] for key in keys]
+    for i, a in enumerate(paths):
+        for b in paths[i + 1:]:
+            if a == b or a in b.parents or b in a.parents:
+                raise ValueError(t('Sicherungsordner überschneiden sich. Bitte Ordnereinstellungen prüfen.'))
 
 
 @contextmanager
@@ -171,19 +243,40 @@ def available(device):
     return result
 
 
-def regular_files(root):
+def regular_files(root, key='', skipped=None):
     if root.is_symlink():
         raise ValueError(t('Verknüpfungen können nicht gesichert oder wiederhergestellt werden.'))
     if not root.exists():
         return
     for base, dirs, files in os.walk(root):
+        if Path(base) == root:
+            dirs[:] = [d for d in dirs if d not in EXCLUDES.get(key, ())]
+        regular = []
         for name in dirs + files:
             path = Path(base) / name
             mode = path.lstat().st_mode
-            if not (stat.S_ISDIR(mode) or stat.S_ISREG(mode)):
+            if stat.S_ISDIR(mode) or stat.S_ISREG(mode):
+                if name in files:
+                    regular.append(name)
+                continue
+            if not lenient(key):
                 raise ValueError(t('Verknüpfungen können nicht gesichert oder wiederhergestellt werden.'))
-        for name in sorted(files):
+            if skipped is not None:
+                skipped.append(path)
+            if name in dirs:
+                dirs.remove(name)
+        for name in sorted(regular):
             yield Path(base) / name
+
+
+def stage_ignore(key):
+    """copytree filter: keep local links as links, drop special files and excluded caches."""
+    def ignore(directory, names):
+        top = Path(directory) == targets()[key]
+        return [n for n in names if (top and n in EXCLUDES.get(key, ())) or not
+                ((Path(directory) / n).is_symlink() or stat.S_ISDIR((Path(directory) / n).lstat().st_mode)
+                 or stat.S_ISREG((Path(directory) / n).lstat().st_mode))]
+    return ignore
 
 
 def game_entries(items):
@@ -204,12 +297,14 @@ def game_entries(items):
     return result
 
 
-def create(device, groups, report):
-    for group in groups:
-        for key in GROUPS[group]:
-            safe_target(targets()[key])
-    files = [(key, root, file) for group in groups for key in GROUPS[group]
-             for root in [targets()[key]] for file in regular_files(root)]
+def create(device, groups, report, skipped=None):
+    keys = [key for group in groups for key in GROUPS[group]]
+    check_separate(keys)
+    check_running(groups)
+    for key in keys:
+        safe_target(targets()[key])
+    files = [(key, root, file) for key in keys
+             for root in [targets()[key]] for file in regular_files(root, key, skipped)]
     total = sum(file.stat().st_size for _, _, file in files)
     report(0, total)
     info = {'format': 'PaimenOS-backup-1', 'date': datetime.now(timezone.utc).isoformat(),
@@ -303,9 +398,14 @@ def restore(device, backup_id, groups, report):
         info = checked_manifest(backup)
         if not set(groups) <= set(info['groups']):
             raise ValueError(t('Auswahl ist in diesem Backup nicht enthalten.'))
-        keys = [key for group in groups for key in GROUPS[group]]
+        # App/personal locations only when the backup has files there: an empty ~/.luanti
+        # next to ~/.minetest would otherwise change where Luanti looks for worlds.
+        present = {f['root'] for f in info['files']}
+        keys = [key for group in groups for key in GROUPS[group] if not lenient(key) or key in present]
         if 'roms' in groups:
             keys.append('apps')
+        check_separate(keys)
+        check_running(groups)
         token = secrets.token_hex(8)
         dests = targets()
         stages = {key: dests[key].with_name('.restore-' + token + '-' + key) for key in keys}
@@ -321,9 +421,10 @@ def restore(device, backup_id, groups, report):
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 if key == 'apps':
                     continue
-                list(regular_files(dest))  # Refuse links before copying existing data.
+                list(regular_files(dest, key))  # Refuse links before copying existing data.
                 if dest.exists():
-                    shutil.copytree(dest, stage)
+                    # Local links are copied as links, never followed; backup files are not written through them.
+                    shutil.copytree(dest, stage, symlinks=True, ignore=stage_ignore(key))
                 else:
                     stage.mkdir()
             done = 0
@@ -364,7 +465,7 @@ def restore(device, backup_id, groups, report):
                 atomic_json(stages['apps'], [a for a in current if a.get('id') not in ids] + games)
             for key in keys:
                 stage = stages[key]
-                files = [stage] if key == 'apps' else list(regular_files(stage))
+                files = [stage] if key == 'apps' else list(regular_files(stage, key))
                 for file in files:
                     with file.open('rb') as handle:
                         os.fsync(handle.fileno())
@@ -415,12 +516,16 @@ def start(action, device, groups, backup_id=''):
         try:
             with data_lock(True), parent.app_transaction():
                 recover()
+                skipped = []
                 if action == 'create':
-                    create(device, groups, progress)
+                    create(device, groups, progress, skipped)
                 elif action == 'restore':
                     restore(device, backup_id, groups, progress)
+            message = t('Vorgang erfolgreich abgeschlossen.')
+            if skipped:
+                message += ' ' + t('{value0} Verknüpfungen oder Sonderdateien wurden übersprungen.', value0=len(skipped))
             with JOB_LOCK:
-                JOB.update(status='complete', message=t('Vorgang erfolgreich abgeschlossen.'))
+                JOB.update(status='complete', message=message)
         except Exception as exc:
             with JOB_LOCK:
                 JOB.update(status='error', message=str(exc))
