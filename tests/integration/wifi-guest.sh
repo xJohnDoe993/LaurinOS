@@ -61,7 +61,7 @@ CONF
     cp -a /source /root/PaimenOS
     sed -i '1a exit 77' /root/PaimenOS/installer/99-finish.sh
     cd /root/PaimenOS
-    if PAIMENOS_PARENT_PIN=4815 PAIMENOS_APPS=13 PAIMENOS_APP_SOURCE=debian PAIMENOS_EMULATORS=none PAIMENOS_ENABLE_TLP=0 PAIMENOS_ENABLE_ZRAM=0 PAIMENOS_ENABLE_AUTO_UPDATES=0 PAIMENOS_ENABLE_APP_UPDATES=0 bash install.sh; then
+    if PAIMENOS_PARENT_PIN=4815 PAIMENOS_HARDWARE_PROFILE=low PAIMENOS_APPS=13 PAIMENOS_APP_SOURCE=debian PAIMENOS_EMULATORS=none PAIMENOS_ENABLE_TLP=0 PAIMENOS_ENABLE_ZRAM=0 PAIMENOS_ENABLE_AUTO_UPDATES=0 PAIMENOS_ENABLE_APP_UPDATES=0 bash install.sh; then
         code=0
     else
         code=$?
@@ -72,7 +72,7 @@ CONF
     ip route get 1.1.1.1 | grep -q 'dev wlan0'
     cp /home/kids/.config/paimenos/settings.json /root/settings.before
     cp /source/installer/99-finish.sh installer/99-finish.sh
-    PAIMENOS_APPS=13 PAIMENOS_APP_SOURCE=debian PAIMENOS_EMULATORS=none PAIMENOS_ENABLE_TLP=0 PAIMENOS_ENABLE_ZRAM=0 PAIMENOS_ENABLE_AUTO_UPDATES=0 PAIMENOS_ENABLE_APP_UPDATES=0 bash install.sh --resume
+    PAIMENOS_HARDWARE_PROFILE=low PAIMENOS_APPS=13 PAIMENOS_APP_SOURCE=debian PAIMENOS_EMULATORS=none PAIMENOS_ENABLE_TLP=0 PAIMENOS_ENABLE_ZRAM=0 PAIMENOS_ENABLE_AUTO_UPDATES=0 PAIMENOS_ENABLE_APP_UPDATES=0 bash install.sh --resume
     [[ -f /etc/paimenos-laptop.installed ]]
     cmp /root/settings.before /home/kids/.config/paimenos/settings.json
     cmp /root/interfaces.before /etc/network/interfaces
